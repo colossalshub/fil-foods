@@ -10,7 +10,9 @@ It is planned to cover meal browsing, dietary information, ordering, order track
 
 ## Current Development
 
-This repository is the front-end foundation:
+The Expo app is in `frontend/`. `backend/` is reserved for a later server and is empty for now.
+
+The app currently includes:
 
 - Login and account registration
 - Password recovery
@@ -35,14 +37,14 @@ You need Node.js and npm. Visual Studio Code is a good editor for this project.
 
 ```bash
 git clone https://github.com/colossalshub/fil-foods.git
-cd fil-foods
+cd fil-foods/frontend
 npm install
 npx expo start
 ```
 
-`npm install` downloads the dependencies. They are not stored in the repository.
+`npm install` downloads the dependencies into `frontend/`. They are not stored in the repository.
 
-For a browser preview:
+For a browser preview, from `frontend/`:
 
 ```bash
 npx expo start --web
