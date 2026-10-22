@@ -10,7 +10,7 @@ export default function Chip({ label, active, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, marginRight: 8, marginBottom: 8 },
+  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   on: { backgroundColor: colors.primary, borderColor: colors.primary },
   text: { fontSize: font.sm, color: colors.primary },
 });

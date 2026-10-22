@@ -4,7 +4,7 @@ import AuthLayout from '../../components/AuthLayout';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
-import { useAuth } from '../../navigation/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
 import { colors, font } from '../../theme/theme';
 

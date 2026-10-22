@@ -41,5 +41,5 @@ export default function FilterModal({ visible, filters, onChange, onClose }) {
 
 const styles = StyleSheet.create({
   h: { fontSize: font.sm, fontWeight: '700', color: colors.primary, marginBottom: 6, marginTop: 4 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
 });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TextInput, FlatList, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, FlatList, ScrollView, Pressable, Alert, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../components/ScreenHeader';
@@ -14,6 +14,7 @@ export default function MealsScreen() {
   const [cuisine, setCuisine] = useState('All');
   const [filters, setFilters] = useState({ category: null, diets: [], allergens: [] });
   const [showFilters, setShowFilters] = useState(false);
+  const { width } = useWindowDimensions();
 
   const activeCount = (filters.category ? 1 : 0) + filters.diets.length + filters.allergens.length;
 
@@ -40,8 +41,8 @@ export default function MealsScreen() {
         </Pressable>
       </View>
 
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <View style={styles.chipScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, width < 520 && styles.chipsSpread]}>
           {CUISINES.map((c) => <Chip key={c} label={c} active={cuisine === c} onPress={() => setCuisine(c)} />)}
         </ScrollView>
       </View>
@@ -68,6 +69,8 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 6, fontSize: font.md, color: colors.text },
   filterBtn: { width: 42, height: 42, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
   badge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger, color: colors.white, fontSize: 10, textAlign: 'center', lineHeight: 16, overflow: 'hidden' },
-  chips: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  chipScroll: { marginHorizontal: spacing.lg, marginTop: spacing.md, height: 32 },
+  chips: { alignItems: 'center', gap: 8, height: 32 },
+  chipsSpread: { flexGrow: 1, justifyContent: 'space-between' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40, fontSize: font.md },
 });

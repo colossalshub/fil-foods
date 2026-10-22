@@ -1,6 +1,6 @@
 import PlaceholderScreen from './PlaceholderScreen';
 import AppButton from '../components/AppButton';
-import { useAuth } from '../navigation/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();

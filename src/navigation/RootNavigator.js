@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { AuthContext } from './AuthContext';
+import { AuthContext } from '../context/AuthContext';
 import MainTabs from './MainTabs';
 import LoginScreen from '../screens/auth/LoginScreen';
 import CreateAccountScreen from '../screens/auth/CreateAccountScreen';
