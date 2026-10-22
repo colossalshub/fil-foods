@@ -52,7 +52,7 @@ npx expo start --web
 
 ## Project Team
 
-Group 4
+Group 4 (Relish)
 
 - Hanna Joy L. Argueza
 - Michael Angelo C. Gamet
