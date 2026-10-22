@@ -1,6 +1,6 @@
 # F.I.L. FOODS Meal Management System
 
-A mobile app by Group 4 for F.I.L. FOODS, a personalized meal service that prepares nutritious meals around a client's diet and preferences.
+A mobile app by Relish (Group 4) for F.I.L. FOODS, a personalized meal service that prepares nutritious meals around a client's diet and preferences.
 
 ## About the Project
 
@@ -52,7 +52,7 @@ npx expo start --web
 
 ## Project Team
 
-Group 4 (Relish)
+Relish (Group 4)
 
 - Hanna Joy L. Argueza
 - Michael Angelo C. Gamet
