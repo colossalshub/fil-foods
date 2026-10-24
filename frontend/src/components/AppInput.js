@@ -1,24 +1,30 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, font, spacing } from '../theme/theme';
+import { colors, radius, font, spacing, touch } from '../theme/theme';
 
-export default function AppInput({ label, error, secure, style, ...props }) {
+export default function AppInput({ label, error, secure, style, fieldStyle, labelStyle, accessibilityLabel, ...props }) {
   const [hidden, setHidden] = useState(!!secure);
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.field, error && styles.fieldError]}>
+      {label ? <Text style={[styles.label, labelStyle]}>{label}</Text> : null}
+      <View style={[styles.field, fieldStyle, error && styles.fieldError]}>
         <TextInput
           style={styles.input}
           placeholderTextColor={colors.inactive}
-          secureTextEntry={hidden}
           autoCapitalize="none"
           {...props}
+          secureTextEntry={hidden}
+          accessibilityLabel={accessibilityLabel || label}
         />
         {secure ? (
-          <Pressable onPress={() => setHidden((h) => !h)} hitSlop={8}>
-            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.muted} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
+            onPress={() => setHidden((h) => !h)}
+            style={styles.eye}
+          >
+            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -29,13 +35,14 @@ export default function AppInput({ label, error, secure, style, ...props }) {
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
-  label: { fontSize: font.sm, color: colors.primary, fontWeight: '600', marginBottom: 4 },
+  label: { fontSize: font.body, color: colors.text, fontWeight: '600', marginBottom: 6 },
   field: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
-    paddingHorizontal: spacing.md, height: 44,
+    paddingHorizontal: spacing.md, minHeight: touch.min,
   },
   fieldError: { borderColor: colors.danger },
-  input: { flex: 1, fontSize: font.md, color: colors.text },
-  error: { fontSize: font.xs, color: colors.danger, marginTop: 3 },
+  input: { flex: 1, fontSize: font.body, color: colors.text, paddingVertical: 12 },
+  eye: { width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' },
+  error: { fontSize: font.body, color: colors.danger, marginTop: 6, lineHeight: 22 },
 });

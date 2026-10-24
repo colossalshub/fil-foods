@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MealsScreen from '../screens/MealsScreen';
+import MealsStack from './MealsStack';
+import { CartProvider } from '../context/CartContext';
 import OrderScreen from '../screens/OrderScreen';
-import TrackingScreen from '../screens/TrackingScreen';
+import TrackingStack from './TrackingStack';
 import AlertsScreen from '../screens/AlertsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { colors } from '../theme/theme';
@@ -19,6 +20,7 @@ export default function MainTabs() {
   const insets = useSafeAreaInsets();
 
   return (
+    <CartProvider>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -36,11 +38,12 @@ export default function MainTabs() {
         ),
       })}
     >
-      <Tab.Screen name="Meals" component={MealsScreen} />
+      <Tab.Screen name="Meals" component={MealsStack} />
       <Tab.Screen name="Order" component={OrderScreen} />
-      <Tab.Screen name="Tracking" component={TrackingScreen} />
+      <Tab.Screen name="Tracking" component={TrackingStack} />
       <Tab.Screen name="Alerts" component={AlertsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
+    </CartProvider>
   );
 }

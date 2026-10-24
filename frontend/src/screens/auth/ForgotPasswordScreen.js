@@ -1,46 +1,111 @@
 import { useState } from 'react';
-import { Text, Pressable, StyleSheet } from 'react-native';
-import AuthLayout from '../../components/AuthLayout';
+import { Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import LogoPlaceholder from '../../components/LogoPlaceholder';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
-import { requestPasswordReset } from '../../services/authService';
-import { colors, font } from '../../theme/theme';
-
-const PH_NUMBER = /^(09|\+639)\d{9}$/;
+import FormMessage from '../../components/FormMessage';
+import SegmentedToggle from '../../components/SegmentedToggle';
+import VerificationFlow from '../../components/VerificationFlow';
+import { lookupPasswordReset } from '../../services/authService';
+import { MSG } from '../../data/messages';
+import { colors, font, spacing } from '../../theme/theme';
 
 export default function ForgotPasswordScreen({ navigation }) {
-  const [contact, setContact] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('contact');
+  const [value, setValue] = useState('');
+  const [fieldError, setFieldError] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [resetUser, setResetUser] = useState(null);
 
-  const onSend = async () => {
-    setMessage('');
-    if (!PH_NUMBER.test(contact.replace(/\s/g, ''))) {
-      setError('Use 09XXXXXXXXX or +639XXXXXXXXX');
+  const onContinue = () => {
+    setMessages([]);
+    const result = lookupPasswordReset({ mode, value });
+    if (!result.ok) {
+      setResetUser(null);
+      if (result.message === MSG.invalidContact || result.message === MSG.invalidEmail) {
+        setFieldError(result.message);
+        setMessages([]);
+      } else {
+        setFieldError('');
+        setMessages([result.message]);
+      }
       return;
     }
-    setError('');
-    setLoading(true);
-    await requestPasswordReset({ contactNumber: contact });
-    setLoading(false);
-    // Placeholder feedback: no real SMS is sent yet.
-    setMessage('Code request recorded. SMS recovery is not enabled yet.');
+    setFieldError('');
+    setResetUser({ userId: result.userId, phone: result.phone, email: result.email });
   };
 
   return (
-    <AuthLayout title="Forgot password" subtitle="Enter your contact number and we'll send you a code">
-      <AppInput label="Contact number" value={contact} onChangeText={setContact} placeholder="09XXXXXXXXX" keyboardType="phone-pad" error={error} />
-      <AppButton title="Send Code" onPress={onSend} loading={loading} />
-      {message ? <Text style={styles.ok}>{message}</Text> : null}
-      <Pressable onPress={() => navigation.navigate('Login')} style={{ alignSelf: 'center', marginTop: 14 }}>
-        <Text style={styles.link}>Back to login</Text>
-      </Pressable>
-    </AuthLayout>
+    <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <LogoPlaceholder />
+          <Text style={styles.title} accessibilityRole="header">Forgot password</Text>
+          <Text style={styles.body}>
+            Enter the contact number or email on your account, then choose SMS or email for your code.
+          </Text>
+
+          {resetUser ? (
+            <VerificationFlow
+              userId={resetUser.userId}
+              purpose="reset"
+              phone={resetUser.phone}
+              email={resetUser.email}
+              onVerified={(grantId) => navigation.navigate('NewPassword', { grantId })}
+            />
+          ) : (
+            <>
+              <SegmentedToggle
+                label="Look up by"
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: 'contact', label: 'Contact number' },
+                  { value: 'email', label: 'Email' },
+                ]}
+              />
+              <AppInput
+                label={mode === 'contact' ? 'Contact number' : 'Email address'}
+                value={value}
+                onChangeText={setValue}
+                placeholder={mode === 'contact' ? '09XXXXXXXXX' : 'you@example.com'}
+                keyboardType={mode === 'contact' ? 'phone-pad' : 'email-address'}
+                autoCapitalize={mode === 'email' ? 'none' : 'sentences'}
+                error={fieldError}
+              />
+              <FormMessage messages={messages} tone="error" />
+              <AppButton title="Continue" onPress={onContinue} />
+            </>
+          )}
+
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => navigation.navigate('Login')}
+            style={styles.backLink}
+          >
+            <Text style={styles.link}>Back to login</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  ok: { fontSize: font.sm, color: colors.secondary, backgroundColor: colors.tint, padding: 10, borderRadius: 8, marginTop: 12, overflow: 'hidden' },
-  link: { fontSize: font.sm, color: colors.secondary },
+  page: { flex: 1, backgroundColor: colors.page, alignItems: 'center' },
+  flex: { flex: 1, width: '100%', maxWidth: 430 },
+  scroll: {
+    width: '100%',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+  },
+  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
+  body: { fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
+  backLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
+  link: { fontSize: font.md, color: colors.secondary, fontWeight: '700' },
 });

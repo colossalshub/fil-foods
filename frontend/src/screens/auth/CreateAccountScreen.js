@@ -1,81 +1,137 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
-import AuthLayout from '../../components/AuthLayout';
+import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
+import FormMessage from '../../components/FormMessage';
+import GoogleSignIn from '../../components/GoogleSignIn';
+import LogoPlaceholder from '../../components/LogoPlaceholder';
+import { useAuth } from '../../context/AuthContext';
 import { TermsModal } from '../../components/LegalModals';
 import { register } from '../../services/authService';
-import { colors, font } from '../../theme/theme';
+import { MSG } from '../../data/messages';
+import { colors, font, spacing } from '../../theme/theme';
 
-const PH_NUMBER = /^(09|\+639)\d{9}$/;
+const EMPTY = {
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  suffix: '',
+  contactNumber: '',
+  email: '',
+  username: '',
+  password: '',
+};
 
 export default function CreateAccountScreen({ navigation }) {
-  const [form, setForm] = useState({ firstName: '', lastName: '', contactNumber: '', username: '', password: '' });
+  const { signIn } = useAuth();
+  const [form, setForm] = useState(EMPTY);
   const [accepted, setAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [fields, setFields] = useState({});
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
-
-  const validate = () => {
-    const e = {};
-    if (!form.firstName.trim()) e.firstName = 'Required';
-    if (!form.lastName.trim()) e.lastName = 'Required';
-    if (!PH_NUMBER.test(form.contactNumber.replace(/\s/g, ''))) e.contactNumber = 'Use 09XXXXXXXXX or +639XXXXXXXXX';
-    if (!/^\w{4,}$/.test(form.username)) e.username = 'At least 4 letters, numbers or _';
-    if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/\d/.test(form.password)) {
-      e.password = 'At least 8 characters with a letter and a number';
-    }
-    if (!accepted) e.terms = 'You must accept the Terms and Conditions';
-    return e;
-  };
+  const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }));
 
   const onRegister = async () => {
-    const e = validate();
-    setErrors(e);
-    if (Object.keys(e).length) return;
     setLoading(true);
-    const res = await register(form);
-    setLoading(false);
-    if (res.ok) {
-      Alert.alert('Account created', 'You can now log in.', [{ text: 'OK', onPress: () => navigation.navigate('Login') }]);
+    try {
+      const result = await register({ ...form, acceptedTerms: accepted });
+      if (!result.ok) {
+        setFields(result.fields || {});
+        setMessages(result.messages || [MSG.required]);
+        return;
+      }
+      setFields({});
+      setMessages([]);
+      navigation.replace('VerifyAccount', { userId: result.userId });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title="Create account" subtitle="Join F.I.L. FOODS">
-      <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} placeholder="First name" autoCapitalize="words" error={errors.firstName} />
-      <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} placeholder="Last name" autoCapitalize="words" error={errors.lastName} />
-      <AppInput label="Contact number" value={form.contactNumber} onChangeText={set('contactNumber')} placeholder="09XXXXXXXXX" keyboardType="phone-pad" error={errors.contactNumber} />
-      <AppInput label="Username" value={form.username} onChangeText={set('username')} placeholder="Username" error={errors.username} />
-      <AppInput label="Password" value={form.password} onChangeText={set('password')} placeholder="Password" secure error={errors.password} />
+    <View style={styles.page}>
+      <SafeAreaView style={styles.column} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <LogoPlaceholder />
+            <Text style={styles.title} accessibilityRole="header">Create account</Text>
+            <Text style={styles.subtitle}>
+              Register with your details so you can order meals and keep your health information in one place.
+            </Text>
 
-      <Checkbox checked={accepted} onToggle={() => setAccepted((a) => !a)}>
-        I accept the{' '}
-        <Text style={styles.link} onPress={() => setShowTerms(true)}>Terms and Conditions</Text>
-      </Checkbox>
-      {errors.terms ? <Text style={styles.err}>{errors.terms}</Text> : null}
+            <FormMessage messages={messages} />
 
-      <AppButton title="Create Account" onPress={onRegister} loading={loading} />
-      <View style={styles.row}>
-        <Text style={styles.muted}>Already have an account? </Text>
-        <Pressable onPress={() => navigation.navigate('Login')}><Text style={[styles.link, { fontWeight: '700' }]}>Login</Text></Pressable>
-      </View>
+            <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} autoCapitalize="words" autoComplete="given-name" error={fields.firstName} />
+            <AppInput label="Middle name (optional)" value={form.middleName} onChangeText={set('middleName')} autoCapitalize="words" />
+            <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} autoCapitalize="words" autoComplete="family-name" error={fields.lastName} />
+            <AppInput label="Suffix (optional)" value={form.suffix} onChangeText={set('suffix')} autoCapitalize="words" accessibilityLabel="Suffix, optional, for example Jr or III" />
+            <AppInput label="Contact number" value={form.contactNumber} onChangeText={set('contactNumber')} keyboardType="number-pad" autoComplete="tel" error={fields.contactNumber} />
+            <AppInput label="Email address" value={form.email} onChangeText={set('email')} keyboardType="email-address" autoComplete="email" autoCapitalize="none" error={fields.email} />
+            <AppInput label="Username" value={form.username} onChangeText={set('username')} autoComplete="username" autoCapitalize="none" error={fields.username} />
+            <AppInput label="Password" value={form.password} onChangeText={set('password')} secure autoComplete="password-new" textContentType="newPassword" error={fields.password} />
+
+            <Checkbox
+              checked={accepted}
+              onToggle={() => setAccepted((value) => !value)}
+              accessibilityLabel="I accept the Terms and Conditions"
+            >
+              I accept the Terms and Conditions
+            </Checkbox>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="View Terms and Conditions"
+              onPress={() => setShowTerms(true)}
+              style={styles.termsLink}
+            >
+              <Text style={styles.termsLinkText}>View Terms and Conditions</Text>
+            </Pressable>
+            {fields.terms ? <Text style={styles.fieldError}>{fields.terms}</Text> : null}
+
+            <AppButton title="Create account" onPress={onRegister} loading={loading} color={colors.action} style={styles.action} />
+            <GoogleSignIn
+              showDemo
+              color={colors.primary}
+              style={styles.action}
+              onSuccess={(googleUser) => signIn(googleUser, { keepLoggedIn: false })}
+              onLink={(google) => navigation.navigate('LinkGoogle', { google, keepLoggedIn: false })}
+            />
+
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Log in"
+              onPress={() => navigation.navigate('Login')}
+              style={styles.loginLink}
+            >
+              <Text style={styles.loginText}>Already have an account? Log in</Text>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       <TermsModal
         visible={showTerms}
         onClose={() => setShowTerms(false)}
         onAccept={() => { setAccepted(true); setShowTerms(false); }}
       />
-    </AuthLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  link: { fontSize: font.sm, color: colors.secondary, textDecorationLine: 'underline' },
-  err: { fontSize: font.xs, color: colors.danger, marginTop: -6, marginBottom: 10 },
-  row: { flexDirection: 'row', justifyContent: 'center', marginTop: 14 },
-  muted: { fontSize: font.sm, color: colors.muted },
+  page: { flex: 1, backgroundColor: colors.page, alignItems: 'center' },
+  column: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.page },
+  flex: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
+  subtitle: { fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
+  termsLink: { minHeight: 48, justifyContent: 'center', marginTop: -4, marginBottom: spacing.sm },
+  termsLinkText: { fontSize: font.body, color: colors.action, textDecorationLine: 'underline' },
+  fieldError: { fontSize: font.body, lineHeight: 22, color: colors.danger, marginBottom: spacing.md },
+  action: { marginTop: spacing.sm },
+  loginLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
+  loginText: { fontSize: font.body, color: colors.primary, fontWeight: '600' },
 });

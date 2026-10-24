@@ -1,19 +1,33 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import AuthLayout from '../../components/AuthLayout';
+import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
+import GoogleSignIn from '../../components/GoogleSignIn';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
-import { colors, font } from '../../theme/theme';
+import { colors, font, spacing } from '../../theme/theme';
+
+const GREEN = '#1B7A3A';
+const plate = require('../../../assets/images/meal-plate.png');
+const plateUri = typeof plate === 'string' ? plate : plate?.uri;
+
+const fieldStyle = {
+  height: 52,
+  borderRadius: 14,
+  borderColor: GREEN,
+  backgroundColor: colors.white,
+};
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [keep, setKeep] = useState(false); // not persisted yet (no storage)
+  const [keep, setKeep] = useState(false);
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const onLogin = async () => {
@@ -21,35 +35,140 @@ export default function LoginScreen({ navigation }) {
     if (!username.trim()) e.username = 'Enter your username';
     if (!password) e.password = 'Enter your password';
     setErrors(e);
+    setFormError('');
     if (Object.keys(e).length) return;
     setLoading(true);
-    const res = await login({ username: username.trim(), password });
+    const res = await login({ username: username.trim(), password, keepLoggedIn: keep });
     setLoading(false);
-    if (res.ok) signIn(res.user);
+    if (res.ok) {
+      signIn(res.user, { keepLoggedIn: keep });
+      return;
+    }
+    if (res.verifyRequired && res.userId) {
+      navigation.navigate('VerifyAccount', { userId: res.userId });
+    }
+    setFormError(res.message || 'Could not log in. Try again.');
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Log in to manage your meals">
-      <AppInput label="Username" value={username} onChangeText={setUsername} placeholder="Username" error={errors.username} />
-      <AppInput label="Password" value={password} onChangeText={setPassword} placeholder="Password" secure error={errors.password} />
-      <Checkbox checked={keep} onToggle={() => setKeep((k) => !k)}>Keep me logged in</Checkbox>
-      <AppButton title="Login" onPress={onLogin} loading={loading} />
-      <Pressable onPress={() => navigation.navigate('ForgotPassword')} style={styles.link}>
-        <Text style={styles.linkText}>Forgot password?</Text>
-      </Pressable>
-      <View style={styles.row}>
-        <Text style={styles.muted}>No account yet? </Text>
-        <Pressable onPress={() => navigation.navigate('CreateAccount')}>
-          <Text style={[styles.linkText, { fontWeight: '700' }]}>Create account</Text>
-        </Pressable>
-      </View>
-    </AuthLayout>
+    <View style={styles.page}>
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <SafeAreaView edges={['top']} style={styles.header}>
+        <View
+          accessibilityLabel="Grilled chicken with rice and vegetables"
+          style={[
+            styles.plateWrap,
+            Platform.OS === 'web' && plateUri ? { backgroundImage: `url(${plateUri})` } : null,
+          ]}
+        >
+          {Platform.OS === 'web' ? null : (
+            <Image source={plate} style={styles.plate} resizeMode="cover" />
+          )}
+        </View>
+        <Text style={styles.brand} accessibilityRole="header">Food is Life</Text>
+        <Text style={styles.tagline}>Healthy meals, made with care.</Text>
+      </SafeAreaView>
+
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+          <AppInput
+            label="Username"
+            value={username}
+            onChangeText={setUsername}
+            autoComplete="username"
+            textContentType="username"
+            error={errors.username}
+            fieldStyle={fieldStyle}
+            labelStyle={styles.label}
+          />
+          <AppInput
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secure
+            autoComplete="password"
+            textContentType="password"
+            error={errors.password}
+            fieldStyle={fieldStyle}
+            labelStyle={styles.label}
+          />
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.forgotLink}
+          >
+            <Text style={styles.textLinkLabel}>Forgot password?</Text>
+          </Pressable>
+          <Checkbox checked={keep} onToggle={() => setKeep((k) => !k)} color={GREEN}>Keep me logged in</Checkbox>
+          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+
+          <AppButton title="Log in" onPress={onLogin} loading={loading} color={GREEN} style={styles.primary} />
+          <GoogleSignIn
+            showDemo
+            color={GREEN}
+            style={styles.outline}
+            onSuccess={(googleUser) => signIn(googleUser, { keepLoggedIn: keep })}
+            onLink={(google) => navigation.navigate('LinkGoogle', { google, keepLoggedIn: keep })}
+          />
+
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => navigation.navigate('CreateAccount')}
+            style={styles.textLink}
+          >
+            <Text style={styles.textLinkLabel}>Create an account</Text>
+          </Pressable>
+
+          <View style={styles.spacer} />
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => signIn({ role: 'visitor', username: 'visitor' })}
+            style={styles.visitorLink}
+          >
+            <Text style={styles.visitorLabel}>Continue as visitor</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  link: { alignSelf: 'center', marginTop: 14 },
-  linkText: { fontSize: font.sm, color: colors.secondary },
-  row: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 },
-  muted: { fontSize: font.sm, color: colors.muted },
+  page: { flex: 1, backgroundColor: '#1A1A1A', alignItems: 'center' },
+  root: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.white },
+  flex: { flex: 1 },
+  header: {
+    backgroundColor: GREEN,
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  plateWrap: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: colors.white,
+    padding: 6,
+    overflow: 'hidden',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  },
+  plate: { width: 100, height: 100, borderRadius: 50, opacity: 1 },
+  brand: { color: colors.white, fontSize: 26, fontWeight: '700', marginTop: spacing.lg, textAlign: 'center' },
+  tagline: { color: 'rgba(255,255,255,0.92)', fontSize: font.lg, marginTop: 4, textAlign: 'center' },
+  form: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xl },
+  label: { color: colors.text, fontSize: font.md, fontWeight: '600', marginBottom: 6 },
+  formError: { color: colors.danger, fontSize: font.sm, marginBottom: spacing.sm },
+  primary: { borderRadius: 16, marginTop: 4 },
+  outline: { borderRadius: 16, borderColor: GREEN, marginTop: spacing.md },
+  forgotLink: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', paddingHorizontal: spacing.sm },
+  textLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.sm, marginTop: spacing.sm },
+  textLinkLabel: { color: GREEN, fontSize: font.md, fontWeight: '700', textAlign: 'center' },
+  spacer: { flexGrow: 1, minHeight: spacing.xl },
+  visitorLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.sm },
+  visitorLabel: { color: colors.text, fontSize: font.md, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline' },
 });

@@ -2,11 +2,17 @@ import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, font } from '../theme/theme';
 
-export default function Checkbox({ checked, onToggle, children }) {
+export default function Checkbox({ checked, onToggle, children, color, accessibilityLabel }) {
   return (
-    <Pressable style={styles.row} onPress={onToggle}>
-      <View style={[styles.box, checked && styles.boxOn]}>
-        {checked ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!checked }}
+      accessibilityLabel={accessibilityLabel || (typeof children === 'string' ? children : undefined)}
+      style={styles.row}
+      onPress={onToggle}
+    >
+      <View style={[styles.box, color && { borderColor: color }, checked && [styles.boxOn, color && { backgroundColor: color, borderColor: color }]]}>
+        {checked ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}
       </View>
       <Text style={styles.label}>{children}</Text>
     </Pressable>
@@ -14,8 +20,8 @@ export default function Checkbox({ checked, onToggle, children }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  box: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: colors.secondary, alignItems: 'center', justifyContent: 'center', marginRight: 8, backgroundColor: colors.white },
-  boxOn: { backgroundColor: colors.secondary },
-  label: { flex: 1, fontSize: font.sm, color: colors.text },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, minHeight: 48 },
+  box: { width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginRight: 12, backgroundColor: colors.white },
+  boxOn: { backgroundColor: colors.action },
+  label: { flex: 1, fontSize: font.body, color: colors.text, lineHeight: 22 },
 });

@@ -1,8 +1,24 @@
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AuthHeader from './AuthHeader';
 import { colors, font, radius, spacing, card } from '../theme/theme';
 
-export default function AuthLayout({ title, subtitle, children }) {
+export default function AuthLayout({ variant, title, subtitle, onBack, children }) {
+  if (variant === 'back') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <AuthHeader variant="back" title={title} onBack={onBack} />
+        <SafeAreaView edges={['bottom']} style={{ flex: 1 }}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={styles.backScroll} keyboardShouldPersistTaps="handled">
+              <View style={styles.card}>{children}</View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -19,6 +35,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 }
 
 const styles = StyleSheet.create({
+  backScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   scroll: { padding: spacing.xl, alignItems: 'center' },
   logo: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
   logoText: { color: colors.white, fontWeight: '800', fontSize: font.lg },

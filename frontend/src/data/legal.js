@@ -1,8 +1,9 @@
 export const TERMS_TEXT = `1. Acceptance
 By creating an account you agree to these Terms and Conditions.
 
-2. Your information
-We collect the details you provide (name, contact number, dietary and health information) only to personalize meals and process orders.
+2. Health and dietary information
+We collect the health conditions, dietary restrictions, food allergies, and meal preferences you enter, together with your name and contact number.
+We use that information to prepare meals that fit your diet and to warn you when a meal conflicts with an allergy you recorded.
 
 3. Dietary and allergy information
 You are responsible for keeping your allergy and dietary details accurate. F.I.L. FOODS is not a substitute for medical advice.
