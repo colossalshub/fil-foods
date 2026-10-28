@@ -163,7 +163,7 @@ test('password reset validation and success for msantos', async () => {
   const ok = updatePassword({ grantId, password: 'NewMeal@2026', confirmPassword: 'NewMeal@2026' });
   assert.equal(ok.ok, true);
   assert.equal(ok.message, MSG.passwordUpdated);
-  assert.equal(maria.password, 'NewMeal@2026');
+  assert.match(maria.passwordHash, /^\$2[aby]\$/);
   assert.equal(maria.locked, false);
   assert.equal(maria.failedAttempts, 0);
   assert.equal(maria.sessionVersion, versionBefore + 1);

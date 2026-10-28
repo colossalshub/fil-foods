@@ -7,6 +7,7 @@ import { formatTimestamp } from '../utils/time.js';
 import { verifyCode, sendCode } from './verificationService.js';
 import { clearPersistedSession } from './sessionPersistence.js';
 import { disableBiometricUnlock } from './biometricService.js';
+import { comparePassword, comparePasswordSync, hashPasswordSync } from './securityService.js';
 
 const wait = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
@@ -31,7 +32,7 @@ export function normalizeContact(value) {
 
 export function isGoogleOnlyAccount(user) {
   if (!user) return false;
-  const noPassword = user.password == null || user.password === '';
+  const noPassword = user.passwordHash == null || user.passwordHash === '';
   return noPassword && !!user.googleSub;
 }
 
@@ -78,12 +79,12 @@ export async function login({ username, password }) {
     return { ok: false, message: MSG.locked };
   }
 
-  const hasPassword = user.password != null && user.password !== '';
+  const hasPassword = user.passwordHash != null && user.passwordHash !== '';
   if (!hasPassword) {
     return { ok: false, message: MSG.invalidCredentials };
   }
 
-  if (pass !== user.password) {
+  if (!(await comparePassword(pass, user.passwordHash))) {
     user.failedAttempts += 1;
     if (user.failedAttempts >= MAX_FAILED_ATTEMPTS) {
       user.locked = true;
@@ -154,12 +155,12 @@ export async function linkGoogleAccount({ username, password, google }) {
     return { ok: false, message: MSG.locked };
   }
 
-  const hasPassword = user.password != null && user.password !== '';
+  const hasPassword = user.passwordHash != null && user.passwordHash !== '';
   if (!hasPassword) {
     return { ok: false, message: MSG.invalidCredentials };
   }
 
-  if (pass !== user.password) {
+  if (!(await comparePassword(pass, user.passwordHash))) {
     user.failedAttempts += 1;
     if (user.failedAttempts >= MAX_FAILED_ATTEMPTS) {
       user.locked = true;
@@ -342,7 +343,7 @@ export function updatePassword({ grantId, password, confirmPassword }) {
   }
 
   const user = getUser(grant.userId);
-  if (user && pass === user.password) {
+  if (user && comparePasswordSync(pass, user.passwordHash)) {
     messages.push(MSG.samePassword);
   }
 
@@ -352,7 +353,8 @@ export function updatePassword({ grantId, password, confirmPassword }) {
   }
 
   grant.used = true;
-  user.password = pass;
+  user.passwordHash = hashPasswordSync(pass);
+  user.passwordStorage = 'bcrypt';
   user.sessionVersion += 1;
   user.locked = false;
   user.failedAttempts = 0;

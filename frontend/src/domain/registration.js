@@ -1,8 +1,8 @@
 // CLT-01 registration rules. This module does not talk to React Native.
-// Password hashing (Argon2id or bcrypt) needs a backend. Until then the demo
-// store keeps the password in memory and labels it plaintext-demo. Do not log it.
+// The local stand-in uses bcrypt so its credential contract matches the backend.
 
 import { MSG } from '../data/messages.js';
+import { appendAuditEvent, hashPasswordSync, ROLES } from '../services/securityService.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -100,9 +100,9 @@ export function buildUnverifiedAccount(input, { id, now }) {
     contactNumber: trim(input.contactNumber),
     email: trim(input.email),
     username: trim(input.username),
-    password: String(input.password ?? ''),
-    passwordHash: null,
-    passwordStorage: 'plaintext-demo',
+    passwordHash: hashPasswordSync(input.password),
+    passwordStorage: 'bcrypt',
+    roleMask: ROLES.CLIENT,
     verified: false,
     profileComplete: false,
     inactive: false,
@@ -154,5 +154,12 @@ export function registerAccount(input, db, { id, now }) {
   if (!validation.ok) return { ok: false, messages: validation.messages, fields: validation.fields };
   const user = buildUnverifiedAccount(input, { id, now });
   db.users.push(user);
+  appendAuditEvent(db, {
+    action: 'account.created',
+    userId: user.id,
+    targetId: user.id,
+    metadata: { username: user.username },
+    at: now,
+  });
   return { ok: true, userId: user.id, user: toPublicUser(user) };
 }

@@ -113,13 +113,13 @@ test('terms must be accepted with the specified message', () => {
   assert.equal(result.ok, false);
 });
 
-test('the demo record is not presented as a hash', () => {
+test('credentials are stored as bcrypt hashes and never exposed', () => {
   const db = { users: [] };
   const result = registerAccount(form(), db, { id: 'user-4', now: '2026-10-24T00:00:00.000Z' });
   const stored = db.users[0];
   assert.equal(result.user.password, undefined);
-  assert.equal(stored.passwordHash, null);
-  assert.equal(stored.passwordStorage, 'plaintext-demo');
+  assert.match(stored.passwordHash, /^\$2[aby]\$/);
+  assert.equal(stored.passwordStorage, 'bcrypt');
   assert.equal(toPublicUser(stored).password, undefined);
 });
 
@@ -133,7 +133,7 @@ test('register() saves an unverified account in the demo store', async () => {
   assert.equal(result.ok, true);
   const saved = getDb().users.find((user) => user.id === result.userId);
   assert.equal(saved.verified, false);
-  assert.equal(saved.passwordStorage, 'plaintext-demo');
+  assert.equal(saved.passwordStorage, 'bcrypt');
   assert.equal(result.user.password, undefined);
 
   const again = await register(form({

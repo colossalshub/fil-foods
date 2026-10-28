@@ -1,5 +1,6 @@
 // CLT-44 Biometric unlock. No fingerprint or face data is stored — only { enabled } on the user.
 import { getDb } from '../data/mockStore.js';
+import { comparePasswordSync } from './securityService.js';
 import { toPublicUser } from '../domain/registration.js';
 import { MSG } from '../data/messages.js';
 
@@ -78,9 +79,9 @@ export function biometricRequiresPassword(userId) {
 function verifyCurrentPassword(userId, password) {
   const user = getUser(userId);
   if (!user) return false;
-  const hasPassword = user.password != null && user.password !== '';
+  const hasPassword = user.passwordHash != null && user.passwordHash !== '';
   if (!hasPassword) return false;
-  return String(password ?? '') === user.password;
+  return comparePasswordSync(password, user.passwordHash);
 }
 
 export function disableBiometricUnlock(userId) {

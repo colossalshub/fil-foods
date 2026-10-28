@@ -1,9 +1,9 @@
 // In-memory stand-in for the backend. Screens must not import this file.
-// Passwords below are readable ONLY so the demo can sign in as msantos / Meal@2026.
-// A real backend must store an Argon2id or bcrypt hash and must never write the
-// password to disk, AsyncStorage, or logs.
+// The seeded credential is hashed at store initialization and is never exposed
+// to screens, AsyncStorage, or logs.
 
 import { nowIso } from '../utils/time.js';
+import { hashPasswordSync, ROLES } from '../services/securityService.js';
 
 function sampleUsers() {
   const accepted = '2026-10-11T01:00:00.000Z';
@@ -18,7 +18,9 @@ function sampleUsers() {
       contactNumber: '09171234567',
       email: 'maria.santos@gmail.com',
       username: 'msantos',
-      password: 'Meal@2026',
+      passwordHash: hashPasswordSync('Meal@2026'),
+      passwordStorage: 'bcrypt',
+      roleMask: ROLES.CLIENT,
       verified: true,
       profileComplete: true,
       inactive: false,
@@ -101,6 +103,7 @@ function sampleUsers() {
 function emptyDb() {
   return {
     users: sampleUsers(),
+    auditLog: [],
     codes: [],
     grants: [],
     // Login attempts in the last minute, for the rate limit. This app is one device.

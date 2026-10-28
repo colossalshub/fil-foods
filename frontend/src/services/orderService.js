@@ -3,6 +3,8 @@
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { getUser } from './authService.js';
 import { rankMeal, sortMealsForProfile } from './profileService.js';
+import { appendAuditEvent } from './securityService.js';
+export { solveNutritionPlan } from './nutritionService.js';
 
 export const ORDER_MSG = {
   noMeals: 'No meals found. Try a different name.',
@@ -470,6 +472,13 @@ export function confirmOrder(userId, payload) {
     };
 
     orders.push(order);
+    appendAuditEvent(getDb(), {
+      action: 'record.created',
+      userId,
+      targetId: order.id,
+      metadata: { type: 'order', trackingNumber: order.trackingNumber },
+      at: placedIso,
+    });
     inFlightConfirm.set(key, { order, placing: false });
     return { ok: true, order, message: ORDER_MSG.orderSuccess, duplicate: false };
   } finally {
