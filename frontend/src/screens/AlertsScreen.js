@@ -32,7 +32,7 @@ export default function AlertsScreen() {
     markAlertRead(userId, item.kind, item.id);
     reload();
     if (item.orderId) {
-      navigation.navigate('Tracking', {
+      navigation.getParent()?.navigate('Orders', {
         screen: 'OrderDetail',
         params: { orderId: item.orderId },
       });

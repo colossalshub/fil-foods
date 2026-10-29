@@ -7,7 +7,7 @@ import { formatTimestamp } from '../utils/time.js';
 import { verifyCode, sendCode } from './verificationService.js';
 import { clearPersistedSession } from './sessionPersistence.js';
 import { disableBiometricUnlock } from './biometricService.js';
-import { comparePassword, comparePasswordSync, hashPasswordSync } from './securityService.js';
+import { appendAuditEvent, comparePassword, comparePasswordSync, hashPasswordSync } from './securityService.js';
 
 const wait = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
@@ -104,6 +104,12 @@ export async function login({ username, password }) {
   }
 
   user.authEvents.push({ type: 'login', at: stamp() });
+  appendAuditEvent(getDb(), {
+    action: 'login',
+    userId: user.id,
+    targetId: user.id,
+    metadata: { type: 'auth' },
+  });
 
   // CLT-41 (plans) and meal ordering must reject unverified accounts the same way.
   return { ok: true, user: toPublicUser(user) };
@@ -114,6 +120,12 @@ export function logout(userId) {
   if (!user) return;
   disableBiometricUnlock(userId);
   user.authEvents.push({ type: 'logout', at: stamp() });
+  appendAuditEvent(getDb(), {
+    action: 'logout',
+    userId: user.id,
+    targetId: user.id,
+    metadata: { type: 'auth' },
+  });
 }
 
 export async function register(data) {
@@ -131,6 +143,12 @@ export function recordLogin(userId) {
   const user = getUser(userId);
   if (!user) return null;
   user.authEvents.push({ type: 'login', at: stamp() });
+  appendAuditEvent(getDb(), {
+    action: 'login',
+    userId: user.id,
+    targetId: user.id,
+    metadata: { type: 'auth' },
+  });
   return toPublicUser(user);
 }
 

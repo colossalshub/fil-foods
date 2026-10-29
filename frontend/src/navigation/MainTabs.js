@@ -1,17 +1,16 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import HomeScreen from '../screens/HomeScreen';
 import MealsStack from './MealsStack';
+import AccountStack from './AccountStack';
 import { CartProvider } from '../context/CartContext';
-import OrderScreen from '../screens/OrderScreen';
 import TrackingStack from './TrackingStack';
-import AlertsScreen from '../screens/AlertsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 import { colors } from '../theme/theme';
 
 const Tab = createBottomTabNavigator();
 const ICONS = {
-  Meals: 'restaurant', Order: 'cart', Tracking: 'location', Alerts: 'notifications', Profile: 'person',
+  Home: 'home', Meals: 'restaurant', Orders: 'receipt', Account: 'person',
 };
 // Icon row plus label. The default 49px bar shrinks the label on web and clips it.
 const TAB_CONTENT_HEIGHT = 64;
@@ -22,6 +21,7 @@ export default function MainTabs() {
   return (
     <CartProvider>
     <Tab.Navigator
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -38,11 +38,10 @@ export default function MainTabs() {
         ),
       })}
     >
+      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Meals" component={MealsStack} />
-      <Tab.Screen name="Order" component={OrderScreen} />
-      <Tab.Screen name="Tracking" component={TrackingStack} />
-      <Tab.Screen name="Alerts" component={AlertsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Orders" component={TrackingStack} />
+      <Tab.Screen name="Account" component={AccountStack} />
     </Tab.Navigator>
     </CartProvider>
   );

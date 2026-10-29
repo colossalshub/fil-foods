@@ -3,6 +3,8 @@ import test from 'node:test';
 import {
   buildPersistedSession,
   evaluateSessionRestore,
+  INACTIVITY_MS,
+  shouldEndSession,
   shouldPersistSession,
 } from './sessionPolicy.js';
 
@@ -44,4 +46,20 @@ test('session restore rejects locked accounts and session version bumps', () => 
   assert.equal(evaluateSessionRestore(stored, { ...active, locked: true }).restore, false);
   assert.equal(evaluateSessionRestore(stored, { ...active, sessionVersion: 2 }).restore, false);
   assert.equal(evaluateSessionRestore(null, active).restore, false);
+});
+
+test('a session without keep-me-logged-in ends in the background or after inactivity', () => {
+  assert.equal(shouldEndSession({ keepLoggedIn: true, appBackgrounded: true }), false);
+  assert.equal(shouldEndSession({ keepLoggedIn: false, appBackgrounded: true }), true);
+  const now = 1_000_000;
+  assert.equal(shouldEndSession({
+    keepLoggedIn: false,
+    lastActiveAt: now - INACTIVITY_MS,
+    now,
+  }), true);
+  assert.equal(shouldEndSession({
+    keepLoggedIn: false,
+    lastActiveAt: now - 1000,
+    now,
+  }), false);
 });

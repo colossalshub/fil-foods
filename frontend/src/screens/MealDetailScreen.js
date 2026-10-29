@@ -39,7 +39,16 @@ export default function MealDetailScreen({ route, navigation }) {
     setQtyError(result.ok ? '' : result.message);
   };
 
+  const needsAccount = !user?.id || user.role === 'visitor';
+
   const onAdd = () => {
+    if (needsAccount) {
+      Alert.alert('Log in to order', 'Create an account or log in before placing an order.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Log in', onPress: () => navigation.getParent()?.getParent()?.getParent()?.navigate('Login') },
+      ]);
+      return;
+    }
     const result = parseQuantityInput(quantityText);
     if (!result.ok) {
       setQtyError(result.message);
@@ -49,7 +58,7 @@ export default function MealDetailScreen({ route, navigation }) {
     addItem(meal, result.value);
     Alert.alert('Added to order', `${meal.name} × ${result.value} is in your cart.`, [
       { text: 'Keep browsing', style: 'cancel' },
-      { text: 'View order', onPress: () => navigation.getParent()?.navigate('Order') },
+      { text: 'View order', onPress: () => navigation.navigate('Checkout') },
     ]);
   };
 

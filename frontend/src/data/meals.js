@@ -1,6 +1,8 @@
 export const CUISINES = ['All', 'Filipino', 'Asian', 'Western', 'Mediterranean'];
 export const CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+export const FILTER_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Soup', 'Fish'];
 export const DIETS = ['Vegetarian', 'Vegan', 'Low-carb', 'High-protein'];
+export const FILTER_RESTRICTIONS = ['Low-sodium', 'Low-sugar', 'Soft diet', 'Vegetarian', 'Vegan', 'Low-carb', 'High-protein'];
 export const ALLERGENS = ['Peanuts', 'Shellfish', 'Dairy', 'Gluten', 'Egg', 'Soy'];
 
 export const MEALS = [
@@ -26,8 +28,8 @@ export const MEALS = [
   },
   {
     id: '5', name: 'Oatmeal with Fruits', cuisine: 'Western', category: 'Breakfast',
-    diets: ['Vegetarian'], allergens: ['Gluten', 'Dairy'], calories: 290, protein: 10, sodium: 120, price: 120, emoji: '🥣',
-    mealCategories: [], dietaryTags: [], ingredients: ['Oats', 'Fruit'],
+    diets: ['Vegetarian'], allergens: ['Gluten', 'Dairy'], calories: 290, protein: 10, carbs: 45, fat: 6, sodium: 120, price: 120, emoji: '🥣',
+    mealCategories: [], dietaryTags: ['Low-sodium', 'Vegetarian'], ingredients: ['Oats', 'Fruit'],
   },
   {
     id: '6', name: 'Egg White Omelette', cuisine: 'Western', category: 'Breakfast',
@@ -52,7 +54,7 @@ export const MEALS = [
   },
   {
     id: 'sample-bangus', name: 'Grilled Bangus', cuisine: 'Filipino', category: 'Dinner',
-    diets: ['High-protein'], allergens: [], calories: 390, protein: 28, sodium: 450, price: 195, emoji: '🐟',
+    diets: ['High-protein'], allergens: [], calories: 390, protein: 28, carbs: 8, fat: 18, sodium: 450, price: 195, emoji: '🐟',
     mealCategories: ['Fish'], dietaryTags: ['Low-sodium'], ingredients: ['Bangus', 'Tomato'],
   },
   {

@@ -9,8 +9,10 @@ import FilterModal from '../components/FilterModal';
 import AppButton from '../components/AppButton';
 import { MEALS, CUISINES } from '../data/meals';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import NutritionDayPanel from '../components/NutritionDayPanel';
 import {
-  getProfileForMeals, mealRestrictionMatch,
+  getProfileForMeals, mealRestrictionMatch, saveNutritionalPreference,
 } from '../services/profileService';
 import {
   ORDER_MSG,
@@ -21,10 +23,12 @@ import { colors, font, radius, spacing, control } from '../theme/theme';
 
 export default function MealsScreen({ navigation }) {
   const { user } = useAuth();
+  const { itemCount } = useCart();
   const [query, setQuery] = useState('');
   const [cuisine, setCuisine] = useState('All');
   const [filters, setFilters] = useState({ category: null, diets: [], allergens: [] });
   const [showFilters, setShowFilters] = useState(false);
+  const [applyNutrition, setApplyNutrition] = useState(false);
   const { width } = useWindowDimensions();
 
   const activeCount = (filters.category ? 1 : 0) + filters.diets.length + filters.allergens.length;
@@ -43,8 +47,9 @@ export default function MealsScreen({ navigation }) {
       diets: filters.diets,
       excludeAllergens: filters.allergens,
       profile,
+      applyNutrition,
     }),
-    [query, cuisineFiltered, filters, profile],
+    [query, cuisineFiltered, filters, profile, applyNutrition],
   );
 
   const recommendations = useMemo(
@@ -56,16 +61,25 @@ export default function MealsScreen({ navigation }) {
 
   const listHeader = (
     <View>
+      {itemCount > 0 ? (
+        <AppButton
+          title="Review order"
+          onPress={() => navigation.navigate('Checkout')}
+          style={styles.reviewOrderBtn}
+        />
+      ) : null}
       <Text style={styles.recTitle}>Recommended for you</Text>
       {recommendations.emptyProfile ? (
         <View style={styles.recEmpty}>
           <Text style={styles.recEmptyText}>{ORDER_MSG.completeProfile}</Text>
           <AppButton
-            title="Go to Profile"
-            onPress={() => navigation.getParent()?.navigate('Profile')}
+            title="Update Dietary Information"
+            onPress={() => navigation.getParent()?.navigate('Account')}
             style={styles.recBtn}
           />
         </View>
+      ) : recommendations.none ? (
+        <Text style={styles.recEmptyText}>{ORDER_MSG.noSuggestions}</Text>
       ) : (
         <>
           {recommendations.items.map(({ meal, reason }) => (
@@ -77,6 +91,28 @@ export default function MealsScreen({ navigation }) {
           <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
         </>
       )}
+      {(profile?.nutritionalPreferences?.length || profile?.nutritionalPreference) ? (
+        <AppButton
+          title={applyNutrition ? 'Showing nutrition matches' : 'Match my nutrition goals'}
+          variant="outline"
+          onPress={() => setApplyNutrition((on) => !on)}
+          color={colors.primary}
+          style={styles.reviewOrderBtn}
+        />
+      ) : null}
+      {user?.id ? (
+        <NutritionDayPanel
+          profile={profile}
+          targets={profile?.nutritionTargets}
+          onSaveTargets={(target) => saveNutritionalPreference(
+            user.id,
+            profile?.nutritionalPreferences?.length
+              ? profile.nutritionalPreferences
+              : profile?.nutritionalPreference,
+            target,
+          )}
+        />
+      ) : null}
     </View>
   );
 
@@ -86,10 +122,18 @@ export default function MealsScreen({ navigation }) {
       <View style={styles.searchRow}>
         <View style={styles.search}>
           <Ionicons name="search" size={16} color={colors.muted} />
-          <TextInput style={styles.searchInput} placeholder="Search meals" placeholderTextColor={colors.inactive} value={query} onChangeText={setQuery} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search meals"
+            placeholderTextColor={colors.inactive}
+            value={query}
+            onChangeText={setQuery}
+            accessibilityLabel="Search meals"
+          />
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Filters" style={styles.filterBtn} onPress={() => setShowFilters(true)}>
           <Ionicons name="options" size={18} color={colors.white} />
+          <Text style={styles.filterLabel}>Filters</Text>
           {activeCount > 0 && <Text style={styles.badge}>{activeCount}</Text>}
         </Pressable>
       </View>
@@ -130,18 +174,20 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, paddingTop: spacing.md, alignItems: 'center' },
   search: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, minHeight: control.minHeight },
   searchInput: { flex: 1, marginLeft: 6, fontSize: font.body, color: colors.text },
-  filterBtn: { width: control.minHeight, height: control.minHeight, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
+  filterBtn: { minWidth: control.minHeight, minHeight: control.minHeight, paddingHorizontal: 8, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
+  filterLabel: { color: colors.white, fontSize: font.body, fontWeight: '700' },
   badge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger, color: colors.white, fontSize: 10, textAlign: 'center', lineHeight: 16, overflow: 'hidden' },
-  chipScroll: { marginHorizontal: spacing.lg, marginTop: spacing.md, height: 32 },
-  chips: { alignItems: 'center', gap: 8, height: 32 },
+  chipScroll: { marginHorizontal: spacing.lg, marginTop: spacing.md, height: control.minHeight },
+  chips: { alignItems: 'center', gap: 8, height: control.minHeight },
   chipsSpread: { flexGrow: 1, justifyContent: 'space-between' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40, fontSize: font.body },
   recTitle: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
   recCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
   recName: { fontSize: font.body, fontWeight: '700', color: colors.text },
-  recReason: { fontSize: font.md, color: colors.muted, marginTop: 4 },
-  disclaimer: { fontSize: font.md, color: colors.muted, marginBottom: spacing.lg, lineHeight: 20 },
+  recReason: { fontSize: font.body, color: colors.muted, marginTop: 4, lineHeight: 24 },
+  disclaimer: { fontSize: font.body, color: colors.muted, marginBottom: spacing.lg, lineHeight: 24 },
   recEmpty: { marginBottom: spacing.lg },
   recEmptyText: { fontSize: font.body, color: colors.text, marginBottom: spacing.sm },
   recBtn: { alignSelf: 'flex-start' },
+  reviewOrderBtn: { marginBottom: spacing.md, alignSelf: 'stretch' },
 });

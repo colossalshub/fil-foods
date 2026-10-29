@@ -2,16 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getDb, resetStore } from '../data/mockStore.js';
 import { MEALS } from '../data/meals.js';
+import { ROLES } from './securityService.js';
 import {
   ORDER_MSG,
   __testResetConfirmState,
+  applyMealFilters,
   calculateTotals,
   confirmOrder,
   fuzzySearchMeals,
+  getKitchenOrderView,
+  getRecommendedMeals,
   parseQuantityInput,
   profileAllergensInMeal,
   validateSchedule,
 } from './orderService.js';
+import { NUTRITION_MSG, solveNutritionPlan } from './nutritionService.js';
 
 const SAMPLE_NOW = new Date('2026-10-12T09:00:00');
 
@@ -29,6 +34,82 @@ test('fuzzy search ranks Chicken Tinola for common typos and partial names', () 
     const results = fuzzySearchMeals(MEALS, query);
     assert.equal(results.length, 0, query);
   }
+});
+
+test('search finds catalog text and filters soup, low-sodium, and peanut-free meals', () => {
+  assert.equal(ORDER_MSG.noMeals, 'No meals found.');
+  const papaya = fuzzySearchMeals(MEALS, 'Papaya');
+  assert.equal(papaya[0].name, 'Chicken Tinola');
+
+  const soup = applyMealFilters(MEALS, { category: 'Soup', diets: ['Low-sodium'], excludeAllergens: ['Peanuts'] });
+  assert.ok(soup.some((meal) => meal.name === 'Chicken Tinola'));
+  assert.equal(soup.some((meal) => meal.name === 'Chicken Satay'), false);
+
+  const sauceOnly = {
+    id: 'sauce',
+    name: 'Peanut Bowl',
+    allergens: [],
+    ingredients: ['Peanut sauce'],
+    category: 'Lunch',
+    diets: [],
+    dietaryTags: [],
+    mealCategories: [],
+  };
+  const hidden = applyMealFilters([sauceOnly], { excludeAllergens: ['Peanuts'] });
+  assert.equal(hidden.length, 0);
+});
+
+test('recommendations explain the match in plain language', () => {
+  const profile = {
+    mealPreferences: { preferredCategories: ['Soup'], dislikedIngredients: ['Ampalaya'] },
+    dietaryRestrictions: ['Low-sodium'],
+    allergies: [{ name: 'Peanuts' }],
+  };
+  const result = getRecommendedMeals(MEALS, profile, 5);
+  const tinola = result.items.find((row) => row.meal.name === 'Chicken Tinola');
+  assert.equal(tinola.reason, 'Matches your preference for soup');
+  assert.equal(result.items.some((row) => row.meal.name === 'Chicken Satay'), false);
+  assert.equal(result.items.some((row) => row.meal.name === 'Ampalaya Stir-fry'), false);
+});
+
+test('nutrition solver keeps an exact day and reports the closest set when targets cannot be met', () => {
+  const exact = solveNutritionPlan([
+    { id: 'breakfast', category: 'Breakfast', calories: 400, protein: 25, fat: 10 },
+    { id: 'lunch', category: 'Lunch', calories: 600, protein: 40, fat: 15 },
+    { id: 'dinner', category: 'Dinner', calories: 700, protein: 55, fat: 20 },
+  ], { calories: 1800, protein: 120, fat: 50 });
+  assert.equal(exact.ok, true);
+  assert.equal(exact.exactMatch, true);
+
+  const closest = solveNutritionPlan([
+    { id: 'breakfast', category: 'Breakfast', calories: 900, protein: 20, fat: 40 },
+    { id: 'lunch', category: 'Lunch', calories: 900, protein: 20, fat: 40 },
+    { id: 'dinner', category: 'Dinner', calories: 900, protein: 20, fat: 40 },
+  ], { calories: 1800, protein: 120, fat: 50 });
+  assert.equal(closest.ok, false);
+  assert.equal(closest.exactMatch, false);
+  assert.equal(closest.meals.length, 3);
+  assert.match(closest.reason, /No exact match/);
+  assert.equal(NUTRITION_MSG.noExact.includes('No exact match'), true);
+});
+
+test('kitchen staff can read health details on an order and a client cannot', () => {
+  resetStore();
+  __testResetConfirmState();
+  const meal = MEALS.find((m) => m.name === 'Chicken Tinola');
+  const placed = confirmOrder('user-maria', {
+    items: [{ meal, quantity: 1 }],
+    fulfillment: { type: 'pickup', scheduledAt: new Date('2026-10-13T10:00:00'), instructions: '' },
+    now: SAMPLE_NOW,
+  });
+  assert.equal(placed.ok, true);
+  assert.throws(
+    () => getKitchenOrderView({ id: 'user-maria', roleMask: ROLES.CLIENT }, placed.order.id),
+    { code: 'FORBIDDEN' },
+  );
+  const staffView = getKitchenOrderView({ id: 'staff-1', roleMask: ROLES.STAFF }, placed.order.id);
+  assert.ok(staffView.healthConditions.includes('Hypertension'));
+  assert.equal(staffView.allergies[0].name, 'Peanuts');
 });
 
 test('profileAllergensInMeal detects peanut sauce without allergen tag', () => {

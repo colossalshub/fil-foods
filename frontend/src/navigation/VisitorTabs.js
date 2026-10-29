@@ -2,14 +2,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/visitor/HomeScreen';
-import PlansScreen from '../screens/visitor/PlansScreen';
 import AboutScreen from '../screens/visitor/AboutScreen';
+import MealsStack from './MealsStack';
+import { CartProvider } from '../context/CartContext';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import AppButton from '../components/AppButton';
 import { colors } from '../theme/theme';
 
 const Tab = createBottomTabNavigator();
-const ICONS = { Home: 'home', Plans: 'calendar', About: 'information-circle', Account: 'person' };
+const ICONS = { Home: 'home', Meals: 'restaurant', About: 'information-circle', Account: 'person' };
 const TAB_CONTENT_HEIGHT = 64;
 
 function VisitorAccount({ navigation }) {
@@ -23,6 +24,7 @@ function VisitorAccount({ navigation }) {
 export default function VisitorTabs() {
   const insets = useSafeAreaInsets();
   return (
+    <CartProvider>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -41,7 +43,7 @@ export default function VisitorTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Plans" component={PlansScreen} />
+      <Tab.Screen name="Meals" component={MealsStack} />
       <Tab.Screen name="About" component={AboutScreen} />
       <Tab.Screen
         name="Account"
@@ -54,5 +56,6 @@ export default function VisitorTabs() {
         })}
       />
     </Tab.Navigator>
+    </CartProvider>
   );
 }

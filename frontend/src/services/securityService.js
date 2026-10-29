@@ -2,6 +2,14 @@ import bcrypt from 'bcryptjs';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 
+// bcryptjs 3 only accepts Web Crypto or Node's crypto module. React Native has
+// neither while the sample account is hashed at startup, so salt bytes come
+// from Expo Crypto. Node tests keep using Web Crypto and never load this module.
+bcrypt.setRandomFallback((length) => {
+  const { getRandomBytes } = require('expo-crypto');
+  return getRandomBytes(length);
+});
+
 export const ROLES = Object.freeze({
   CLIENT: 1,
   STAFF: 2,
@@ -19,6 +27,19 @@ export function requireRole(user, requiredRole) {
     throw error;
   }
   return true;
+}
+
+export function assertClientOwns(sessionUserId, ownerId) {
+  if (!sessionUserId || sessionUserId !== ownerId) {
+    const error = new Error('Forbidden');
+    error.code = 'FORBIDDEN';
+    throw error;
+  }
+  return true;
+}
+
+export function canViewKitchenRecord(actor) {
+  return hasRole(actor, ROLES.STAFF) || hasRole(actor, ROLES.ADMIN);
 }
 
 export async function hashPassword(password) {

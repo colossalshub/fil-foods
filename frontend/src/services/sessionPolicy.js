@@ -1,4 +1,14 @@
-// CLT-03 session restore rules. The story does not define an inactivity timeout, so none is applied.
+// USR-03: without "Keep me logged in", the session ends when the app is closed
+// or after 15 minutes without activity. The workbook does not name the minutes,
+// so 15 is the inactivity window used by the client.
+export const INACTIVITY_MS = 15 * 60 * 1000;
+
+export function shouldEndSession({ keepLoggedIn, appBackgrounded, lastActiveAt, now }) {
+  if (keepLoggedIn) return false;
+  if (appBackgrounded) return true;
+  if (!lastActiveAt || !now) return false;
+  return now - lastActiveAt >= INACTIVITY_MS;
+}
 
 export function shouldPersistSession(keepLoggedIn) {
   return !!keepLoggedIn;

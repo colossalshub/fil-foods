@@ -105,7 +105,7 @@ export default function TrackingScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Tracking" subtitle={lastRefreshed ? `Updated ${formatTimestamp(lastRefreshed)}` : undefined} />
+      <ScreenHeader title="Orders" subtitle={lastRefreshed ? `Updated ${formatTimestamp(lastRefreshed)}` : undefined} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onManualRefresh} />}

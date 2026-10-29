@@ -45,4 +45,9 @@ test('contact phone can be overridden for display and tel href', () => {
 test('app guide is never empty', () => {
   assert.ok(GUIDE_STEPS.length > 0);
   assert.ok(GUIDE_STEPS.some((step) => step.title.includes('Menu: browse and search meals')));
+  assert.ok(
+    GUIDE_STEPS.some(
+      (step) => step.title.includes('Orders') || step.title.includes('Account'),
+    ),
+  );
 });

@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../../components/ScreenHeader';
-import { PLAN_MSG } from '../../services/planService';
 import { colors, card, font, spacing } from '../../theme/theme';
 
 export default function AboutScreen() {
@@ -10,8 +9,10 @@ export default function AboutScreen() {
       <ScreenHeader title="About" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
-          <Text style={styles.headline} accessibilityRole="header">{PLAN_MSG.headline}</Text>
-          <Text style={styles.body}>{PLAN_MSG.lockInAbout}</Text>
+          <Text style={styles.headline} accessibilityRole="header">About F.I.L. Food</Text>
+          <Text style={styles.body}>
+            F.I.L. Food prepares meals around your health, diet, and goals, with delivery or pickup.
+          </Text>
           <Text style={styles.body}>
             Tap Help in the header for step-by-step ordering, FAQs, the app guide, and support contact details.
           </Text>

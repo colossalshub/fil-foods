@@ -4,13 +4,19 @@ import { getDb, resetStore } from '../data/mockStore.js';
 import { MSG } from '../data/messages.js';
 import { MEALS } from '../data/meals.js';
 import { MOCK_CODE, sendCode } from './verificationService.js';
+import { ROLES, verifyAuditChain } from './securityService.js';
 import {
   allergenConflict,
   formatHistoryLine,
   getChangeHistory,
+  getGuardianForAdmin,
   getProfile,
+  isAuditChainIntact,
+  mealMatchesNutritionalPreferences,
   rankMeal,
+  readChangeHistory,
   saveHealthConditions,
+  saveNutritionalPreference,
   savePersonalInfo,
   sortMealsForProfile,
   validatePersonalFields,
@@ -126,6 +132,38 @@ test('change history appends and cannot be deleted via profileService', () => {
 function profileServiceHasDeleteHistory() {
   return globalThis.deleteProfileHistory;
 }
+
+test('nutrition goals can be combined and filter the menu', () => {
+  resetStore();
+  const saved = saveNutritionalPreference(MARIA_ID, ['lower-sodium', 'higher-protein'], {
+    calories: 1800,
+    protein: 120,
+    fat: 50,
+  });
+  assert.equal(saved.message, MSG.nutritionalUpdated);
+  const profile = getProfile(MARIA_ID);
+  assert.deepEqual(profile.nutritionalPreferences, ['lower-sodium', 'higher-protein']);
+  assert.equal(profile.nutritionTargets.calories, 1800);
+  const tinola = MEALS.find((meal) => meal.id === 'sample-tinola');
+  assert.equal(mealMatchesNutritionalPreferences(tinola, profile), true);
+  const changed = saveNutritionalPreference(MARIA_ID, ['lower-calories']);
+  assert.equal(changed.ok, true);
+  assert.deepEqual(getProfile(MARIA_ID).nutritionalPreferences, ['lower-calories']);
+});
+
+test('profile changes are on the hash chain and another client cannot read them', () => {
+  resetStore();
+  saveHealthConditions(MARIA_ID, ['Hypertension', 'Diabetes']);
+  assert.equal(isAuditChainIntact(), true);
+  assert.equal(verifyAuditChain(getDb().auditLog), true);
+  const entry = getChangeHistory(MARIA_ID).find((row) => row.item === 'Diabetes');
+  assert.equal(entry.previousValue.includes('Hypertension'), true);
+  assert.equal(entry.newValue.includes('Diabetes'), true);
+  assert.throws(() => readChangeHistory('user-ana', MARIA_ID), { code: 'FORBIDDEN' });
+  const guardian = getGuardianForAdmin({ id: 'admin-1', roleMask: ROLES.ADMIN }, MARIA_ID);
+  assert.equal(guardian.name, 'Jose Santos');
+  assert.throws(() => getGuardianForAdmin({ id: MARIA_ID, roleMask: ROLES.CLIENT }, MARIA_ID), { code: 'FORBIDDEN' });
+});
 
 test('seeded msantos profile includes story fields', () => {
   resetStore();

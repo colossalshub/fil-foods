@@ -6,6 +6,9 @@ import { MSG } from '../data/messages.js';
 import { formatTimestamp } from '../utils/time.js';
 import { getUser, normalizeContact } from './authService.js';
 import { sendCode, verifyCode } from './verificationService.js';
+import {
+  appendAuditEvent, assertClientOwns, requireRole, ROLES, verifyAuditChain,
+} from './securityService.js';
 
 export const HEALTH_CONDITIONS = [
   'Diabetes',
@@ -47,6 +50,7 @@ const HISTORY_SECTION_LABEL = {
   health: 'Health conditions',
   restrictions: 'Dietary restrictions',
   allergies: 'Food allergies',
+  nutrition: 'Nutritional preferences',
 };
 
 function sameEmail(a, b) {
@@ -66,6 +70,10 @@ function ensureProfileFields(user) {
   if (!user.mealPreferences.preferredCategories) user.mealPreferences.preferredCategories = [];
   if (!user.mealPreferences.dislikedIngredients) user.mealPreferences.dislikedIngredients = [];
   if (user.nutritionalPreference === undefined) user.nutritionalPreference = null;
+  if (!Array.isArray(user.nutritionalPreferences)) {
+    user.nutritionalPreferences = user.nutritionalPreference ? [user.nutritionalPreference] : [];
+  }
+  if (!user.nutritionTargets) user.nutritionTargets = { calories: 0, protein: 0, fat: 0 };
   if (user.guardian === undefined) user.guardian = null;
   if (!user.profileHistory) user.profileHistory = [];
   if (user.pendingContactChange === undefined) user.pendingContactChange = null;
@@ -81,29 +89,45 @@ function displayName(user) {
 }
 
 function appendHistory(user, entry) {
-  user.profileHistory.unshift({
+  const row = {
     id: nextId('hist'),
     at: stamp(),
     whoName: displayName(user),
     role: 'client',
+    previousValue: entry.previousValue ?? '',
+    newValue: entry.newValue ?? entry.item ?? '',
     ...entry,
+  };
+  user.profileHistory.unshift(row);
+  appendAuditEvent(getDb(), {
+    action: 'record.updated',
+    userId: user.id,
+    targetId: user.id,
+    metadata: {
+      section: row.section,
+      change: row.action,
+      item: row.item,
+    },
+    at: row.at,
   });
 }
 
 export function formatHistoryLine(entry) {
   const section = HISTORY_SECTION_LABEL[entry.section] || entry.section;
-  const actionWord = entry.action === 'removed' ? 'removed' : 'added';
+  const actionWord = entry.action === 'removed' ? 'removed' : entry.action === 'updated' ? 'updated' : 'added';
   return `${formatTimestamp(entry.at)}, ${entry.whoName} (${entry.role}): ${section}, ${actionWord} ${entry.item}`;
 }
 
 function diffListHistory(user, section, before, after) {
   const prev = new Set(before);
   const next = new Set(after);
+  const previousValue = before.join(', ');
+  const newValue = after.join(', ');
   for (const item of next) {
-    if (!prev.has(item)) appendHistory(user, { section, action: 'added', item });
+    if (!prev.has(item)) appendHistory(user, { section, action: 'added', item, previousValue, newValue });
   }
   for (const item of prev) {
-    if (!next.has(item)) appendHistory(user, { section, action: 'removed', item });
+    if (!next.has(item)) appendHistory(user, { section, action: 'removed', item, previousValue, newValue });
   }
 }
 
@@ -190,6 +214,8 @@ export function getProfile(userId) {
       dislikedIngredients: [...user.mealPreferences.dislikedIngredients],
     },
     nutritionalPreference: user.nutritionalPreference,
+    nutritionalPreferences: [...user.nutritionalPreferences],
+    nutritionTargets: { ...user.nutritionTargets },
     guardian: user.guardian ? { ...user.guardian } : null,
     profileLastUpdated: user.profileLastUpdated,
     profileLastUpdatedFormatted: formatTimestamp(user.profileLastUpdated),
@@ -206,6 +232,8 @@ export function getProfileForMeals(userId) {
     allergies: profile.allergies,
     mealPreferences: profile.mealPreferences,
     nutritionalPreference: profile.nutritionalPreference,
+    nutritionalPreferences: profile.nutritionalPreferences,
+    nutritionTargets: profile.nutritionTargets,
   };
 }
 
@@ -396,14 +424,45 @@ export function saveMealPreferences(userId, prefs) {
   return { ok: true, message: MSG.mealPrefsSaved };
 }
 
-export function saveNutritionalPreference(userId, preferenceId) {
+export function nutritionIdsFromProfile(profile) {
+  if (Array.isArray(profile?.nutritionalPreferences) && profile.nutritionalPreferences.length) {
+    return profile.nutritionalPreferences;
+  }
+  return profile?.nutritionalPreference ? [profile.nutritionalPreference] : [];
+}
+
+export function saveNutritionalPreference(userId, preferenceId, targets) {
   const user = getUser(userId);
   if (!user) return { ok: false, messages: [MSG.required] };
   ensureProfileFields(user);
   const allowed = NUTRITIONAL_OPTIONS.map((item) => item.id);
-  user.nutritionalPreference = allowed.includes(preferenceId) ? preferenceId : null;
+  const incoming = Array.isArray(preferenceId) ? preferenceId : (preferenceId ? [preferenceId] : []);
+  const ids = incoming.filter((id) => allowed.includes(id));
+  const previousValue = user.nutritionalPreferences.join(', ');
+  user.nutritionalPreferences = ids;
+  user.nutritionalPreference = ids[0] || null;
+  if (targets) {
+    user.nutritionTargets = {
+      calories: Math.max(0, Number(targets.calories) || 0),
+      protein: Math.max(0, Number(targets.protein) || 0),
+      fat: Math.max(0, Number(targets.fat) || 0),
+    };
+  }
+  appendHistory(user, {
+    section: 'nutrition',
+    action: 'updated',
+    item: ids.join(', ') || 'cleared',
+    previousValue,
+    newValue: ids.join(', '),
+  });
   touchProfile(user);
   return { ok: true, message: MSG.nutritionalUpdated };
+}
+
+export function mealMatchesNutritionalPreferences(meal, profile) {
+  const ids = nutritionIdsFromProfile(profile);
+  if (!ids.length) return true;
+  return ids.every((id) => nutritionalPreferenceBonus(meal, id) > 0);
 }
 
 export function validateGuardian(input) {
@@ -443,6 +502,23 @@ export function removeGuardian(userId) {
   user.guardian = null;
   touchProfile(user);
   return { ok: true, message: MSG.guardianSaved };
+}
+
+export function isAuditChainIntact() {
+  return verifyAuditChain(getDb().auditLog);
+}
+
+export function readChangeHistory(sessionUserId, ownerId) {
+  assertClientOwns(sessionUserId, ownerId);
+  return getChangeHistory(ownerId);
+}
+
+export function getGuardianForAdmin(actor, clientId) {
+  requireRole(actor, ROLES.ADMIN);
+  const user = getUser(clientId);
+  if (!user) return null;
+  ensureProfileFields(user);
+  return user.guardian ? { ...user.guardian } : null;
 }
 
 export function getChangeHistory(userId) {
@@ -497,7 +573,9 @@ export function rankMeal(meal, profile) {
   for (const restriction of profile.dietaryRestrictions || []) {
     if ((meal.dietaryTags || []).includes(restriction)) score += 2;
   }
-  score += nutritionalPreferenceBonus(meal, profile.nutritionalPreference);
+  const nutritionBonus = nutritionIdsFromProfile(profile)
+    .some((id) => nutritionalPreferenceBonus(meal, id) > 0);
+  if (nutritionBonus) score += 1;
 
   for (const disliked of prefs.dislikedIngredients || []) {
     const needle = disliked.toLowerCase();

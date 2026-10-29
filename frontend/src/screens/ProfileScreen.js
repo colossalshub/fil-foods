@@ -20,8 +20,10 @@ import {
   HEALTH_CONDITIONS,
   NUTRITIONAL_OPTIONS,
   cancelPendingContactChange,
-  getChangeHistory,
   getProfile,
+  isAuditChainIntact,
+  nutritionIdsFromProfile,
+  readChangeHistory,
   removeGuardian,
   saveAllergies,
   saveDietaryRestrictions,
@@ -31,18 +33,7 @@ import {
   saveNutritionalPreference,
   savePersonalInfo,
 } from '../services/profileService';
-import PlanPicker from '../components/PlanPicker';
-import {
-  confirmCancelPlan,
-  consumePendingPlanPeriod,
-  formatPlanDate,
-  getPlanDefinition,
-  getPlanForUser,
-  keepPlanChange,
-  planChangeMessage,
-  planEndMessage,
-  requestCancelPlan,
-} from '../services/planService';
+import { openHelp } from '../navigation/openHelp';
 import {
   BIOMETRIC_FAIL_MESSAGE,
   confirmBiometricSessionWithPassword,
@@ -96,7 +87,6 @@ export default function ProfileScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   void refreshKey;
   const profile = user?.id ? getProfile(user.id) : null;
-  const userPlan = user?.id ? getPlanForUser(user.id) : null;
   const [showTerms, setShowTerms] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [toast, setToast] = useState([]);
@@ -129,24 +119,16 @@ export default function ProfileScreen() {
   const [disliked, setDisliked] = useState('');
 
   const [nutritionOpen, setNutritionOpen] = useState(false);
-  const [nutritionChoice, setNutritionChoice] = useState(null);
+  const [nutritionChoice, setNutritionChoice] = useState([]);
+  const [targetCalories, setTargetCalories] = useState('');
+  const [targetProtein, setTargetProtein] = useState('');
+  const [targetFat, setTargetFat] = useState('');
 
   const [guardianOpen, setGuardianOpen] = useState(false);
   const [guardianForm, setGuardianForm] = useState({ name: '', relationship: '', contactNumber: '' });
   const [guardianMessages, setGuardianMessages] = useState([]);
 
   const [historyOpen, setHistoryOpen] = useState(false);
-
-  const [planSession, setPlanSession] = useState(() => {
-    const pending = consumePendingPlanPeriod();
-    return {
-      modalOpen: Boolean(pending),
-      periodMemory: pending || 'weekly',
-    };
-  });
-  const [cancelPlanOpen, setCancelPlanOpen] = useState(false);
-  const [cancelPlanPrompt, setCancelPlanPrompt] = useState('');
-  const [planNotice, setPlanNotice] = useState([]);
 
   const device = getBiometricDevice();
   const showBiometricOption = isBiometricOptionVisible(device);
@@ -161,7 +143,7 @@ export default function ProfileScreen() {
   const [unlockNeedsPassword, setUnlockNeedsPassword] = useState(false);
 
   const acceptance = findTermsAcceptance(user?.username);
-  const history = user?.id ? getChangeHistory(user.id) : [];
+  const history = user?.id ? readChangeHistory(user.id, user.id) : [];
 
   const reload = useCallback(() => {
     if (!user?.id) return;
@@ -393,12 +375,19 @@ export default function ProfileScreen() {
   };
 
   const openNutrition = () => {
-    setNutritionChoice(profile?.nutritionalPreference || null);
+    setNutritionChoice(nutritionIdsFromProfile(profile));
+    setTargetCalories(profile?.nutritionTargets?.calories ? String(profile.nutritionTargets.calories) : '');
+    setTargetProtein(profile?.nutritionTargets?.protein ? String(profile.nutritionTargets.protein) : '');
+    setTargetFat(profile?.nutritionTargets?.fat ? String(profile.nutritionTargets.fat) : '');
     setNutritionOpen(true);
   };
 
   const saveNutrition = () => {
-    const result = saveNutritionalPreference(user.id, nutritionChoice);
+    const result = saveNutritionalPreference(user.id, nutritionChoice, {
+      calories: targetCalories,
+      protein: targetProtein,
+      fat: targetFat,
+    });
     setNutritionOpen(false);
     reload();
     flash(result.message);
@@ -437,20 +426,26 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <ScreenHeader title="Profile" />
+        <ScreenHeader title="Account" />
         <Text style={styles.lead}>Sign in to view your profile.</Text>
       </SafeAreaView>
     );
   }
 
-  const nutritionLabel = NUTRITIONAL_OPTIONS.find((o) => o.id === profile.nutritionalPreference)?.label || '—';
+  const nutritionIds = nutritionIdsFromProfile(profile);
+  const nutritionLabel = nutritionIds.length
+    ? NUTRITIONAL_OPTIONS.filter((opt) => nutritionIds.includes(opt.id)).map((opt) => opt.label).join(', ')
+    : '—';
+  const targetLabel = profile.nutritionTargets?.calories || profile.nutritionTargets?.protein || profile.nutritionTargets?.fat
+    ? `${profile.nutritionTargets.calories || 0} kcal, ${profile.nutritionTargets.protein || 0} g protein, ${profile.nutritionTargets.fat || 0} g fat`
+    : '—';
   const allergiesText = profile.allergies.length
     ? profile.allergies.map((a) => (a.note ? `${a.name} (${a.note})` : a.name)).join(', ')
     : '—';
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Profile" />
+      <ScreenHeader title="Account" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormMessage messages={toast} tone="ok" />
 
@@ -480,6 +475,7 @@ export default function ProfileScreen() {
 
         <Section title="Nutritional preferences" onEdit={openNutrition}>
           <Text style={styles.body}>{nutritionLabel}</Text>
+          <Line label="Daily targets" value={targetLabel} />
         </Section>
 
         <Section title="Guardian or family member" onEdit={openGuardian}>
@@ -498,60 +494,10 @@ export default function ProfileScreen() {
           <Text style={styles.body}>{profile.profileLastUpdatedFormatted || '—'}</Text>
         </Section>
 
-        <AppButton title="Change history" variant="outline" onPress={() => setHistoryOpen(true)} color={colors.primary} />
+        <AppButton title="Change History" variant="outline" onPress={() => setHistoryOpen(true)} color={colors.primary} />
 
-        <Section title="Your plan">
-          <FormMessage messages={planNotice} tone="ok" />
-          {userPlan?.status === 'active' || userPlan?.status === 'cancelled' ? (
-            <>
-              <Line label="Plan" value={userPlan.name} />
-              <Line label="Price" value={userPlan.priceLabel} />
-              <Line label="Renewal" value={formatPlanDate(userPlan.renewalDate)} />
-              {userPlan.pendingPeriodId ? (
-                <Text style={styles.body}>
-                  {planChangeMessage(
-                    getPlanDefinition(userPlan.pendingPeriodId)?.periodLabel || userPlan.pendingPeriodId,
-                    userPlan.renewalDate,
-                  )}
-                </Text>
-              ) : null}
-              {userPlan.status === 'cancelled' ? (
-                <Text style={styles.body}>{planEndMessage(userPlan.renewalDate)}</Text>
-              ) : null}
-            </>
-          ) : (
-            <Text style={styles.body}>No active plan yet.</Text>
-          )}
-          <AppButton
-            title="Change plan"
-            variant="outline"
-            onPress={() => {
-              setPlanNotice([]);
-              setPlanSession((prev) => ({
-                ...prev,
-                periodMemory: userPlan?.periodId || 'weekly',
-                modalOpen: true,
-              }));
-            }}
-            color={colors.primary}
-            style={styles.planBtn}
-          />
-          {userPlan?.status === 'active' ? (
-            <AppButton
-              title="Cancel plan"
-              variant="outline"
-              onPress={() => {
-                const prompt = requestCancelPlan(user.id);
-                if (prompt.ok) {
-                  setCancelPlanPrompt(prompt.message);
-                  setCancelPlanOpen(true);
-                }
-              }}
-              color={colors.danger}
-              style={styles.planBtn}
-            />
-          ) : null}
-        </Section>
+        <AppButton title="Help" variant="outline" onPress={() => openHelp(navigation)} color={colors.primary} style={styles.linkBtn} />
+        <AppButton title="Notifications" variant="outline" onPress={() => navigation.navigate('Alerts')} color={colors.primary} style={styles.linkBtn} />
 
         {showBiometricOption ? (
           <View style={styles.sectionBlock}>
@@ -681,13 +627,26 @@ export default function ProfileScreen() {
       </EditListModal>
 
       <EditListModal visible={nutritionOpen} title="Nutritional preferences" onClose={() => setNutritionOpen(false)} onSave={saveNutrition}>
-        {NUTRITIONAL_OPTIONS.map((opt) => (
-          <Pressable key={opt.id} accessibilityRole="radio" accessibilityState={{ checked: nutritionChoice === opt.id }}
-            onPress={() => setNutritionChoice(opt.id)} style={styles.radioRow}>
-            <Text style={styles.body}>{opt.label}</Text>
-            <Text style={styles.radioMark}>{nutritionChoice === opt.id ? '●' : '○'}</Text>
-          </Pressable>
-        ))}
+        {NUTRITIONAL_OPTIONS.map((opt) => {
+          const selected = nutritionChoice.includes(opt.id);
+          return (
+            <Pressable
+              key={opt.id}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              onPress={() => setNutritionChoice((prev) => (
+                prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]
+              ))}
+              style={styles.radioRow}
+            >
+              <Text style={styles.body}>{opt.label}</Text>
+              <Text style={styles.radioMark}>{selected ? '●' : '○'}</Text>
+            </Pressable>
+          );
+        })}
+        <AppInput label="Daily calories" value={targetCalories} onChangeText={setTargetCalories} keyboardType="number-pad" />
+        <AppInput label="Daily protein (g)" value={targetProtein} onChangeText={setTargetProtein} keyboardType="number-pad" />
+        <AppInput label="Daily fat limit (g)" value={targetFat} onChangeText={setTargetFat} keyboardType="number-pad" />
       </EditListModal>
 
       <Modal visible={guardianOpen} animationType="slide" onRequestClose={() => setGuardianOpen(false)}>
@@ -721,6 +680,9 @@ export default function ProfileScreen() {
                 <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
               ))
             )}
+            {!isAuditChainIntact() ? (
+              <Text style={styles.body}>Change history could not be verified. A stored event may have been altered.</Text>
+            ) : null}
             <AppButton title="Close" onPress={() => setHistoryOpen(false)} color={colors.primary} style={styles.modalCancel} />
           </ScrollView>
         </SafeAreaView>
@@ -736,70 +698,6 @@ export default function ProfileScreen() {
               setDiscardPersonal(false);
               setPersonalOpen(false);
             }} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={planSession.modalOpen} animationType="slide" onRequestClose={() => setPlanSession((p) => ({ ...p, modalOpen: false }))}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
-            <Text style={styles.modalTitle} accessibilityRole="header">Change plan</Text>
-            <PlanPicker
-              user={user}
-              navigation={navigation}
-              initialPeriod={userPlan?.periodId || 'weekly'}
-              rememberedPeriod={planSession.periodMemory}
-              onRememberPeriod={(period) => setPlanSession((p) => ({ ...p, periodMemory: period }))}
-              showHeadline={false}
-              onPlanUpdated={() => {
-                reload();
-                const latest = getPlanForUser(user.id);
-                if (latest?.pendingPeriodId) {
-                  setPlanNotice([planChangeMessage(
-                    getPlanDefinition(latest.pendingPeriodId)?.periodLabel,
-                    latest.renewalDate,
-                  )]);
-                } else if (latest?.status === 'active') {
-                  setPlanNotice([`Your ${latest.periodLabel} plan is active.`]);
-                }
-              }}
-            />
-            {userPlan?.pendingPeriodId ? (
-              <AppButton
-                title="Keep current plan"
-                variant="outline"
-                onPress={() => {
-                  keepPlanChange(user.id);
-                  reload();
-                  setPlanNotice([]);
-                  setPlanSession((p) => ({ ...p, modalOpen: false }));
-                }}
-                color={colors.primary}
-                style={styles.modalCancel}
-              />
-            ) : null}
-            <AppButton title="Close" variant="outline" onPress={() => setPlanSession((p) => ({ ...p, modalOpen: false }))} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      <Modal visible={cancelPlanOpen} transparent animationType="fade" onRequestClose={() => setCancelPlanOpen(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Cancel plan</Text>
-            <Text style={styles.confirmBody}>{cancelPlanPrompt}</Text>
-            <Text style={styles.confirmBody}>No cancellation fee.</Text>
-            <AppButton
-              title="Yes, cancel"
-              onPress={() => {
-                const result = confirmCancelPlan(user.id);
-                setCancelPlanOpen(false);
-                reload();
-                if (result.ok) setPlanNotice([result.message]);
-              }}
-              color={colors.danger}
-            />
-            <AppButton title="Keep plan" variant="outline" onPress={() => setCancelPlanOpen(false)} color={colors.primary} style={styles.confirmNo} />
           </View>
         </View>
       </Modal>
@@ -900,7 +798,7 @@ const styles = StyleSheet.create({
   lineValue: { fontSize: font.body, color: colors.text, lineHeight: 24 },
   editHit: { minHeight: touch.min, justifyContent: 'center', paddingHorizontal: spacing.sm },
   editLink: { fontSize: font.body, color: colors.action, fontWeight: '700' },
-  planBtn: { marginTop: spacing.sm },
+  linkBtn: { marginTop: spacing.sm },
   biometricRow: {
     flexDirection: 'row',
     alignItems: 'center',

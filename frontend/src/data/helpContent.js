@@ -21,25 +21,31 @@ export const ORDER_STEPS = [
 /** @type {{ id: string, title: string, description: string, screenshotLabel?: string }[]} */
 export const GUIDE_STEPS = [
   {
+    id: 'home',
+    title: 'Home: quick overview',
+    description: 'Open Home for highlights and shortcuts into Meals, Orders, and Account.',
+    screenshotLabel: 'Screenshot reference: Home screen',
+  },
+  {
     id: 'menu',
     title: 'Menu: browse and search meals',
     description: 'Open Meals to scroll the menu, search by name, and filter by diet or allergens.',
     screenshotLabel: 'Screenshot reference: Meals list with search bar',
   },
   {
-    id: 'cart',
-    title: 'Order: build your cart',
-    description: 'Tap a meal to set quantity, then open Order to review items before checkout.',
+    id: 'orders',
+    title: 'Orders: current and previous orders',
+    description: 'Open Orders to see active deliveries, order history, and status updates.',
   },
   {
-    id: 'tracking',
-    title: 'Tracking: follow your order',
-    description: 'After you confirm, use Tracking to see status updates and your tracking number.',
+    id: 'account',
+    title: 'Account: profile and dietary information',
+    description: 'Open Account to update contact details, allergies, dietary restrictions, and health information.',
   },
   {
-    id: 'profile',
-    title: 'Profile: keep health details current',
-    description: 'Update allergies, dietary restrictions, and contact information so meals stay safe for you.',
+    id: 'help',
+    title: 'Help: guides and support',
+    description: 'Open Help for step-by-step guides, frequently asked questions, and how to reach support.',
   },
 ];
 
@@ -73,7 +79,7 @@ export const FAQ_GROUPS = [
       {
         id: 'ordering-place',
         question: 'How do I place an order?',
-        answer: 'Choose meals, set quantity, pick delivery or pickup, review your cart, then confirm payment and delivery details.',
+        answer: 'Browse Meals, choose items and quantities, review your cart from Meals, then confirm payment and delivery details.',
       },
       {
         id: 'ordering-change',
@@ -89,7 +95,7 @@ export const FAQ_GROUPS = [
       {
         id: 'delivery-window',
         question: 'When will my order arrive?',
-        answer: 'Delivery windows appear at checkout. Tracking shows updates once the kitchen dispatches your order.',
+        answer: 'Delivery windows appear at checkout. Orders shows updates once the kitchen dispatches your order.',
       },
       {
         id: 'delivery-pickup',
@@ -110,7 +116,7 @@ export const FAQ_GROUPS = [
       {
         id: 'health-update',
         question: 'How do I update my dietary information?',
-        answer: 'Open Profile and edit Health conditions, Dietary restrictions, or Food allergies. Save after each change.',
+        answer: 'Open Account and edit Health conditions, Dietary restrictions, or Food allergies. Save after each change.',
       },
     ],
   },

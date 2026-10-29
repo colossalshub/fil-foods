@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
@@ -12,7 +13,7 @@ import VerifyAccountScreen from '../screens/auth/VerifyAccountScreen';
 import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
 import LinkGoogleScreen from '../screens/auth/LinkGoogleScreen';
 import { getUser, getPublicUser } from '../services/authService';
-import { buildPersistedSession, evaluateSessionRestore, shouldPersistSession } from '../services/sessionPolicy';
+import { buildPersistedSession, evaluateSessionRestore, shouldEndSession, shouldPersistSession } from '../services/sessionPolicy';
 import { clearPersistedSession, persistSession, readPersistedSession } from '../services/sessionPersistence';
 import HelpScreen from '../screens/HelpScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
@@ -25,6 +26,7 @@ export default function RootNavigator() {
   const [user, setUser] = useState(null);
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [booting, setBooting] = useState(true);
+  const lastActiveRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,13 +81,42 @@ export default function RootNavigator() {
     [user, keepLoggedIn, signIn, signOut],
   );
 
+  useEffect(() => {
+    if (!user || user.role === 'visitor' || keepLoggedIn) return undefined;
+    lastActiveRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (shouldEndSession({
+        keepLoggedIn: false,
+        lastActiveAt: lastActiveRef.current,
+        now: Date.now(),
+      })) {
+        signOut();
+      }
+    }, 30000);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') lastActiveRef.current = Date.now();
+      if (shouldEndSession({ keepLoggedIn: false, appBackgrounded: next === 'background' })) {
+        signOut();
+      }
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [user, keepLoggedIn, signOut]);
+
   if (booting) {
     return null;
   }
 
   return (
     <AuthContext.Provider value={auth}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer
+        theme={navTheme}
+        onStateChange={() => {
+          lastActiveRef.current = Date.now();
+        }}
+      >
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user && user.role !== 'visitor' ? (
             user.profileComplete ? (

@@ -118,13 +118,29 @@ export default function OrderScreen({ navigation }) {
     Alert.alert('Success', ORDER_MSG.orderSuccess);
   };
 
+  if (!user?.id || user.role === 'visitor') {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScreenHeader title="Order" subtitle="Sign in required" />
+        <View style={styles.emptyWrap}>
+          <Text style={styles.empty}>Log in to place an order and keep your meals private.</Text>
+          <AppButton
+            title="Log in"
+            onPress={() => navigation.getParent()?.getParent()?.getParent()?.navigate('Login')}
+            style={{ alignSelf: 'stretch' }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!items.length && !lastOrder) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
         <ScreenHeader title="Order" subtitle="Review and confirm" />
         <View style={styles.emptyWrap}>
           <Text style={styles.empty}>Your cart is empty. Add meals to get started.</Text>
-          <AppButton title="Browse Meals" onPress={() => navigation.navigate('Meals')} style={{ alignSelf: 'stretch' }} />
+          <AppButton title="Browse Meals" onPress={() => navigation.navigate('MealsList')} style={{ alignSelf: 'stretch' }} />
         </View>
       </SafeAreaView>
     );
@@ -155,7 +171,7 @@ export default function OrderScreen({ navigation }) {
                 keyboardType="number-pad"
                 accessibilityLabel={`Quantity for ${row.meal.name}`}
               />
-              <Pressable accessibilityRole="button" onPress={() => navigation.navigate('Meals', { screen: 'MealDetail', params: { meal: row.meal } })}>
+              <Pressable accessibilityRole="button" onPress={() => navigation.navigate('MealDetail', { meal: row.meal })}>
                 <Text style={styles.link}>Edit meal</Text>
               </Pressable>
             </View>

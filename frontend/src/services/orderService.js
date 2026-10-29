@@ -2,12 +2,13 @@
 
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { getUser } from './authService.js';
-import { rankMeal, sortMealsForProfile } from './profileService.js';
-import { appendAuditEvent } from './securityService.js';
+import { mealMatchesNutritionalPreferences, rankMeal, sortMealsForProfile } from './profileService.js';
+import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
 export { solveNutritionPlan } from './nutritionService.js';
 
 export const ORDER_MSG = {
-  noMeals: 'No meals found. Try a different name.',
+  noMeals: 'No meals found.',
+  noSuggestions: 'No suggestions match your dietary information right now.',
   mealAllergen: (allergen) => `This meal contains ${allergen}, which is listed in your profile.`,
   mealUnavailable: 'This meal is no longer available.',
   quantityInvalid: 'Quantity must be greater than zero.',
@@ -19,9 +20,9 @@ export const ORDER_MSG = {
   orderSuccess: 'Order placed successfully.',
   placingOrder: 'Placing your order...',
   lineAllergen: (mealName, allergen) => `${mealName} contains ${allergen}, which is listed in your profile.`,
-  completeProfile: 'Complete your profile to get recommendations.',
+  completeProfile: 'Add dietary information to get more relevant suggestions.',
   recommendationsDisclaimer:
-    'Recommendations are suggestions only. Please follow the advice of your doctor or dietitian.',
+    "Suggestions are not medical advice. Follow your doctor or dietitian's guidance.",
   chooseFulfillment: 'Choose delivery or pickup.',
 };
 
@@ -46,8 +47,8 @@ const inFlightConfirm = new Map();
 
 export function formatPhp(amount) {
   const n = Number(amount);
-  if (!Number.isFinite(n)) return '₱0.00';
-  return `₱${n.toFixed(2)}`;
+  if (!Number.isFinite(n)) return 'PHP 0.00';
+  return `PHP ${n.toFixed(2)}`;
 }
 
 export function levenshtein(a, b) {
@@ -116,18 +117,40 @@ function compactNameDistance(mealName, query) {
   return levenshtein(query.trim().toLowerCase(), compact);
 }
 
+function catalogText(meal) {
+  return [
+    meal.category,
+    ...(meal.mealCategories || []),
+    ...(meal.ingredients || []),
+    ...(meal.dietaryTags || []),
+    ...(meal.diets || []),
+  ].filter(Boolean).join(' ');
+}
+
 export function fuzzySearchMeals(meals, query) {
   const trimmed = (query || '').trim();
   if (!trimmed) return [...meals];
-  const scored = meals
-    .map((meal) => ({ meal, score: mealMatchScore(meal.name, trimmed) }))
-    .filter((row) => row.score !== null)
-    .sort(
-      (a, b) => a.score - b.score
-        || (a.score === b.score && (a.meal.id === 'sample-tinola' ? -1 : b.meal.id === 'sample-tinola' ? 1 : 0))
-        || compactNameDistance(a.meal.name, trimmed) - compactNameDistance(b.meal.name, trimmed)
-        || a.meal.name.localeCompare(b.meal.name),
-    );
+  const scored = [];
+  for (const meal of meals) {
+    const nameScore = mealMatchScore(meal.name, trimmed);
+    if (nameScore !== null) {
+      scored.push({ meal, tier: 0, score: nameScore });
+      continue;
+    }
+    const text = catalogText(meal);
+    const textScore = mealMatchScore(text, trimmed);
+    const direct = text.toLowerCase().includes(trimmed.toLowerCase());
+    if (textScore !== null || direct) {
+      scored.push({ meal, tier: 1, score: textScore === null ? 3 : textScore });
+    }
+  }
+  scored.sort(
+    (a, b) => a.tier - b.tier
+      || a.score - b.score
+      || (a.score === b.score && (a.meal.id === 'sample-tinola' ? -1 : b.meal.id === 'sample-tinola' ? 1 : 0))
+      || compactNameDistance(a.meal.name, trimmed) - compactNameDistance(b.meal.name, trimmed)
+      || a.meal.name.localeCompare(b.meal.name),
+  );
   return scored.map((row) => row.meal);
 }
 
@@ -135,17 +158,36 @@ export function isMealAvailable(meal) {
   return meal?.available !== false;
 }
 
+export function mealContainsAllergen(meal, allergenName) {
+  return profileAllergensInMeal(meal, { allergies: [{ name: allergenName }] }).length > 0;
+}
+
+function mealMatchesCategory(meal, category) {
+  if (!category) return true;
+  if (meal.category === category) return true;
+  return (meal.mealCategories || []).includes(category);
+}
+
+function mealMatchesRestriction(meal, restriction) {
+  return (meal.diets || []).includes(restriction) || (meal.dietaryTags || []).includes(restriction);
+}
+
 export function applyMealFilters(meals, { category, diets = [], excludeAllergens = [] }) {
   return meals.filter((m) => {
-    if (category && m.category !== category) return false;
-    if (!diets.every((d) => (m.diets || []).includes(d))) return false;
-    if (excludeAllergens.some((a) => (m.allergens || []).includes(a))) return false;
+    if (!mealMatchesCategory(m, category)) return false;
+    if (!diets.every((d) => mealMatchesRestriction(m, d))) return false;
+    if (excludeAllergens.some((a) => mealContainsAllergen(m, a))) return false;
     return true;
   });
 }
 
-export function searchAndFilterMeals(meals, { query, category, diets, excludeAllergens, profile }) {
+export function searchAndFilterMeals(meals, {
+  query, category, diets, excludeAllergens, profile, applyNutrition = false,
+}) {
   let list = applyMealFilters(meals, { category, diets, excludeAllergens });
+  if (applyNutrition && profile) {
+    list = list.filter((meal) => mealMatchesNutritionalPreferences(meal, profile));
+  }
   if ((query || '').trim()) {
     list = fuzzySearchMeals(list, query);
   }
@@ -208,30 +250,41 @@ export function isRecommendationsProfileEmpty(profile) {
   return (
     !(profile.dietaryRestrictions || []).length
     && !(profile.allergies || []).length
-    && !profile.nutritionalPreference
+    && nutritionIds(profile).length === 0
     && !(prefs.preferredCategories || []).length
     && !(prefs.dislikedIngredients || []).length
   );
 }
 
+function nutritionIds(profile) {
+  if (Array.isArray(profile?.nutritionalPreferences) && profile.nutritionalPreferences.length) {
+    return profile.nutritionalPreferences;
+  }
+  return profile?.nutritionalPreference ? [profile.nutritionalPreference] : [];
+}
+
 export function recommendationReason(meal, profile) {
   const reasons = [];
   for (const cat of profile?.mealPreferences?.preferredCategories || []) {
-    if ((meal.mealCategories || []).includes(cat)) reasons.push(`Preferred category: ${cat}`);
+    if ((meal.mealCategories || []).includes(cat)) {
+      reasons.push(`Matches your preference for ${String(cat).toLowerCase()}`);
+    }
   }
-  for (const r of profile?.dietaryRestrictions || []) {
-    if ((meal.dietaryTags || []).includes(r)) reasons.push(`Matches your ${r} restriction`);
+  for (const restriction of profile?.dietaryRestrictions || []) {
+    if ((meal.dietaryTags || []).includes(restriction) || (meal.diets || []).includes(restriction)) {
+      reasons.push(`Matches your ${String(restriction).toLowerCase()} diet`);
+    }
   }
-  if (profile?.nutritionalPreference === 'lower-calories' && meal.calories <= 400) {
-    reasons.push('Lower calories');
+  for (const id of nutritionIds(profile)) {
+    if (id === 'lower-calories' && meal.calories <= 400) reasons.push('Matches your preference for lower calories');
+    if (id === 'higher-protein' && (meal.protein >= 25 || meal.diets?.includes('High-protein'))) {
+      reasons.push('Matches your preference for higher protein');
+    }
+    if (id === 'lower-sodium' && (meal.sodium <= 500 || meal.dietaryTags?.includes('Low-sodium'))) {
+      reasons.push('Matches your preference for lower sodium');
+    }
   }
-  if (profile?.nutritionalPreference === 'higher-protein' && (meal.protein >= 25 || meal.diets?.includes('High-protein'))) {
-    reasons.push('Higher protein');
-  }
-  if (profile?.nutritionalPreference === 'lower-sodium' && (meal.sodium <= 500 || meal.dietaryTags?.includes('Low-sodium'))) {
-    reasons.push('Lower sodium');
-  }
-  if (!reasons.length) reasons.push('Popular with clients like you');
+  if (!reasons.length) reasons.push('Fits your dietary information');
   return reasons[0];
 }
 
@@ -253,7 +306,7 @@ export function getRecommendedMeals(meals, profile, limit = 5) {
       reason: recommendationReason(meal, profile),
       score: rankMeal(meal, profile),
     }));
-  return { emptyProfile: false, items: ranked };
+  return { emptyProfile: false, items: ranked, none: ranked.length === 0 };
 }
 
 export function parseQuantityInput(raw) {
@@ -435,6 +488,12 @@ export function confirmOrder(userId, payload) {
       dietaryRestrictions: user.dietaryRestrictions,
       mealPreferences: user.mealPreferences,
       nutritionalPreference: user.nutritionalPreference,
+      nutritionalPreferences: user.nutritionalPreferences,
+    };
+    const kitchenView = {
+      healthConditions: [...(user.healthConditions || [])],
+      dietaryRestrictions: [...(user.dietaryRestrictions || [])],
+      allergies: (user.allergies || []).map((item) => ({ name: item.name, note: item.note || '' })),
     };
     const warnings = collectOrderAllergenWarnings(lineItems, profile);
     if (warnings.length && !payload.allergenAcknowledged) {
@@ -469,6 +528,7 @@ export function confirmOrder(userId, payload) {
       discountAmount: totals.discountAmount,
       total: totals.total,
       placedAt: placedIso,
+      kitchenView,
     };
 
     orders.push(order);
@@ -489,6 +549,22 @@ export function confirmOrder(userId, payload) {
 
 export function getOrdersForUser(userId) {
   return ensureOrdersArray().filter((o) => o.userId === userId);
+}
+
+export function getKitchenOrderView(actor, orderId) {
+  if (!canViewKitchenRecord(actor)) {
+    const error = new Error('Forbidden');
+    error.code = 'FORBIDDEN';
+    throw error;
+  }
+  const order = ensureOrdersArray().find((row) => row.id === orderId);
+  if (!order) return null;
+  return {
+    trackingNumber: order.trackingNumber,
+    healthConditions: order.kitchenView?.healthConditions || [],
+    dietaryRestrictions: order.kitchenView?.dietaryRestrictions || [],
+    allergies: order.kitchenView?.allergies || [],
+  };
 }
 
 export function __testResetConfirmState() {
