@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import ScreenHeader from '../../components/ScreenHeader';
 import AppButton from '../../components/AppButton';
+import { clearPendingDestination } from '../../navigation/pendingDestination';
 import { colors, card, font, spacing, touch } from '../../theme/theme';
 
 const STEPS = [
@@ -41,7 +42,9 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle} accessibilityRole="header">How it works</Text>
         {STEPS.map((step, index) => (
           <View key={step.title} style={styles.stepRow}>
-            <Text style={styles.stepNum}>{index + 1}</Text>
+            <View style={styles.stepNumWrap}>
+              <Text style={styles.stepNum}>{index + 1}</Text>
+            </View>
             <View style={styles.stepBody}>
               <Text style={styles.stepTitle}>{step.title}</Text>
               <Text style={styles.stepLine}>{step.line}</Text>
@@ -51,15 +54,28 @@ export default function HomeScreen() {
 
         <AppButton
           title="Get started"
-          onPress={() => navigation.getParent()?.navigate('CreateAccount')}
+          onPress={() => {
+            clearPendingDestination();
+            navigation.getParent()?.navigate('CreateAccount');
+          }}
           color={colors.action}
           style={styles.cta}
         />
         <AppButton
           title="Log in"
           variant="outline"
-          onPress={() => navigation.getParent()?.navigate('Login')}
+          onPress={() => {
+            clearPendingDestination();
+            navigation.getParent()?.navigate('Login');
+          }}
           color={colors.primary}
+        />
+        <AppButton
+          title="About"
+          variant="outline"
+          onPress={() => navigation.getParent()?.navigate('About')}
+          color={colors.primary}
+          style={styles.about}
         />
       </ScrollView>
     </SafeAreaView>
@@ -73,9 +89,19 @@ const styles = StyleSheet.create({
   introTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
   sectionTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.md },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg, minHeight: touch.min },
-  stepNum: { width: 28, fontSize: font.body, fontWeight: '700', color: colors.action, lineHeight: 24 },
+  stepNumWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.soft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  stepNum: { fontSize: font.body, fontWeight: '700', color: colors.primary },
   stepBody: { flex: 1 },
   stepTitle: { fontSize: font.body, lineHeight: 24, color: colors.text, fontWeight: '700' },
   stepLine: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginTop: 2 },
   cta: { marginTop: spacing.xl, marginBottom: spacing.sm },
+  about: { marginTop: spacing.sm },
 });

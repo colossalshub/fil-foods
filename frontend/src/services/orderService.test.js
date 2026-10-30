@@ -18,6 +18,7 @@ import {
   validateSchedule,
 } from './orderService.js';
 import { NUTRITION_MSG, solveNutritionPlan } from './nutritionService.js';
+import { combineSchedule, dateFromIsoDay, timeFromClock } from '../components/scheduleValue.js';
 
 const SAMPLE_NOW = new Date('2026-10-12T09:00:00');
 
@@ -76,6 +77,21 @@ test('recommendations explain the match in plain language', () => {
   assert.equal(tinola.reason, 'Matches your preference for soup');
   assert.equal(result.items.some((row) => row.meal.name === 'Chicken Satay'), false);
   assert.equal(result.items.some((row) => row.meal.name === 'Ampalaya Stir-fry'), false);
+});
+
+test('nutrition goals still suggest meals when a diet tag is not on the catalog', () => {
+  const profile = {
+    dietaryRestrictions: ['Low-sugar', 'Soft diet'],
+    nutritionalPreferences: ['lower-calories', 'higher-protein'],
+    allergies: [{ name: 'Peanuts' }],
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+  };
+  const result = getRecommendedMeals(MEALS, profile, 5);
+  assert.equal(result.emptyProfile, false);
+  assert.equal(result.none, false);
+  assert.ok(result.items.length > 0);
+  assert.equal(result.items.some((row) => row.meal.name === 'Chicken Satay'), false);
+  assert.ok(result.items.some((row) => /calories|protein/i.test(row.reason)));
 });
 
 test('nutrition solver keeps an exact day and reports the closest set when targets cannot be met', () => {
@@ -137,6 +153,23 @@ test('parseQuantityInput rejects zero, negative, decimal, and non-numeric values
   assert.equal(parseQuantityInput('2').ok, true);
   assert.equal(parseQuantityInput('2').value, 2);
   assert.equal(parseQuantityInput(0).message, ORDER_MSG.quantityInvalid);
+});
+
+test('combineSchedule keeps the chosen calendar day and clock time', () => {
+  const combined = combineSchedule(dateFromIsoDay('2026-11-02'), timeFromClock('10:30'));
+  assert.equal(combined.getFullYear(), 2026);
+  assert.equal(combined.getMonth(), 10);
+  assert.equal(combined.getDate(), 2);
+  assert.equal(combined.getHours(), 10);
+  assert.equal(combined.getMinutes(), 30);
+  assert.equal(combineSchedule(null, timeFromClock('10:00')), '');
+});
+
+test('validateSchedule rejects a year or date without a time', () => {
+  assert.equal(validateSchedule('2027', SAMPLE_NOW).ok, false);
+  assert.equal(validateSchedule('2027', SAMPLE_NOW).message, ORDER_MSG.scheduleInvalid);
+  assert.equal(validateSchedule('2026-10-13', SAMPLE_NOW).message, ORDER_MSG.scheduleInvalid);
+  assert.equal(validateSchedule('2026-10-13T10:00:00', SAMPLE_NOW).ok, true);
 });
 
 test('validateSchedule enforces lead time and kitchen hours', () => {

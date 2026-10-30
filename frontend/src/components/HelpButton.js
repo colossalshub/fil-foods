@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { openHelp } from '../navigation/openHelp';
-import { colors } from '../theme/theme';
+import { colors, font } from '../theme/theme';
 
 export default function HelpButton({ color = colors.primary }) {
   const navigation = useNavigation();
@@ -13,11 +13,20 @@ export default function HelpButton({ color = colors.primary }) {
       onPress={() => openHelp(navigation)}
       style={styles.hit}
     >
-      <Ionicons name="help-circle-outline" size={26} color={color} />
+      <Ionicons name="help-circle-outline" size={22} color={color} />
+      <Text style={[styles.label, { color }]} allowFontScaling>Help</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  hit: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  hit: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+  },
+  label: { fontSize: font.body, fontWeight: '700', lineHeight: 22 },
 });

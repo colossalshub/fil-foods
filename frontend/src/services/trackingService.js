@@ -49,12 +49,27 @@ const STATUS_META = {
 
 export const POLL_INTERVAL_MS = 4000;
 
+const BACKEND_STATUS = {
+  confirmed: ORDER_STATUS.CONFIRMED,
+  preparing: ORDER_STATUS.PREPARING,
+  ready_for_pick_up: ORDER_STATUS.READY_PICKUP,
+  ready_for_delivery: ORDER_STATUS.READY_DELIVERY,
+  out_for_delivery: ORDER_STATUS.OUT_FOR_DELIVERY,
+  completed: ORDER_STATUS.COMPLETED,
+  cancelled: ORDER_STATUS.CANCELLED,
+};
+
+function backendStatusLabel(status) {
+  const key = String(status || '').toLowerCase();
+  return BACKEND_STATUS[key] || ORDER_STATUS.CONFIRMED;
+}
+
 export function mapBackendOrder(order) {
   return {
     id: order.id,
     userId: order.client_id,
     trackingNumber: order.tracking_number,
-    status: String(order.status || '').replace(/(^|_)(\w)/g, (_, prefix, letter) => `${prefix ? ' ' : ''}${letter.toUpperCase()}`),
+    status: backendStatusLabel(order.status),
     placedAt: order.created_at,
     lastUpdatedAt: order.updated_at,
     total: Number(order.total),
@@ -73,7 +88,7 @@ export function mapBackendOrder(order) {
       instructions: order.special_instructions,
     },
     statusHistory: (order.order_status_history || []).map((row) => ({
-      status: String(row.status || '').replace(/(^|_)(\w)/g, (_, prefix, letter) => `${prefix ? ' ' : ''}${letter.toUpperCase()}`),
+      status: backendStatusLabel(row.status),
       at: row.changed_at,
     })),
   };
@@ -82,14 +97,20 @@ export function mapBackendOrder(order) {
 export async function refreshBackendOrdersForUser(userId) {
   if (!isSupabaseConfigured) return null;
   const rows = await getClientOrders();
-  return rows.filter((row) => row.client_id === userId).map(mapBackendOrder);
+  return sortOrdersForList(
+    rows.filter((row) => row.client_id === userId).map((row) => toListItem(mapBackendOrder(row))),
+  );
+}
+
+export function detailFromBackendOrder(row) {
+  return toDetail(mapBackendOrder(row));
 }
 
 export async function refreshBackendOrder(userId, orderId) {
   if (!isSupabaseConfigured) return null;
   const row = await getClientOrderById(orderId);
   if (!row || row.client_id !== userId) return null;
-  return mapBackendOrder(row);
+  return detailFromBackendOrder(row);
 }
 
 export function subscribeToBackendOrderChanges(onChange) {

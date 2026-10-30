@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@expo/ui": "~58.0.25",
     "@expo/vector-icons": "^15.0.2",
     "@noble/hashes": "^2.4.0",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -26,7 +27,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --test src/domain/registration.test.js src/domain/terms.test.js src/services/verificationService.test.js src/services/sessionPolicy.test.js src/services/authService.test.js src/services/googleAuthService.test.js src/services/profileService.test.js src/services/orderService.test.js src/services/planService.test.js src/data/helpContent.test.js src/services/trackingService.test.js src/services/biometricService.test.js src/services/securityNutrition.test.js",
+    "test": "node --test src/domain/registration.test.js src/domain/terms.test.js src/lib/authSession.test.js src/services/verificationService.test.js src/services/sessionPolicy.test.js src/services/authService.test.js src/services/googleAuthService.test.js src/services/profileService.test.js src/services/orderService.test.js src/services/planService.test.js src/data/helpContent.test.js src/services/trackingService.test.js src/services/biometricService.test.js src/services/securityNutrition.test.js",
     "lint": "expo lint"
   },
   "private": true,

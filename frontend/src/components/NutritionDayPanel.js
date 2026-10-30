@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import AppButton from './AppButton';
 import AppInput from './AppInput';
 import { MEALS } from '../data/meals';
@@ -23,6 +23,7 @@ export default function NutritionDayPanel({ profile, targets, onSaveTargets }) {
   const [protein, setProtein] = useState(String(targets?.protein || ''));
   const [fat, setFat] = useState(String(targets?.fat || ''));
   const [result, setResult] = useState(null);
+  const [open, setOpen] = useState(false);
 
   const canSolve = Number(calories) > 0 || Number(protein) > 0 || Number(fat) > 0;
 
@@ -45,7 +46,20 @@ export default function NutritionDayPanel({ profile, targets, onSaveTargets }) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Daily nutrition targets</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((value) => !value)}
+        style={styles.head}
+      >
+        <Text style={styles.title}>Daily nutrition targets</Text>
+        <Text style={styles.toggle}>{open ? 'Hide' : 'Show'}</Text>
+      </Pressable>
+      {open ? null : (
+        <Text style={styles.hint}>Open this after you look through the meals.</Text>
+      )}
+      {open ? (
+        <>
       <Text style={styles.body}>
         Optional. A suggested breakfast, lunch, and dinner stays inside your allergy and diet limits.
       </Text>
@@ -68,6 +82,8 @@ export default function NutritionDayPanel({ profile, targets, onSaveTargets }) {
         </View>
       ) : null}
       <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -81,7 +97,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  title: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
+  title: { fontSize: font.body, fontWeight: '700', color: colors.primary, flex: 1 },
+  toggle: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  hint: { fontSize: font.sm, color: colors.muted, marginTop: spacing.xs },
   body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
   meal: { fontSize: font.body, lineHeight: 24, color: colors.text },
   result: { marginTop: spacing.md },

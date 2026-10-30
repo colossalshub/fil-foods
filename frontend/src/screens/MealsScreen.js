@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TextInput, FlatList, ScrollView, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, View, Text, TextInput, FlatList, ScrollView, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../components/ScreenHeader';
 import FoodCard from '../components/FoodCard';
+import Checkbox from '../components/Checkbox';
 import Chip from '../components/Chip';
 import FilterModal from '../components/FilterModal';
 import AppButton from '../components/AppButton';
@@ -12,14 +13,15 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import NutritionDayPanel from '../components/NutritionDayPanel';
 import {
-  getProfileForMeals, mealRestrictionMatch, saveNutritionalPreference,
+  mealRestrictionMatch, saveNutritionalPreference,
 } from '../services/profileService';
+import { useMealProfile } from '../hooks/useMealProfile';
 import {
   ORDER_MSG,
   getRecommendedMeals,
   searchAndFilterMeals,
 } from '../services/orderService';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, card, font, radius, spacing, control } from '../theme/theme';
 
 export default function MealsScreen({ navigation }) {
   const { user } = useAuth();
@@ -33,7 +35,7 @@ export default function MealsScreen({ navigation }) {
 
   const activeCount = (filters.category ? 1 : 0) + filters.diets.length + filters.allergens.length;
 
-  const profile = useMemo(() => (user?.id ? getProfileForMeals(user.id) : null), [user]);
+  const { profile, loading: profileLoading } = useMealProfile(user);
 
   const cuisineFiltered = useMemo(
     () => MEALS.filter((m) => cuisine === 'All' || m.cuisine === cuisine),
@@ -69,7 +71,9 @@ export default function MealsScreen({ navigation }) {
         />
       ) : null}
       <Text style={styles.recTitle}>Recommended for you</Text>
-      {recommendations.emptyProfile ? (
+      {profileLoading ? (
+        <ActivityIndicator color={colors.primary} style={styles.recEmpty} />
+      ) : recommendations.emptyProfile ? (
         <View style={styles.recEmpty}>
           <Text style={styles.recEmptyText}>{ORDER_MSG.completeProfile}</Text>
           <AppButton
@@ -82,43 +86,46 @@ export default function MealsScreen({ navigation }) {
         <Text style={styles.recEmptyText}>{ORDER_MSG.noSuggestions}</Text>
       ) : (
         <>
-          {recommendations.items.map(({ meal, reason }) => (
-            <Pressable key={`rec-${meal.id}`} onPress={() => openDetail(meal)} style={styles.recCard}>
-              <Text style={styles.recName}>{meal.name}</Text>
-              <Text style={styles.recReason}>{reason}</Text>
-            </Pressable>
-          ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recScroller}>
+            {recommendations.items.map(({ meal, reason }) => (
+              <Pressable key={`rec-${meal.id}`} onPress={() => openDetail(meal)} style={styles.recCard}>
+                <Text style={styles.recName} numberOfLines={2}>{meal.name}</Text>
+                <Text style={styles.recReason} numberOfLines={3}>{reason}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
           <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
         </>
       )}
       {(profile?.nutritionalPreferences?.length || profile?.nutritionalPreference) ? (
-        <AppButton
-          title={applyNutrition ? 'Showing nutrition matches' : 'Match my nutrition goals'}
-          variant="outline"
-          onPress={() => setApplyNutrition((on) => !on)}
-          color={colors.primary}
-          style={styles.reviewOrderBtn}
-        />
-      ) : null}
-      {user?.id ? (
-        <NutritionDayPanel
-          profile={profile}
-          targets={profile?.nutritionTargets}
-          onSaveTargets={(target) => saveNutritionalPreference(
-            user.id,
-            profile?.nutritionalPreferences?.length
-              ? profile.nutritionalPreferences
-              : profile?.nutritionalPreference,
-            target,
-          )}
-        />
+        <Checkbox
+          checked={applyNutrition}
+          onToggle={() => setApplyNutrition((on) => !on)}
+          accessibilityLabel="Use my nutrition goals"
+        >
+          Use my nutrition goals
+        </Checkbox>
       ) : null}
     </View>
   );
 
+  const listFooter = user?.id ? (
+    <NutritionDayPanel
+      profile={profile}
+      targets={profile?.nutritionTargets}
+      onSaveTargets={(target) => saveNutritionalPreference(
+        user.id,
+        profile?.nutritionalPreferences?.length
+          ? profile.nutritionalPreferences
+          : profile?.nutritionalPreference,
+        target,
+      )}
+    />
+  ) : null;
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Meals" subtitle="Pick something good today" />
+      <ScreenHeader title="Meal" subtitle="Pick something good today" showBell />
       <View style={styles.searchRow}>
         <View style={styles.search}>
           <Ionicons name="search" size={16} color={colors.muted} />
@@ -149,6 +156,7 @@ export default function MealsScreen({ navigation }) {
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: spacing.lg }}
         ListHeaderComponent={user ? listHeader : null}
+        ListFooterComponent={listFooter}
         renderItem={({ item }) => (
           <FoodCard
             meal={item}
@@ -172,9 +180,9 @@ export default function MealsScreen({ navigation }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   searchRow: { flexDirection: 'row', paddingHorizontal: spacing.lg, paddingTop: spacing.md, alignItems: 'center' },
-  search: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, minHeight: control.minHeight },
+  search: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.md, minHeight: control.minHeight },
   searchInput: { flex: 1, marginLeft: 6, fontSize: font.body, color: colors.text },
-  filterBtn: { minWidth: control.minHeight, minHeight: control.minHeight, paddingHorizontal: 8, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
+  filterBtn: { minWidth: control.minHeight, minHeight: control.minHeight, paddingHorizontal: 8, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
   filterLabel: { color: colors.white, fontSize: font.body, fontWeight: '700' },
   badge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger, color: colors.white, fontSize: 10, textAlign: 'center', lineHeight: 16, overflow: 'hidden' },
   chipScroll: { marginHorizontal: spacing.lg, marginTop: spacing.md, height: control.minHeight },
@@ -182,9 +190,10 @@ const styles = StyleSheet.create({
   chipsSpread: { flexGrow: 1, justifyContent: 'space-between' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40, fontSize: font.body },
   recTitle: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
-  recCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
+  recScroller: { gap: spacing.sm, paddingBottom: spacing.sm },
+  recCard: { ...card, width: 200, padding: spacing.md },
   recName: { fontSize: font.body, fontWeight: '700', color: colors.text },
-  recReason: { fontSize: font.body, color: colors.muted, marginTop: 4, lineHeight: 24 },
+  recReason: { fontSize: font.sm, color: colors.muted, marginTop: 4, lineHeight: 18 },
   disclaimer: { fontSize: font.body, color: colors.muted, marginBottom: spacing.lg, lineHeight: 24 },
   recEmpty: { marginBottom: spacing.lg },
   recEmptyText: { fontSize: font.body, color: colors.text, marginBottom: spacing.sm },

@@ -2,7 +2,7 @@
 
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { getUser } from './authService.js';
-import { mealMatchesNutritionalPreferences, rankMeal, sortMealsForProfile } from './profileService.js';
+import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } from './profileService.js';
 import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
 export { solveNutritionPlan } from './nutritionService.js';
 
@@ -13,6 +13,7 @@ export const ORDER_MSG = {
   mealUnavailable: 'This meal is no longer available.',
   quantityInvalid: 'Quantity must be greater than zero.',
   addressRequired: 'Please enter a delivery address.',
+  scheduleInvalid: 'Enter a date (YYYY-MM-DD) and a time (HH:MM).',
   schedulePast: 'The schedule cannot be earlier than the current date and time.',
   scheduleLead: 'Please choose a time at least 24 hours from now.',
   kitchenClosed:
@@ -186,7 +187,8 @@ export function searchAndFilterMeals(meals, {
 }) {
   let list = applyMealFilters(meals, { category, diets, excludeAllergens });
   if (applyNutrition && profile) {
-    list = list.filter((meal) => mealMatchesNutritionalPreferences(meal, profile));
+    const matches = list.filter((meal) => mealMatchesAnyNutritionalPreference(meal, profile));
+    if (matches.length) list = matches;
   }
   if ((query || '').trim()) {
     list = fuzzySearchMeals(list, query);
@@ -237,11 +239,27 @@ export function hasDislikedIngredient(meal, profile) {
   return disliked.some((d) => ing.includes(String(d).toLowerCase()));
 }
 
+function mealTags(meal) {
+  return new Set([...(meal.dietaryTags || []), ...(meal.diets || [])]);
+}
+
+function restrictionConflicts(meal, restriction) {
+  const tags = mealTags(meal);
+  if (restriction === 'Vegetarian') return !(tags.has('Vegetarian') || tags.has('Vegan'));
+  if (restriction === 'Vegan') return !tags.has('Vegan');
+  if (restriction === 'Low-sodium') {
+    if (tags.has('Low-sodium')) return false;
+    return meal.sodium != null && meal.sodium > 500;
+  }
+  if (restriction === 'Low-sugar') return tags.has('High-sugar');
+  if (restriction === 'Low-carb') return tags.has('High-carb');
+  return false;
+}
+
 export function hasRestrictionConflict(meal, profile) {
   const restrictions = profile?.dietaryRestrictions || [];
   if (!restrictions.length) return false;
-  const tags = meal.dietaryTags || [];
-  return !restrictions.every((r) => tags.includes(r));
+  return restrictions.some((restriction) => restrictionConflicts(meal, restriction));
 }
 
 export function isRecommendationsProfileEmpty(profile) {
@@ -265,6 +283,15 @@ function nutritionIds(profile) {
 
 export function recommendationReason(meal, profile) {
   const reasons = [];
+  for (const id of nutritionIds(profile)) {
+    if (id === 'lower-calories' && meal.calories <= 400) reasons.push('Matches your preference for lower calories');
+    if (id === 'higher-protein' && (meal.protein >= 25 || meal.diets?.includes('High-protein'))) {
+      reasons.push('Matches your preference for higher protein');
+    }
+    if (id === 'lower-sodium' && (meal.sodium <= 500 || meal.dietaryTags?.includes('Low-sodium'))) {
+      reasons.push('Matches your preference for lower sodium');
+    }
+  }
   for (const cat of profile?.mealPreferences?.preferredCategories || []) {
     if ((meal.mealCategories || []).includes(cat)) {
       reasons.push(`Matches your preference for ${String(cat).toLowerCase()}`);
@@ -273,15 +300,6 @@ export function recommendationReason(meal, profile) {
   for (const restriction of profile?.dietaryRestrictions || []) {
     if ((meal.dietaryTags || []).includes(restriction) || (meal.diets || []).includes(restriction)) {
       reasons.push(`Matches your ${String(restriction).toLowerCase()} diet`);
-    }
-  }
-  for (const id of nutritionIds(profile)) {
-    if (id === 'lower-calories' && meal.calories <= 400) reasons.push('Matches your preference for lower calories');
-    if (id === 'higher-protein' && (meal.protein >= 25 || meal.diets?.includes('High-protein'))) {
-      reasons.push('Matches your preference for higher protein');
-    }
-    if (id === 'lower-sodium' && (meal.sodium <= 500 || meal.dietaryTags?.includes('Low-sodium'))) {
-      reasons.push('Matches your preference for lower sodium');
     }
   }
   if (!reasons.length) reasons.push('Fits your dietary information');
@@ -340,19 +358,31 @@ const KITCHEN = {
 };
 
 function parseScheduleDate(value) {
-  if (value instanceof Date) return value;
-  if (typeof value === 'string' && value.trim()) {
-    const d = new Date(value);
-    if (!Number.isNaN(d.getTime())) return d;
-  }
-  return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6] ?? '0');
+  if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return null;
+  const scheduled = new Date(year, month - 1, day, hour, minute, second);
+  if (
+    scheduled.getFullYear() !== year
+    || scheduled.getMonth() !== month - 1
+    || scheduled.getDate() !== day
+  ) return null;
+  return scheduled;
 }
 
 export function validateSchedule(scheduledAt, nowInput) {
-  const scheduled = parseScheduleDate(scheduledAt);
   const now = parseScheduleDate(nowInput) || new Date();
+  const scheduled = parseScheduleDate(scheduledAt);
   if (!scheduled) {
-    return { ok: false, message: ORDER_MSG.schedulePast };
+    return { ok: false, message: ORDER_MSG.scheduleInvalid };
   }
   if (scheduled.getTime() < now.getTime()) {
     return { ok: false, message: ORDER_MSG.schedulePast };

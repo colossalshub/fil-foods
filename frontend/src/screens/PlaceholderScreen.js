@@ -23,5 +23,5 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   body: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
   card: { ...card, alignItems: 'center', padding: spacing.xl },
-  msg: { fontSize: font.md, color: colors.muted, textAlign: 'center', marginVertical: spacing.md },
+  msg: { fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginVertical: spacing.md },
 });

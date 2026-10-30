@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import OrderStatusBadge from '../components/OrderStatusBadge';
+import HelpButton from '../components/HelpButton';
 import FormMessage from '../components/FormMessage';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -102,7 +103,7 @@ export default function OrderDetailScreen() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
         <Text style={styles.title}>Order details</Text>
-        <View style={styles.topSpacer} />
+        <HelpButton />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -130,7 +131,7 @@ export default function OrderDetailScreen() {
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle} accessibilityRole="header">Meals</Text>
-              {order.items.map((row) => (
+              {(order.items || []).map((row) => (
                 <View key={`${row.name}-${row.quantity}`} style={styles.mealRow}>
                   <Text style={styles.body}>{row.name} ×{row.quantity}</Text>
                   <Text style={styles.body}>{row.lineTotalLabel}</Text>
@@ -144,20 +145,20 @@ export default function OrderDetailScreen() {
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle} accessibilityRole="header">Fulfillment</Text>
-              <Line label="Type" value={order.fulfillment.typeLabel} />
-              {order.fulfillment.type === 'delivery' ? (
+              <Line label="Type" value={order.fulfillment?.typeLabel} />
+              {order.fulfillment?.type === 'delivery' ? (
                 <>
                   <Line label="Address" value={order.fulfillment.address} />
                   <Line label="Delivery fee" value={order.deliveryFeeLabel} />
                 </>
               ) : null}
-              <Line label="Schedule" value={order.fulfillment.scheduleLabel} />
-              <Line label="Instructions" value={order.fulfillment.instructions} />
+              <Line label="Schedule" value={order.fulfillment?.scheduleLabel} />
+              <Line label="Instructions" value={order.fulfillment?.instructions} />
             </View>
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle} accessibilityRole="header">Status progress</Text>
-              {order.statusTimeline.map((step) => (
+              {(order.statusTimeline || []).map((step) => (
                 <View key={step.status} style={styles.timelineRow}>
                   <OrderStatusBadge status={step.status} />
                   <Text style={styles.timelineHint}>
@@ -169,7 +170,7 @@ export default function OrderDetailScreen() {
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle} accessibilityRole="header">Status history</Text>
-              {order.statusHistory.map((row, index) => (
+              {(order.statusHistory || []).map((row, index) => (
                 <View key={`${row.status}-${row.at}-${index}`} style={styles.historyRow}>
                   <OrderStatusBadge status={row.status} />
                   <Text style={styles.historyTime}>{row.atLabel}</Text>
@@ -203,7 +204,6 @@ const styles = StyleSheet.create({
   },
   backText: { fontSize: font.body, color: colors.primary, fontWeight: '600' },
   title: { flex: 1, textAlign: 'center', fontSize: font.lg, fontWeight: '700', color: colors.primary },
-  topSpacer: { width: touch.min },
   scroll: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing.xxl },
   card: { ...card, padding: spacing.lg, gap: spacing.sm },
   headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },

@@ -41,7 +41,7 @@ export default function AlertsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Alerts" />
+      <ScreenHeader title="Notifications" />
       <ScrollView contentContainerStyle={styles.scroll}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>

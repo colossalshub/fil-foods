@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import {
-  View, Text, Modal, StyleSheet, ScrollView, Pressable, Switch,
+  View, Text, Modal, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
@@ -12,7 +12,7 @@ import FormMessage from '../components/FormMessage';
 import VerificationFlow from '../components/VerificationFlow';
 import { TermsModal } from '../components/LegalModals';
 import { useAuth } from '../context/AuthContext';
-import { findTermsAcceptance, getPublicUser, logout } from '../services/authService';
+import { findTermsAcceptance, getPublicUser, getUser, logout } from '../services/authService';
 import { MSG } from '../data/messages';
 import {
   ALLERGY_PRESETS,
@@ -48,6 +48,17 @@ import {
   syncEnrollmentChange,
   touchLastActive,
 } from '../services/biometricService';
+import {
+  loadAccountProfile,
+  removeRemoteGuardian,
+  saveRemoteAllergies,
+  saveRemoteDiet,
+  saveRemoteGuardian,
+  saveRemoteHealth,
+  saveRemoteMealPreferences,
+  saveRemoteNutrition,
+  saveRemotePersonal,
+} from '../services/remoteProfileService';
 import { colors, font, radius, spacing, touch } from '../theme/theme';
 
 function fullName(profile) {
@@ -85,10 +96,28 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, signIn, signOut } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
-  void refreshKey;
-  const profile = user?.id ? getProfile(user.id) : null;
+  const [accountProfile, setAccountProfile] = useState(null);
+  const [loadedProfileId, setLoadedProfileId] = useState(null);
+  const localProfile = user?.id ? getProfile(user.id) : null;
+  const remoteReady = accountProfile?.id === user?.id && loadedProfileId === user?.id;
+  const profile = localProfile || (remoteReady ? accountProfile : null);
+  const profileLoading = Boolean(user?.id) && !localProfile && !remoteReady;
+
+  useEffect(() => {
+    if (!user?.id || getProfile(user.id)) return undefined;
+    let active = true;
+    loadAccountProfile(user).then((next) => {
+      if (!active) return;
+      setAccountProfile(next);
+      setLoadedProfileId(user.id);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user, refreshKey]);
   const [showTerms, setShowTerms] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [confirmRemoveGuardian, setConfirmRemoveGuardian] = useState(false);
   const [toast, setToast] = useState([]);
 
   const [personalOpen, setPersonalOpen] = useState(false);
@@ -255,8 +284,41 @@ export default function ProfileScreen() {
     setPersonalOpen(false);
   };
 
-  const onSavePersonal = () => {
+  const savedOrAlert = (result) => {
+    if (result?.ok) return true;
+    Alert.alert('Could not save', result?.messages?.[0] || result?.message || 'Try again.');
+    return false;
+  };
+
+  const onSavePersonal = async () => {
     if (!user?.id) return;
+    if (!getUser(user.id)) {
+      const result = await saveRemotePersonal(user.id, personalForm);
+      if (!savedOrAlert(result)) {
+        setPersonalMessages(result.messages || []);
+        setPersonalErrors(result.fields || {});
+        return;
+      }
+      signIn({
+        ...user,
+        firstName: result.values.firstName,
+        first_name: result.values.firstName,
+        middleName: result.values.middleName,
+        middle_name: result.values.middleName,
+        lastName: result.values.lastName,
+        last_name: result.values.lastName,
+        suffix: result.values.suffix,
+        contactNumber: result.values.contactNumber,
+        contact_number: result.values.contactNumber,
+        email: result.values.email,
+        address: result.values.address,
+      });
+      setPersonalDirty(false);
+      setPersonalOpen(false);
+      reload();
+      flash(result.message);
+      return;
+    }
     const result = savePersonalInfo(user.id, personalForm);
     if (result.needsVerification) {
       setVerifyMeta(result);
@@ -299,11 +361,14 @@ export default function ProfileScreen() {
     setHealthOpen(true);
   };
 
-  const saveHealth = () => {
+  const saveHealth = async () => {
     const list = [...healthSelected];
     const other = healthOther.trim();
     if (other) list.push(other);
-    const result = saveHealthConditions(user.id, list);
+    const result = getUser(user.id)
+      ? saveHealthConditions(user.id, list)
+      : await saveRemoteHealth(user.id, list);
+    if (!savedOrAlert(result)) return;
     setHealthOpen(false);
     reload();
     flash(result.message);
@@ -315,11 +380,14 @@ export default function ProfileScreen() {
     setDietOpen(true);
   };
 
-  const saveDiet = () => {
+  const saveDiet = async () => {
     const list = [...dietSelected];
     const other = dietOther.trim();
     if (other) list.push(other);
-    const result = saveDietaryRestrictions(user.id, list);
+    const result = getUser(user.id)
+      ? saveDietaryRestrictions(user.id, list)
+      : await saveRemoteDiet(user.id, list);
+    if (!savedOrAlert(result)) return;
     setDietOpen(false);
     reload();
     flash(result.message);
@@ -351,8 +419,11 @@ export default function ProfileScreen() {
     setAllergyNote('');
   };
 
-  const saveAllergy = () => {
-    const result = saveAllergies(user.id, allergyList);
+  const saveAllergy = async () => {
+    const result = getUser(user.id)
+      ? saveAllergies(user.id, allergyList)
+      : await saveRemoteAllergies(user.id, allergyList);
+    if (!savedOrAlert(result)) return;
     setAllergyOpen(false);
     reload();
     flash(result.message);
@@ -364,11 +435,15 @@ export default function ProfileScreen() {
     setMealPrefOpen(true);
   };
 
-  const saveMealPref = () => {
-    const result = saveMealPreferences(user.id, {
+  const saveMealPref = async () => {
+    const nextPrefs = {
       preferredCategories: prefCategories.split(',').map((s) => s.trim()).filter(Boolean),
       dislikedIngredients: disliked.split(',').map((s) => s.trim()).filter(Boolean),
-    });
+    };
+    const result = getUser(user.id)
+      ? saveMealPreferences(user.id, nextPrefs)
+      : await saveRemoteMealPreferences(user.id, nextPrefs);
+    if (!savedOrAlert(result)) return;
     setMealPrefOpen(false);
     reload();
     flash(result.message);
@@ -382,12 +457,15 @@ export default function ProfileScreen() {
     setNutritionOpen(true);
   };
 
-  const saveNutrition = () => {
-    const result = saveNutritionalPreference(user.id, nutritionChoice, {
-      calories: targetCalories,
-      protein: targetProtein,
-      fat: targetFat,
-    });
+  const saveNutrition = async () => {
+    const result = getUser(user.id)
+      ? saveNutritionalPreference(user.id, nutritionChoice, {
+        calories: targetCalories,
+        protein: targetProtein,
+        fat: targetFat,
+      })
+      : await saveRemoteNutrition(user.id, nutritionChoice);
+    if (!savedOrAlert(result)) return;
     setNutritionOpen(false);
     reload();
     flash(result.message);
@@ -399,10 +477,12 @@ export default function ProfileScreen() {
     setGuardianOpen(true);
   };
 
-  const saveGuardianForm = () => {
-    const result = saveGuardian(user.id, guardianForm);
+  const saveGuardianForm = async () => {
+    const result = getUser(user.id)
+      ? saveGuardian(user.id, guardianForm)
+      : await saveRemoteGuardian(user.id, guardianForm);
     if (!result.ok) {
-      setGuardianMessages(result.messages);
+      setGuardianMessages(result.messages || [result.message || 'Could not save.']);
       return;
     }
     setGuardianOpen(false);
@@ -410,8 +490,11 @@ export default function ProfileScreen() {
     flash(result.message);
   };
 
-  const onRemoveGuardian = () => {
-    const result = removeGuardian(user.id);
+  const onRemoveGuardian = async () => {
+    const result = getUser(user.id)
+      ? removeGuardian(user.id)
+      : await removeRemoteGuardian(user.id);
+    if (!savedOrAlert(result)) return;
     setGuardianOpen(false);
     reload();
     flash(result.message);
@@ -426,8 +509,12 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
-        <ScreenHeader title="Account" />
-        <Text style={styles.lead}>Sign in to view your profile.</Text>
+        <ScreenHeader title="Account" showBell />
+        {profileLoading ? (
+          <ActivityIndicator color={colors.primary} style={styles.lead} />
+        ) : (
+          <Text style={styles.lead}>Sign in to view your profile.</Text>
+        )}
       </SafeAreaView>
     );
   }
@@ -445,7 +532,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Account" />
+      <ScreenHeader title="Account" showBell />
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormMessage messages={toast} tone="ok" />
 
@@ -478,7 +565,11 @@ export default function ProfileScreen() {
           <Line label="Daily targets" value={targetLabel} />
         </Section>
 
-        <Section title="Guardian or family member" onEdit={openGuardian}>
+        <Section
+          title="Guardian or family member"
+          onEdit={openGuardian}
+          editLabel={profile.guardian ? 'Edit' : 'Add guardian'}
+        >
           {profile.guardian ? (
             <>
               <Line label="Name" value={profile.guardian.name} />
@@ -486,7 +577,7 @@ export default function ProfileScreen() {
               <Line label="Contact" value={profile.guardian.contactNumber} />
             </>
           ) : (
-            <Text style={styles.body}>—</Text>
+            <Text style={styles.body}>{MSG.noGuardian}</Text>
           )}
         </Section>
 
@@ -652,7 +743,7 @@ export default function ProfileScreen() {
       <Modal visible={guardianOpen} animationType="slide" onRequestClose={() => setGuardianOpen(false)}>
         <SafeAreaView style={styles.modalScreen}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
-            <Text style={styles.modalTitle} accessibilityRole="header">Guardian or family member</Text>
+            <Text style={styles.modalTitle} accessibilityRole="header">{profile.guardian ? 'Edit guardian' : 'Add guardian'}</Text>
             <FormMessage messages={guardianMessages} />
             <AppInput label="Name" value={guardianForm.name}
               onChangeText={(v) => setGuardianForm((f) => ({ ...f, name: v }))} />
@@ -662,7 +753,7 @@ export default function ProfileScreen() {
               onChangeText={(v) => setGuardianForm((f) => ({ ...f, contactNumber: v }))} />
             <AppButton title="Save" onPress={saveGuardianForm} color={colors.primary} />
             {profile.guardian ? (
-              <AppButton title="Remove guardian" variant="outline" onPress={onRemoveGuardian} color={colors.danger} style={styles.modalCancel} />
+              <AppButton title="Remove" variant="outline" onPress={() => setConfirmRemoveGuardian(true)} color={colors.danger} style={styles.modalCancel} />
             ) : null}
             <AppButton title="Cancel" variant="outline" onPress={() => setGuardianOpen(false)} color={colors.primary} style={styles.modalCancel} />
           </ScrollView>
@@ -740,6 +831,17 @@ export default function ProfileScreen() {
               <AppButton title="Try biometric again" onPress={onTryBiometricUnlock} color={colors.primary} />
             )}
             <AppButton title="Cancel" variant="outline" onPress={() => setUnlockBioOpen(false)} color={colors.primary} style={styles.confirmNo} />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={confirmRemoveGuardian} transparent animationType="fade" onRequestClose={() => setConfirmRemoveGuardian(false)}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.confirmTitle} accessibilityRole="header">Remove guardian</Text>
+            <Text style={styles.confirmBody}>{MSG.removeGuardianConfirm}</Text>
+            <AppButton title="Yes" onPress={() => { setConfirmRemoveGuardian(false); onRemoveGuardian(); }} color={colors.primary} />
+            <AppButton title="No" variant="outline" onPress={() => setConfirmRemoveGuardian(false)} color={colors.primary} style={styles.confirmNo} />
           </View>
         </View>
       </Modal>

@@ -40,6 +40,7 @@ export const MSG = {
   nutritionalUpdated: 'Nutritional preferences updated.',
   guardianRequired: "Please enter the guardian's name and contact number.",
   guardianSaved: 'Guardian information saved.',
+  removeGuardianConfirm: 'Are you sure you want to remove this guardian?',
   noChangesYet: 'No changes yet.',
   noMeals: 'No meals found.',
   noActiveOrders: 'You have no active orders',

@@ -19,7 +19,7 @@ import {
   refreshBackendOrdersForUser,
   subscribeToBackendOrderChanges,
 } from '../services/trackingService';
-import { colors, card, font, spacing, touch, control } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, control } from '../theme/theme';
 import { formatTimestamp } from '../utils/time';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
@@ -51,17 +51,11 @@ export default function TrackingScreen() {
     if (isSupabaseConfigured) {
       refreshBackendOrdersForUser(userId)
         .then((backendOrders) => {
-          if (backendOrders) setOrders(backendOrders.map((order) => ({
-            id: order.id,
-            trackingNumber: order.trackingNumber,
-            date: order.placedAt?.slice(0, 10),
-            meals: order.items.map((item) => `${item.name} ×${item.quantity}`).join(', '),
-            status: order.status,
-            statusMeta: { label: order.status, colorKey: 'muted' },
-            placedAt: order.placedAt,
-            lastUpdatedAt: order.lastUpdatedAt,
-            terminal: order.status === 'Completed',
-          })));
+          if (backendOrders) {
+            setRefreshError('');
+            setOrders(backendOrders);
+            setLastRefreshed(new Date().toISOString());
+          }
         })
         .catch(() => setRefreshError(TRACKING_MSG.unableRefresh));
       return;
@@ -75,6 +69,10 @@ export default function TrackingScreen() {
 
   const pollRefresh = useCallback((connected = true) => {
     if (!userId) return;
+    if (isSupabaseConfigured) {
+      syncOrders();
+      return;
+    }
     const result = refreshOrdersForUser(userId, { connected });
     if (!result.ok) {
       setRefreshError(result.message);
@@ -83,7 +81,7 @@ export default function TrackingScreen() {
     setRefreshError('');
     setLastRefreshed(result.refreshedAt);
     setOrders(listClientOrders(userId, filters));
-  }, [userId, filters]);
+  }, [userId, filters, syncOrders]);
 
   useFocusEffect(
     useCallback(() => {
@@ -115,22 +113,45 @@ export default function TrackingScreen() {
     setRefreshing(false);
   };
 
+  const visibleOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (statusFilter && order.status !== statusFilter) return false;
+      if (dateFrom && order.date && order.date < dateFrom) return false;
+      if (dateTo && order.date && order.date > dateTo) return false;
+      if (query && !String(order.trackingNumber || '').toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [orders, statusFilter, dateFrom, dateTo, searchQuery]);
+
   const onSearch = () => {
-    setSearchError('');
-    if (!userId) return;
-    const result = searchOrderByTracking(userId, searchQuery);
-    if (!result.ok) {
-      setSearchError(result.message);
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchError('');
       return;
     }
-    navigation.navigate('OrderDetail', { orderId: result.order.id });
+    const match = orders.find((order) => String(order.trackingNumber || '').toLowerCase() === query.toLowerCase());
+    if (!match) {
+      if (!isSupabaseConfigured) {
+        const result = searchOrderByTracking(userId, query);
+        if (result.ok) {
+          setSearchError('');
+          navigation.navigate('OrderDetail', { orderId: result.order.id });
+          return;
+        }
+      }
+      setSearchError(TRACKING_MSG.orderNotFound);
+      return;
+    }
+    setSearchError('');
+    navigation.navigate('OrderDetail', { orderId: match.id });
   };
 
   const statusOptions = listFilterStatuses();
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Orders" subtitle={lastRefreshed ? `Updated ${formatTimestamp(lastRefreshed)}` : undefined} />
+      <ScreenHeader title="Orders" subtitle={lastRefreshed ? `Updated ${formatTimestamp(lastRefreshed)}` : undefined} showBell />
       <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onManualRefresh} />}
@@ -198,8 +219,12 @@ export default function TrackingScreen() {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>{TRACKING_MSG.noOrders}</Text>
           </View>
+        ) : visibleOrders.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>{TRACKING_MSG.orderNotFound}</Text>
+          </View>
         ) : (
-          orders.map((order) => (
+          visibleOrders.map((order) => (
             <Pressable
               key={order.id}
               accessibilityRole="button"
@@ -233,11 +258,11 @@ const styles = StyleSheet.create({
     minHeight: control.minHeight,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: radius.md,
     paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
     fontSize: font.body,
     color: colors.text,
-    backgroundColor: colors.white,
   },
   searchBtn: {
     minHeight: touch.min,
@@ -246,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: radius.md,
   },
   searchBtnText: { color: colors.white, fontSize: font.body, fontWeight: '600' },
   errorText: { fontSize: font.body, color: colors.danger },

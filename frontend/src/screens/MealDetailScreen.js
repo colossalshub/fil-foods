@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   View, Text, TextInput, ScrollView, StyleSheet, Pressable, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../components/AppButton';
+import HelpButton from '../components/HelpButton';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { getProfileForMeals } from '../services/profileService';
+import { useMealProfile } from '../hooks/useMealProfile';
 import {
   ORDER_MSG,
   formatPhp,
@@ -25,7 +26,7 @@ export default function MealDetailScreen({ route, navigation }) {
   const [quantityText, setQuantityText] = useState('1');
   const [qtyError, setQtyError] = useState('');
 
-  const profile = useMemo(() => (user?.id ? getProfileForMeals(user.id) : null), [user]);
+  const { profile } = useMealProfile(user);
   const available = isMealAvailable(meal);
   const allergens = profile ? profileAllergensInMeal(meal, profile) : [];
   const cartRow = items.find((row) => row.meal.id === meal.id);
@@ -84,6 +85,7 @@ export default function MealDetailScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={22} color={colors.primary} />
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>{meal.name}</Text>
+        <HelpButton />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>

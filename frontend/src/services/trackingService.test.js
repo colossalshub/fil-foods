@@ -14,6 +14,7 @@ import {
   getStatusesForFulfillment,
   listClientOrders,
   markAlertRead,
+  detailFromBackendOrder,
   refreshOrdersForUser,
   searchOrderByTracking,
   sortOrdersForList,
@@ -179,4 +180,34 @@ test('refreshOrdersForUser reports connection failure without requiring network'
   const online = refreshOrdersForUser(MARIA, { connected: true });
   assert.equal(online.ok, true);
   assert.equal(online.orders.length, 2);
+});
+
+test('a backend order opens with meals and a status timeline', () => {
+  const detail = detailFromBackendOrder({
+    id: 'order-1',
+    client_id: 'user-1',
+    tracking_number: 'TRK-2026-0007',
+    status: 'preparing',
+    created_at: '2026-10-30T01:00:00.000Z',
+    updated_at: '2026-10-30T02:00:00.000Z',
+    total: 180,
+    delivery_fee: 0,
+    fulfillment_type: 'delivery',
+    address: '12 Mabini St., Quezon City',
+    schedule: '2026-10-31T01:00:00.000Z',
+    special_instructions: null,
+    order_items: [{
+      meal_id: 'meal-1',
+      meals: { name: 'Chicken Adobo' },
+      quantity: 1,
+      unit_price: 180,
+      line_total: 180,
+    }],
+    order_status_history: [{ status: 'confirmed', changed_at: '2026-10-30T01:00:00.000Z' }],
+  });
+  assert.equal(detail.status, 'Preparing');
+  assert.equal(detail.items[0].name, 'Chicken Adobo');
+  assert.ok(detail.statusTimeline.length > 0);
+  assert.ok(detail.statusHistory.length > 0);
+  assert.equal(detail.fulfillment.typeLabel, 'Delivery');
 });

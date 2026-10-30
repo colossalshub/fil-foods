@@ -1,33 +1,49 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { openHelp } from '../navigation/openHelp';
-import { colors, font, spacing, touch } from '../theme/theme';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import HelpButton from './HelpButton';
+import NotificationBell from './NotificationBell';
+import { colors, font, spacing } from '../theme/theme';
 
-export default function ScreenHeader({ title, subtitle }) {
-  const navigation = useNavigation();
+const logo = require('../../assets/images/fil-foods-logo.png');
+
+export default function ScreenHeader({ title, subtitle, accessory, showBell = false }) {
   return (
     <View style={styles.wrap}>
+      <Image
+        source={logo}
+        style={styles.logo}
+        resizeMode="contain"
+        accessibilityRole="image"
+        accessibilityLabel="F.I.L. FOODS logo"
+      />
       <View style={styles.titles}>
         <Text style={styles.title} allowFontScaling>{title}</Text>
         {subtitle ? <Text style={styles.sub} allowFontScaling>{subtitle}</Text> : null}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Help"
-        onPress={() => openHelp(navigation)}
-        style={styles.helpHit}
-      >
-        <Ionicons name="help-circle-outline" size={26} color={colors.white} />
-      </Pressable>
+      <View style={styles.actions}>
+        {showBell ? <NotificationBell /> : null}
+        {accessory || null}
+        <HelpButton />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, backgroundColor: colors.primary, borderBottomWidth: 1, borderBottomColor: colors.primaryDark },
+  wrap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
+  },
+  logo: { width: 44, height: 44 },
   titles: { flex: 1, paddingRight: spacing.sm },
-  title: { fontSize: font.xl, fontWeight: '700', color: colors.white },
-  sub: { fontSize: font.sm, color: '#E3F2DE' },
-  helpHit: { minWidth: touch.min, minHeight: touch.min, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: font.title, fontWeight: '700', color: colors.text, letterSpacing: -0.4 },
+  sub: { fontSize: font.sm, color: colors.muted, marginTop: 2 },
+  actions: { flexDirection: 'row', alignItems: 'center' },
 });

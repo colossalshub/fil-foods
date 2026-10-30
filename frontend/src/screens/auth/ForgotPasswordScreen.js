@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LogoPlaceholder from '../../components/LogoPlaceholder';
+import HelpButton from '../../components/HelpButton';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import FormMessage from '../../components/FormMessage';
@@ -43,6 +44,9 @@ export default function ForgotPasswordScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.helpRow}>
+            <HelpButton />
+          </View>
           <LogoPlaceholder />
           <Text style={styles.title} accessibilityRole="header">Forgot password</Text>
           <Text style={styles.body}>
@@ -104,6 +108,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxl,
   },
+  helpRow: { alignItems: 'flex-end' },
   title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
   body: { fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
   backLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },

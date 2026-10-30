@@ -1,6 +1,7 @@
-import { requireSupabase } from '../lib/supabaseClient.js';
+import { ensureSession, requireSupabase } from '../lib/supabaseClient.js';
 
 export async function placeOrderWithBackend({
+  authSession,
   clientRequestId,
   fulfillmentType,
   schedule,
@@ -9,16 +10,18 @@ export async function placeOrderWithBackend({
   items,
 }) {
   const client = requireSupabase();
-  const { data: sessionData, error: sessionError } = await client.auth.getSession();
-  if (sessionError) throw sessionError;
-  if (!sessionData.session) {
+  const session = await ensureSession(authSession)
+    || (authSession?.access_token ? authSession : null);
+  if (!session?.access_token) {
     throw new Error('Your session has expired. Please log in again.');
   }
+  const authorization = `Bearer ${session.access_token}`;
   const mealNames = [...new Set(items.map(({ mealName }) => mealName).filter(Boolean))];
   const { data: meals, error: mealsError } = await client
     .from('meals')
     .select('id, name')
-    .in('name', mealNames);
+    .in('name', mealNames)
+    .setHeader('Authorization', authorization);
   if (mealsError) throw mealsError;
 
   const idsByName = new Map((meals || []).map((meal) => [meal.name, meal.id]));
@@ -37,7 +40,7 @@ export async function placeOrderWithBackend({
     p_address: address || null,
     p_special_instructions: specialInstructions || null,
     p_items: backendItems,
-  });
+  }).setHeader('Authorization', authorization);
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }

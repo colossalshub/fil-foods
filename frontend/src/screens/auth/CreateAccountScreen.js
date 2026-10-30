@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppInput from '../../components/AppInput';
+import HelpButton from '../../components/HelpButton';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
 import FormMessage from '../../components/FormMessage';
@@ -57,6 +58,9 @@ export default function CreateAccountScreen({ navigation }) {
       <SafeAreaView style={styles.column} edges={['top', 'bottom']}>
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.helpRow}>
+              <HelpButton />
+            </View>
             <LogoPlaceholder />
             <Text style={styles.title} accessibilityRole="header">Create account</Text>
             <Text style={styles.subtitle}>
@@ -91,7 +95,7 @@ export default function CreateAccountScreen({ navigation }) {
             </Pressable>
             {fields.terms ? <Text style={styles.fieldError}>{fields.terms}</Text> : null}
 
-            <AppButton title="Create account" onPress={onRegister} loading={loading} color={colors.action} style={styles.action} />
+            <AppButton title="Register" onPress={onRegister} loading={loading} color={colors.action} style={styles.action} />
             <GoogleSignIn
               showDemo
               color={colors.primary}
@@ -126,6 +130,7 @@ const styles = StyleSheet.create({
   column: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.page },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  helpRow: { alignItems: 'flex-end' },
   title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
   subtitle: { fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
   termsLink: { minHeight: 48, justifyContent: 'center', marginTop: -4, marginBottom: spacing.sm },

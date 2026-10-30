@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import * as Crypto from 'expo-crypto';
 import {
   View, Text, ScrollView, TextInput, Pressable, StyleSheet, Alert,
 } from 'react-native';
@@ -8,7 +9,7 @@ import AppButton from '../components/AppButton';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getUser } from '../services/authService';
-import { getProfileForMeals } from '../services/profileService';
+import { useMealProfile } from '../hooks/useMealProfile';
 import {
   ORDER_MSG,
   calculateTotals,
@@ -22,10 +23,14 @@ import {
 import { colors, font, radius, spacing, control } from '../theme/theme';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { placeOrderWithBackend } from '../services/backendOrderService.js';
+import SchedulePicker from '../components/SchedulePicker';
+import { combineSchedule } from '../components/scheduleValue';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function createRequestId() {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID();
+  return Crypto.randomUUID();
 }
 
 function FulfillmentOption({ label, active, onPress }) {
@@ -42,20 +47,21 @@ function FulfillmentOption({ label, active, onPress }) {
 }
 
 export default function OrderScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const [fulfillmentType, setFulfillmentType] = useState(null);
   const [address, setAddress] = useState('');
-  const [scheduleText, setScheduleText] = useState('');
+  const [scheduleDate, setScheduleDate] = useState(null);
+  const [scheduleTime, setScheduleTime] = useState(null);
   const [instructions, setInstructions] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [allergenAck, setAllergenAck] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
-  const requestIdRef = useRef(createRequestId());
+  const attemptRef = useRef({ id: null, key: '' });
 
   const dbUser = useMemo(() => (user?.id ? getUser(user.id) : null), [user]);
-  const profile = useMemo(() => (user?.id ? getProfileForMeals(user.id) : null), [user]);
+  const { profile } = useMealProfile(user);
 
   const lineItems = useMemo(
     () => items.map((row) => ({ meal: row.meal, quantity: row.quantity })),
@@ -91,7 +97,7 @@ export default function OrderScreen({ navigation }) {
     const fulfillment = {
       type: fulfillmentType,
       address: fulfillmentType === 'delivery' ? address : '',
-      scheduledAt: scheduleText,
+      scheduledAt: combineSchedule(scheduleDate, scheduleTime),
       instructions,
     };
     const check = validateFulfillment({ ...fulfillment, now: new Date() });
@@ -100,13 +106,28 @@ export default function OrderScreen({ navigation }) {
       return;
     }
     setFieldError('');
+    const attemptKey = JSON.stringify({
+      items: lineItems.map((row) => [row.meal.id, String(row.quantity)]),
+      type: fulfillment.type,
+      address: fulfillment.address,
+      scheduledAt: fulfillment.scheduledAt,
+      instructions: fulfillment.instructions,
+    });
+    if (attemptRef.current.key !== attemptKey || !UUID_PATTERN.test(attemptRef.current.id || '')) {
+      attemptRef.current = { id: createRequestId(), key: attemptKey };
+    }
 
     setPlacing(true);
     let result;
     try {
       if (isSupabaseConfigured) {
-        const backendOrder = await placeOrderWithBackend({
-          clientRequestId: requestIdRef.current,
+        const authSession = session?.access_token ? session : {
+          access_token: user.accessToken,
+          refresh_token: user.refreshToken,
+          expires_at: user.expiresAt,
+        };
+        const payload = {
+          authSession,
           fulfillmentType: fulfillment.type,
           schedule: check.scheduled.toISOString(),
           address: fulfillment.address,
@@ -116,19 +137,31 @@ export default function OrderScreen({ navigation }) {
             mealName: row.meal.name,
             quantity: parseQuantityInput(row.quantity).value,
           })),
+        };
+        let backendOrder = await placeOrderWithBackend({
+          ...payload,
+          clientRequestId: attemptRef.current.id,
         });
+        const createdAt = new Date(backendOrder?.created_at).getTime();
+        if (Number.isFinite(createdAt) && createdAt < Date.now() - 15000) {
+          attemptRef.current = { id: createRequestId(), key: attemptKey };
+          backendOrder = await placeOrderWithBackend({
+            ...payload,
+            clientRequestId: attemptRef.current.id,
+          });
+        }
         result = {
           ok: true,
           order: backendOrder,
           message: ORDER_MSG.orderSuccess,
         };
-        requestIdRef.current = createRequestId();
+        attemptRef.current = { id: null, key: '' };
       } else {
         result = confirmOrder(user.id, {
           items: lineItems,
           fulfillment,
           now: new Date(),
-          clientRequestId: requestIdRef.current,
+          clientRequestId: attemptRef.current.id,
           allergenAcknowledged: allergenAck || warnings.length === 0,
         });
       }
@@ -241,14 +274,11 @@ export default function OrderScreen({ navigation }) {
           </>
         ) : null}
 
-        <Text style={styles.label}>Schedule (ISO local, e.g. 2026-10-13T10:00:00)</Text>
-        <TextInput
-          style={styles.input}
-          value={scheduleText}
-          onChangeText={setScheduleText}
-          placeholder="2026-10-13T10:00:00"
-          placeholderTextColor={colors.inactive}
-          accessibilityLabel="Schedule date and time"
+        <SchedulePicker
+          date={scheduleDate}
+          time={scheduleTime}
+          onChangeDate={setScheduleDate}
+          onChangeTime={setScheduleTime}
         />
 
         <Text style={styles.label}>Instructions (optional)</Text>

@@ -16,15 +16,17 @@ import { getUser, getPublicUser } from '../services/authService';
 import { buildPersistedSession, evaluateSessionRestore, shouldEndSession, shouldPersistSession } from '../services/sessionPolicy';
 import { clearPersistedSession, persistSession, readPersistedSession } from '../services/sessionPersistence';
 import HelpScreen from '../screens/HelpScreen';
+import AboutScreen from '../screens/visitor/AboutScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
 import { colors } from '../theme/theme';
-import { getCurrentSupabaseProfile, isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
+import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } };
 
 export default function RootNavigator() {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [booting, setBooting] = useState(true);
   const lastActiveRef = useRef(0);
@@ -34,21 +36,31 @@ export default function RootNavigator() {
     (async () => {
       if (isSupabaseConfigured) {
         try {
-          const profile = await getCurrentSupabaseProfile();
-          if (!cancelled && profile) {
+          const restoredSession = await ensureSession();
+          const profile = restoredSession?.access_token
+            ? await getCurrentSupabaseProfile()
+            : null;
+          if (!cancelled && profile && restoredSession?.access_token) {
+            setSession(restoredSession);
             setUser({
               ...profile,
               verified: profile.is_verified,
               profileComplete: profile.profile_complete,
               inactive: !profile.is_active,
+              accessToken: restoredSession.access_token,
+              refreshToken: restoredSession.refresh_token,
+              expiresAt: restoredSession.expires_at,
             });
             setKeepLoggedIn(true);
             if (!cancelled) setBooting(false);
             return;
           }
+          if (!cancelled) {
+            setSession(null);
+            setUser(null);
+          }
         } catch (error) {
           console.warn('Unable to restore the Supabase session.', error);
-          await supabase?.auth.signOut();
         }
         if (!cancelled) setBooting(false);
         return;
@@ -75,8 +87,34 @@ export default function RootNavigator() {
   }, []);
 
   const signIn = useCallback(async (nextUser, options = {}) => {
+    if (!nextUser) return;
+    const incoming = options.session?.access_token
+      ? options.session
+      : (nextUser.accessToken
+        ? {
+          access_token: nextUser.accessToken,
+          refresh_token: nextUser.refreshToken,
+          expires_at: nextUser.expiresAt,
+        }
+        : null);
+    const kept = incoming?.access_token ? incoming : (session?.access_token ? session : null);
+    const userWithToken = kept?.access_token
+      ? {
+        ...nextUser,
+        accessToken: kept.access_token,
+        refreshToken: kept.refresh_token,
+        expiresAt: kept.expires_at,
+      }
+      : nextUser;
     const persist = shouldPersistSession(options.keepLoggedIn);
     setKeepLoggedIn(persist);
+    if (kept?.access_token) setSession(kept);
+    setUser(userWithToken);
+
+    if (kept?.access_token) {
+      const stored = await rememberSession(kept);
+      if (stored?.access_token) setSession(stored);
+    }
 
     if (persist && nextUser?.id && nextUser.role !== 'visitor') {
       const dbUser = getUser(nextUser.id);
@@ -88,22 +126,24 @@ export default function RootNavigator() {
     } else {
       await clearPersistedSession();
     }
-
-    setUser(nextUser);
-  }, []);
+  }, [session]);
 
   const signOut = useCallback(async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
-    }
-    await clearPersistedSession();
-    setKeepLoggedIn(false);
     setUser(null);
+    setSession(null);
+    setKeepLoggedIn(false);
+    try {
+      if (isSupabaseConfigured) await supabase.auth.signOut();
+    } catch {
+      // The saved token is still removed below.
+    }
+    await forgetSession().catch(() => {});
+    await clearPersistedSession().catch(() => {});
   }, []);
 
   const auth = useMemo(
-    () => ({ user, keepLoggedIn, signIn, signOut }),
-    [user, keepLoggedIn, signIn, signOut],
+    () => ({ user, session, keepLoggedIn, signIn, signOut }),
+    [user, session, keepLoggedIn, signIn, signOut],
   );
 
   useEffect(() => {
@@ -118,14 +158,23 @@ export default function RootNavigator() {
         signOut();
       }
     }, 30000);
+    let backgroundTimer;
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') lastActiveRef.current = Date.now();
-      if (shouldEndSession({ keepLoggedIn: false, appBackgrounded: next === 'background' })) {
-        signOut();
+      if (next === 'active') {
+        lastActiveRef.current = Date.now();
+        clearTimeout(backgroundTimer);
+        return;
       }
+      if (next !== 'background') return;
+      clearTimeout(backgroundTimer);
+      backgroundTimer = setTimeout(() => {
+        if (AppState.currentState !== 'background') return;
+        if (shouldEndSession({ keepLoggedIn: false, appBackgrounded: true })) signOut();
+      }, 1500);
     });
     return () => {
       clearInterval(timer);
+      clearTimeout(backgroundTimer);
       sub.remove();
     };
   }, [user, keepLoggedIn, signOut]);
@@ -161,6 +210,7 @@ export default function RootNavigator() {
             </>
           )}
           <Stack.Screen name="Help" component={HelpScreen} />
+          <Stack.Screen name="About" component={AboutScreen} />
         </Stack.Navigator>
         <HelpGuideGate />
       </NavigationContainer>

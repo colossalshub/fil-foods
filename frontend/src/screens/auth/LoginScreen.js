@@ -3,6 +3,7 @@ import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingV
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppInput from '../../components/AppInput';
+import HelpButton from '../../components/HelpButton';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
 import GoogleSignIn from '../../components/GoogleSignIn';
@@ -40,7 +41,7 @@ export default function LoginScreen({ navigation }) {
     const res = await login({ username: username.trim(), password, keepLoggedIn: keep });
     setLoading(false);
     if (res.ok) {
-      signIn(res.user, { keepLoggedIn: keep });
+      signIn(res.user, { keepLoggedIn: keep, session: res.session });
       return;
     }
     if (res.verifyRequired && res.userId) {
@@ -54,6 +55,9 @@ export default function LoginScreen({ navigation }) {
     <View style={styles.root}>
       <StatusBar style="light" />
       <SafeAreaView edges={['top']} style={styles.header}>
+        <View style={styles.helpRow}>
+          <HelpButton color={colors.white} />
+        </View>
         <View
           accessibilityLabel="F.I.L. FOODS logo"
           style={styles.plateWrap}
@@ -139,6 +143,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
+  helpRow: { alignSelf: 'flex-end' },
   plateWrap: {
     width: 88,
     height: 88,

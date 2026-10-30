@@ -1,24 +1,42 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/visitor/HomeScreen';
-import AboutScreen from '../screens/visitor/AboutScreen';
 import MealsStack from './MealsStack';
-import { CartProvider } from '../context/CartContext';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import AppButton from '../components/AppButton';
-import { colors } from '../theme/theme';
+import { MSG } from '../data/messages';
+import { setPendingDestination } from './pendingDestination';
+import { CartProvider } from '../context/CartContext';
+import { colors, shadow } from '../theme/theme';
 
 const Tab = createBottomTabNavigator();
-const ICONS = { Home: 'home', Meals: 'restaurant', About: 'information-circle', Account: 'person' };
+const ICONS = { Home: 'home', Meals: 'restaurant', Orders: 'receipt', Account: 'person' };
 const TAB_CONTENT_HEIGHT = 64;
 
-function VisitorAccount({ navigation }) {
+function GuestGate({ title, icon, destination }) {
+  const navigation = useNavigation();
   return (
-    <PlaceholderScreen title="Account" icon="person-outline" message="Log in to view your account.">
-      <AppButton title="Log in" onPress={() => navigation.getParent()?.navigate('Login')} style={{ alignSelf: 'stretch' }} />
+    <PlaceholderScreen title={title} icon={icon} message={MSG.guestGate}>
+      <AppButton
+        title="Log in"
+        onPress={() => {
+          setPendingDestination(destination);
+          navigation.getParent()?.navigate('Login');
+        }}
+        style={{ alignSelf: 'stretch' }}
+      />
     </PlaceholderScreen>
   );
+}
+
+function GuestOrders() {
+  return <GuestGate title="Orders" icon="receipt-outline" destination="Orders" />;
+}
+
+function GuestAccount() {
+  return <GuestGate title="Account" icon="person-outline" destination="Account" />;
 }
 
 export default function VisitorTabs() {
@@ -33,9 +51,11 @@ export default function VisitorTabs() {
         tabBarLabelStyle: { fontSize: 12, lineHeight: 16, flexShrink: 0 },
         tabBarStyle: {
           backgroundColor: colors.white,
-          borderTopColor: colors.border,
+          borderTopWidth: 0,
           height: TAB_CONTENT_HEIGHT + insets.bottom,
           paddingBottom: insets.bottom,
+          ...shadow,
+          shadowOffset: { width: 0, height: -4 },
         },
         tabBarIcon: ({ focused, color, size }) => (
           <Ionicons name={focused ? ICONS[route.name] : `${ICONS[route.name]}-outline`} size={size} color={color} />
@@ -43,18 +63,9 @@ export default function VisitorTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Meals" component={MealsStack} />
-      <Tab.Screen name="About" component={AboutScreen} />
-      <Tab.Screen
-        name="Account"
-        component={VisitorAccount}
-        listeners={({ navigation }) => ({
-          tabPress: (event) => {
-            event.preventDefault();
-            navigation.getParent()?.navigate('Login');
-          },
-        })}
-      />
+      <Tab.Screen name="Meals" component={MealsStack} options={{ tabBarLabel: 'Meal' }} />
+      <Tab.Screen name="Orders" component={GuestOrders} />
+      <Tab.Screen name="Account" component={GuestAccount} />
     </Tab.Navigator>
     </CartProvider>
   );

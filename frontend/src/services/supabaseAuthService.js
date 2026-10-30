@@ -1,4 +1,5 @@
-import { requireSupabase } from '../lib/supabaseClient.js';
+import { accessTokenStillValid } from '../lib/authSession.js';
+import { requireSupabase, rememberSession } from '../lib/supabaseClient.js';
 
 const functionUrl = () => {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -17,11 +18,28 @@ export async function loginWithSupabase({ username, password, deviceKey }) {
   });
   const result = await response.json();
   if (!response.ok) return { ok: false, message: result.message };
+  if (!result.session?.access_token) {
+    return { ok: false, message: 'Could not start your session. Please try again.' };
+  }
 
-  const { error } = await client.auth.setSession(result.session);
-  if (error) return { ok: false, message: error.message };
+  // Keep the token before setSession. Checkout reads this copy if the auth
+  // client later reports that it has no session.
+  let session = await rememberSession(result.session);
+  try {
+    const { data, error } = await client.auth.setSession(result.session);
+    if (!error && data.session?.access_token) {
+      session = await rememberSession(data.session);
+    } else if (!accessTokenStillValid(result.session)) {
+      return { ok: false, message: error?.message || 'Could not start your session. Please try again.' };
+    }
+  } catch (error) {
+    if (!accessTokenStillValid(result.session)) {
+      return { ok: false, message: error?.message || 'Could not start your session. Please try again.' };
+    }
+  }
   return {
     ok: true,
+    session,
     user: {
       ...result.profile,
       id: result.profile.id,
@@ -29,6 +47,9 @@ export async function loginWithSupabase({ username, password, deviceKey }) {
       verified: result.profile.is_verified,
       profileComplete: result.profile.profile_complete,
       inactive: !result.profile.is_active,
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+      expiresAt: session.expires_at,
     },
   };
 }

@@ -465,6 +465,12 @@ export function mealMatchesNutritionalPreferences(meal, profile) {
   return ids.every((id) => nutritionalPreferenceBonus(meal, id) > 0);
 }
 
+export function mealMatchesAnyNutritionalPreference(meal, profile) {
+  const ids = nutritionIdsFromProfile(profile);
+  if (!ids.length) return true;
+  return ids.some((id) => nutritionalPreferenceBonus(meal, id) > 0);
+}
+
 export function validateGuardian(input) {
   const name = trim(input.name);
   const contactNumber = normalizeContact(input.contactNumber);
@@ -574,8 +580,8 @@ export function rankMeal(meal, profile) {
     if ((meal.dietaryTags || []).includes(restriction)) score += 2;
   }
   const nutritionBonus = nutritionIdsFromProfile(profile)
-    .some((id) => nutritionalPreferenceBonus(meal, id) > 0);
-  if (nutritionBonus) score += 1;
+    .reduce((sum, id) => sum + nutritionalPreferenceBonus(meal, id), 0);
+  score += nutritionBonus;
 
   for (const disliked of prefs.dislikedIngredients || []) {
     const needle = disliked.toLowerCase();

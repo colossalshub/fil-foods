@@ -36,8 +36,8 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
   label: { fontSize: font.body, color: colors.text, fontWeight: '600', marginBottom: 6 },
   field: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white,
-    borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
     paddingHorizontal: spacing.md, minHeight: touch.min,
   },
   fieldError: { borderColor: colors.danger },
