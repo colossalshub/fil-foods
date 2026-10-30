@@ -11,8 +11,7 @@ import { login } from '../../services/authService';
 import { colors, font, spacing } from '../../theme/theme';
 
 const GREEN = '#1B7A3A';
-const plate = require('../../../assets/images/meal-plate.png');
-const plateUri = typeof plate === 'string' ? plate : plate?.uri;
+const plate = require('../../../assets/images/fil-foods-logo.png');
 
 const fieldStyle = {
   height: 52,
@@ -56,15 +55,10 @@ export default function LoginScreen({ navigation }) {
       <StatusBar style="light" />
       <SafeAreaView edges={['top']} style={styles.header}>
         <View
-          accessibilityLabel="Grilled chicken with rice and vegetables"
-          style={[
-            styles.plateWrap,
-            Platform.OS === 'web' && plateUri ? { backgroundImage: `url(${plateUri})` } : null,
-          ]}
+          accessibilityLabel="F.I.L. FOODS logo"
+          style={styles.plateWrap}
         >
-          {Platform.OS === 'web' ? null : (
-            <Image source={plate} style={styles.plate} resizeMode="cover" />
-          )}
+          <Image source={plate} style={styles.plate} resizeMode="contain" />
         </View>
         <Text style={styles.brand} accessibilityRole="header">Food is Life</Text>
         <Text style={styles.tagline}>Healthy meals, made with care.</Text>
@@ -120,14 +114,13 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.textLinkLabel}>Create an account</Text>
           </Pressable>
 
-          <View style={styles.spacer} />
-          <Pressable
-            accessibilityRole="link"
+          <AppButton
+            title="Continue as visitor"
+            variant="outline"
             onPress={() => signIn({ role: 'visitor', username: 'visitor' })}
-            style={styles.visitorLink}
-          >
-            <Text style={styles.visitorLabel}>Continue as visitor</Text>
-          </Pressable>
+            color={GREEN}
+            style={styles.visitorButton}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -147,17 +140,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   plateWrap: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: colors.white,
-    padding: 6,
-    overflow: 'hidden',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
+    width: 88,
+    height: 88,
   },
-  plate: { width: 100, height: 100, borderRadius: 50, opacity: 1 },
+  plate: { width: 88, height: 88 },
   brand: { color: colors.white, fontSize: 26, fontWeight: '700', marginTop: spacing.lg, textAlign: 'center' },
   tagline: { color: 'rgba(255,255,255,0.92)', fontSize: font.lg, marginTop: 4, textAlign: 'center' },
   form: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xl },
@@ -168,7 +154,5 @@ const styles = StyleSheet.create({
   forgotLink: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', paddingHorizontal: spacing.sm },
   textLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.sm, marginTop: spacing.sm },
   textLinkLabel: { color: GREEN, fontSize: font.md, fontWeight: '700', textAlign: 'center' },
-  spacer: { flexGrow: 1, minHeight: spacing.xl },
-  visitorLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.sm },
-  visitorLabel: { color: colors.text, fontSize: font.md, fontWeight: '600', textAlign: 'center', textDecorationLine: 'underline' },
+  visitorButton: { marginTop: spacing.lg },
 });

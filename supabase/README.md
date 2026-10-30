@@ -5,7 +5,7 @@ The migration in [`migrations/20261030131000_initial_schema.sql`](./migrations/2
 Apply it with the Supabase CLI:
 
 ```bash
-supabase db push
+npx supabase db push
 ```
 
 If a migration reports `function digest(text, unknown) does not exist`, make sure the
@@ -22,10 +22,14 @@ before calling `dev_set_order_status`. Do not load that helper in production.
 
 The mobile app uses `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. The service-role key must never be placed in the app.
 
+The client meal catalog is inserted by
+[`migrations/20261030150000_seed_client_meal_catalog.sql`](./migrations/20261030150000_seed_client_meal_catalog.sql).
+Run `supabase db push` after pulling this change before testing order placement.
+
 Deploy the username login function separately:
 
 ```bash
-supabase functions deploy login-by-username
+npx supabase functions deploy login-by-username
 ```
 
 Set `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` as Edge Function secrets. The service-role key is server-only and must never be committed or added to Expo environment variables.

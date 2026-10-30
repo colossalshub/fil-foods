@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { colors, font, spacing } from '../theme/theme';
 
 /**
  * Reserved brand area. Replace the mark inside this component with the official
@@ -7,8 +7,8 @@ import { colors, font, radius, spacing } from '../theme/theme';
  */
 export default function LogoPlaceholder({ label = 'F.I.L. FOODS' }) {
   return (
-    <View style={styles.wrap} accessibilityRole="image" accessibilityLabel="F.I.L. FOODS logo placeholder">
-      <View style={styles.mark} />
+    <View style={styles.wrap} accessibilityRole="image" accessibilityLabel="F.I.L. FOODS logo">
+      <Image source={require('../../assets/images/fil-foods-logo.png')} style={styles.mark} resizeMode="contain" />
       {label ? <Text style={styles.label}>{label}</Text> : null}
     </View>
   );
@@ -19,10 +19,6 @@ const styles = StyleSheet.create({
   mark: {
     width: 56,
     height: 56,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.soft,
   },
   label: {
     marginTop: spacing.sm,

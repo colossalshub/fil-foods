@@ -113,6 +113,7 @@ export default function OrderScreen({ navigation }) {
           specialInstructions: fulfillment.instructions,
           items: lineItems.map((row) => ({
             mealId: row.meal.id,
+            mealName: row.meal.name,
             quantity: parseQuantityInput(row.quantity).value,
           })),
         });

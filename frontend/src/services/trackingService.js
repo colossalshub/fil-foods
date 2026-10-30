@@ -3,7 +3,11 @@
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { formatPhp } from './orderService.js';
 import { formatTimestamp } from '../utils/time.js';
-import { getClientOrders, subscribeToClientOrders } from './backendOrderService.js';
+import {
+  getClientOrderById,
+  getClientOrders,
+  subscribeToClientOrders,
+} from './backendOrderService.js';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 export const TRACKING_MSG = {
@@ -45,7 +49,7 @@ const STATUS_META = {
 
 export const POLL_INTERVAL_MS = 4000;
 
-function mapBackendOrder(order) {
+export function mapBackendOrder(order) {
   return {
     id: order.id,
     userId: order.client_id,
@@ -79,6 +83,13 @@ export async function refreshBackendOrdersForUser(userId) {
   if (!isSupabaseConfigured) return null;
   const rows = await getClientOrders();
   return rows.filter((row) => row.client_id === userId).map(mapBackendOrder);
+}
+
+export async function refreshBackendOrder(userId, orderId) {
+  if (!isSupabaseConfigured) return null;
+  const row = await getClientOrderById(orderId);
+  if (!row || row.client_id !== userId) return null;
+  return mapBackendOrder(row);
 }
 
 export function subscribeToBackendOrderChanges(onChange) {

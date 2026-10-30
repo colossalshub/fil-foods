@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from './AuthHeader';
-import { colors, font, radius, spacing, card } from '../theme/theme';
+import { colors, font, spacing, card } from '../theme/theme';
 
 export default function AuthLayout({ variant, title, subtitle, onBack, children }) {
   if (variant === 'back') {
@@ -23,8 +23,14 @@ export default function AuthLayout({ variant, title, subtitle, onBack, children 
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.logo}><Text style={styles.logoText}>F.I.L.</Text></View>
-          <Text style={styles.brand}>F.I.L. FOODS</Text>
+          <Image
+            source={require('../../assets/images/fil-foods-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityRole="image"
+            accessibilityLabel="F.I.L. FOODS logo"
+          />
+          <Text style={styles.brand}>Food is Life</Text>
           <Text style={styles.title}>{title}</Text>
           {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
           <View style={styles.card}>{children}</View>
@@ -37,8 +43,7 @@ export default function AuthLayout({ variant, title, subtitle, onBack, children 
 const styles = StyleSheet.create({
   backScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   scroll: { padding: spacing.xl, alignItems: 'center' },
-  logo: { width: 64, height: 64, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
-  logoText: { color: colors.white, fontWeight: '800', fontSize: font.lg },
+  logo: { width: 88, height: 88, marginTop: spacing.lg },
   brand: { marginTop: spacing.sm, fontSize: font.sm, letterSpacing: 2, color: colors.secondary, fontWeight: '700' },
   title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginTop: spacing.md },
   sub: { fontSize: font.sm, color: colors.muted, marginTop: 2, textAlign: 'center' },

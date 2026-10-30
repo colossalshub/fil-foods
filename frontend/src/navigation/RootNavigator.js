@@ -50,6 +50,8 @@ export default function RootNavigator() {
           console.warn('Unable to restore the Supabase session.', error);
           await supabase?.auth.signOut();
         }
+        if (!cancelled) setBooting(false);
+        return;
       }
       const stored = await readPersistedSession();
       if (stored) {

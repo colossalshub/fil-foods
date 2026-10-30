@@ -9,11 +9,12 @@ import { useAuth } from '../context/AuthContext';
 import {
   TRACKING_MSG,
   POLL_INTERVAL_MS,
-  getClientOrder,
   refreshClientOrder,
+  refreshBackendOrder,
 } from '../services/trackingService';
 import { colors, card, font, spacing, touch } from '../theme/theme';
 import { formatTimestamp } from '../utils/time';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 function Line({ label, value }) {
   return (
@@ -42,19 +43,27 @@ export default function OrderDetailScreen() {
       setOrder(null);
       return;
     }
+    if (isSupabaseConfigured) {
+      refreshBackendOrder(userId, orderId)
+        .then((backendOrder) => {
+          if (!backendOrder) {
+            setNotFound(true);
+            setOrder(null);
+            return;
+          }
+          setRefreshError('');
+          setNotFound(false);
+          setOrder(backendOrder);
+          setLastRefreshed(new Date().toISOString());
+        })
+        .catch(() => setRefreshError(TRACKING_MSG.unableRefresh));
+      return;
+    }
+
     const result = refreshClientOrder(userId, orderId, { connected: true });
     if (!result.ok) {
-      if (result.message === TRACKING_MSG.orderNotFound) {
-        setNotFound(true);
-        setOrder(null);
-      } else {
-        setRefreshError(result.message);
-        const cached = getClientOrder(userId, orderId);
-        if (cached.ok) {
-          setNotFound(false);
-          setOrder(cached.order);
-        }
-      }
+      setNotFound(true);
+      setOrder(null);
       return;
     }
     setRefreshError('');

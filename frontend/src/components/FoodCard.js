@@ -9,7 +9,7 @@ export default function FoodCard({ meal, onAdd, onPress, restrictionMatch }) {
       onPress={onPress}
       style={[styles.card, restrictionMatch && styles.cardHighlight]}
     >
-      <View style={styles.thumb}><Text style={{ fontSize: 34 }}>{meal.emoji}</Text></View>
+      <View style={styles.thumb}><Text style={{ fontSize: 42 }}>{meal.emoji}</Text></View>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{meal.name}</Text>
         <Text style={styles.category}>{meal.category}</Text>
@@ -35,11 +35,11 @@ export default function FoodCard({ meal, onAdd, onPress, restrictionMatch }) {
 }
 
 const styles = StyleSheet.create({
-  card: { ...card, flexDirection: 'row', padding: spacing.md, marginBottom: spacing.md },
+  card: { ...card, flexDirection: 'row', padding: spacing.md, marginBottom: spacing.md, overflow: 'hidden', shadowColor: colors.primaryDark, shadowOpacity: 0.06, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   cardHighlight: { borderColor: colors.action, backgroundColor: colors.soft },
   match: { fontSize: font.xs, color: colors.action, fontWeight: '600', marginTop: 4 },
-  thumb: { width: 72, height: 72, borderRadius: radius.sm, backgroundColor: colors.tint, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
-  name: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  thumb: { width: 86, minHeight: 112, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  name: { fontSize: font.body, fontWeight: '800', color: colors.primaryDark },
   category: { fontSize: font.md, color: colors.secondary, marginTop: 2, fontWeight: '600' },
   meta: { fontSize: font.xs, color: colors.muted, marginTop: 2 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 },
