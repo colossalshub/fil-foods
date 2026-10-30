@@ -11,7 +11,6 @@ export async function loginWithSupabase({ username, password, deviceKey }) {
     method: 'POST',
     headers: {
       apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ username, password, deviceKey }),
