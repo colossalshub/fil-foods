@@ -8,6 +8,8 @@ import { verifyCode, sendCode } from './verificationService.js';
 import { clearPersistedSession } from './sessionPersistence.js';
 import { disableBiometricUnlock } from './biometricService.js';
 import { appendAuditEvent, comparePassword, comparePasswordSync, hashPasswordSync } from './securityService.js';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { loginWithSupabase } from './supabaseAuthService.js';
 
 const wait = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
@@ -52,6 +54,13 @@ function recordDeviceLoginAttempt(username) {
 }
 
 export async function login({ username, password }) {
+  if (isSupabaseConfigured) {
+    return loginWithSupabase({
+      username,
+      password,
+      deviceKey: 'expo-device',
+    });
+  }
   await wait();
 
   if (loginAttemptsInLastMinute() >= MAX_LOGIN_ATTEMPTS_PER_MINUTE) {

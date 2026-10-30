@@ -9,7 +9,7 @@ import {
 } from '../services/verificationService';
 import { verifyResetCode } from '../services/authService';
 import { verifyContactChange } from '../services/profileService';
-import { EMAIL_SUBJECT, EMAIL_TEMPLATE, MSG, SMS_TEMPLATE } from '../data/messages';
+import { EMAIL_SUBJECT, EMAIL_TEMPLATE, SMS_TEMPLATE } from '../data/messages';
 import { colors, font, radius, spacing } from '../theme/theme';
 
 export default function VerificationFlow({
@@ -23,13 +23,10 @@ export default function VerificationFlow({
   const [tone, setTone] = useState('error');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [codeId, setCodeId] = useState(null);
-
   const showExisting = (info) => {
     if (!info) return;
     setSent(true);
     setChannel(info.channel);
-    setCodeId(info.id);
   };
 
   const request = async (nextChannel) => {
@@ -45,18 +42,20 @@ export default function VerificationFlow({
     }
     setSent(true);
     setCode('');
-    setCodeId(result.codeId);
     setMessages([]);
   };
 
   useEffect(() => {
     if (!autoChannel) return;
-    const existing = activeCodeInfo(userId, purpose);
-    if (existing) {
-      showExisting(existing);
-      return;
-    }
-    request(autoChannel);
+    const timer = setTimeout(() => {
+      const existing = activeCodeInfo(userId, purpose);
+      if (existing) {
+        showExisting(existing);
+        return;
+      }
+      request(autoChannel);
+    }, 0);
+    return () => clearTimeout(timer);
     // Send once when a reset screen already chose SMS or email.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

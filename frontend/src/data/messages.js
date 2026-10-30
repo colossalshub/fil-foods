@@ -41,6 +41,13 @@ export const MSG = {
   guardianRequired: "Please enter the guardian's name and contact number.",
   guardianSaved: 'Guardian information saved.',
   noChangesYet: 'No changes yet.',
+  noMeals: 'No meals found.',
+  noActiveOrders: 'You have no active orders',
+  guestGate: 'Log in to continue',
+  noGuardian: 'No guardian or family member added yet.',
+  allergyWarning: (allergen) => `This meal contains ${allergen}, which is listed in your profile.`,
+  noExactCombo: 'No exact match is available. Here is the closest option.',
+  notMedicalAdvice: "Suggestions are not medical advice. Follow your doctor or dietitian's guidance.",
 };
 
 export const waitForCode = (seconds) =>

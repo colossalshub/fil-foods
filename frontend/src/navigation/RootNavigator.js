@@ -18,6 +18,7 @@ import { clearPersistedSession, persistSession, readPersistedSession } from '../
 import HelpScreen from '../screens/HelpScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
 import { colors } from '../theme/theme';
+import { getCurrentSupabaseProfile, isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } };
@@ -31,6 +32,25 @@ export default function RootNavigator() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (isSupabaseConfigured) {
+        try {
+          const profile = await getCurrentSupabaseProfile();
+          if (!cancelled && profile) {
+            setUser({
+              ...profile,
+              verified: profile.is_verified,
+              profileComplete: profile.profile_complete,
+              inactive: !profile.is_active,
+            });
+            setKeepLoggedIn(true);
+            if (!cancelled) setBooting(false);
+            return;
+          }
+        } catch (error) {
+          console.warn('Unable to restore the Supabase session.', error);
+          await supabase?.auth.signOut();
+        }
+      }
       const stored = await readPersistedSession();
       if (stored) {
         const dbUser = getUser(stored.userId);
@@ -71,6 +91,9 @@ export default function RootNavigator() {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
     await clearPersistedSession();
     setKeepLoggedIn(false);
     setUser(null);

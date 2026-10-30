@@ -109,6 +109,11 @@ function emptyDb() {
     // Login attempts in the last minute, for the rate limit. This app is one device.
     attempts: [],
     failNextCodeSend: false,
+    settings: {
+      leadTimeHours: 24,
+      deliveryFee: 0,
+      kitchenHours: { days: [1, 2, 3, 4, 5, 6], openHour: 7, closeHour: 18 },
+    },
     seq: 1,
   };
 }

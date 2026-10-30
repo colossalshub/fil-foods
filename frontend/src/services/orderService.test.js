@@ -9,6 +9,7 @@ import {
   applyMealFilters,
   calculateTotals,
   confirmOrder,
+  formatPhp,
   fuzzySearchMeals,
   getKitchenOrderView,
   getRecommendedMeals,
@@ -19,6 +20,11 @@ import {
 import { NUTRITION_MSG, solveNutritionPlan } from './nutritionService.js';
 
 const SAMPLE_NOW = new Date('2026-10-12T09:00:00');
+
+test('formatPhp uses the specification currency format', () => {
+  assert.equal(formatPhp(240), 'PHP 240.00');
+  assert.equal(formatPhp(Number.NaN), 'PHP 0.00');
+});
 
 test('fuzzy search ranks Chicken Tinola for common typos and partial names', () => {
   const tinola = MEALS.find((m) => m.name === 'Chicken Tinola');

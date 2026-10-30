@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, Pressable, StyleSheet, Alert,
 } from 'react-native';
@@ -20,6 +20,13 @@ import {
   validateFulfillment,
 } from '../services/orderService';
 import { colors, font, radius, spacing, control } from '../theme/theme';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { placeOrderWithBackend } from '../services/backendOrderService.js';
+
+function createRequestId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function FulfillmentOption({ label, active, onPress }) {
   return (
@@ -45,6 +52,7 @@ export default function OrderScreen({ navigation }) {
   const [allergenAck, setAllergenAck] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
+  const requestIdRef = useRef(createRequestId());
 
   const dbUser = useMemo(() => (user?.id ? getUser(user.id) : null), [user]);
   const profile = useMemo(() => (user?.id ? getProfileForMeals(user.id) : null), [user]);
@@ -73,7 +81,7 @@ export default function OrderScreen({ navigation }) {
     updateQuantity(mealId, parsed.value);
   };
 
-  const onConfirm = () => {
+  const onConfirm = async () => {
     if (!user?.id || !lineItems.length) return;
     if (warnings.length && !allergenAck) {
       Alert.alert('Allergen warning', warnings.map((w) => w.message).join('\n'));
@@ -94,13 +102,40 @@ export default function OrderScreen({ navigation }) {
     setFieldError('');
 
     setPlacing(true);
-    const result = confirmOrder(user.id, {
-      items: lineItems,
-      fulfillment,
-      now: new Date(),
-      allergenAcknowledged: allergenAck || warnings.length === 0,
-    });
-    setPlacing(false);
+    let result;
+    try {
+      if (isSupabaseConfigured) {
+        const backendOrder = await placeOrderWithBackend({
+          clientRequestId: requestIdRef.current,
+          fulfillmentType: fulfillment.type,
+          schedule: check.scheduled.toISOString(),
+          address: fulfillment.address,
+          specialInstructions: fulfillment.instructions,
+          items: lineItems.map((row) => ({
+            mealId: row.meal.id,
+            quantity: parseQuantityInput(row.quantity).value,
+          })),
+        });
+        result = {
+          ok: true,
+          order: backendOrder,
+          message: ORDER_MSG.orderSuccess,
+        };
+        requestIdRef.current = createRequestId();
+      } else {
+        result = confirmOrder(user.id, {
+          items: lineItems,
+          fulfillment,
+          now: new Date(),
+          clientRequestId: requestIdRef.current,
+          allergenAcknowledged: allergenAck || warnings.length === 0,
+        });
+      }
+    } catch (error) {
+      result = { ok: false, messages: [error.message || 'Unable to place order.'] };
+    } finally {
+      setPlacing(false);
+    }
 
     if (!result.ok) {
       if (result.placing) return;

@@ -16,9 +16,12 @@ import {
   listFilterStatuses,
   refreshOrdersForUser,
   searchOrderByTracking,
+  refreshBackendOrdersForUser,
+  subscribeToBackendOrderChanges,
 } from '../services/trackingService';
 import { colors, card, font, spacing, touch, control } from '../theme/theme';
 import { formatTimestamp } from '../utils/time';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 export default function TrackingScreen() {
   const navigation = useNavigation();
@@ -45,8 +48,30 @@ export default function TrackingScreen() {
       setOrders([]);
       return;
     }
+    if (isSupabaseConfigured) {
+      refreshBackendOrdersForUser(userId)
+        .then((backendOrders) => {
+          if (backendOrders) setOrders(backendOrders.map((order) => ({
+            id: order.id,
+            trackingNumber: order.trackingNumber,
+            date: order.placedAt?.slice(0, 10),
+            meals: order.items.map((item) => `${item.name} ×${item.quantity}`).join(', '),
+            status: order.status,
+            statusMeta: { label: order.status, colorKey: 'muted' },
+            placedAt: order.placedAt,
+            lastUpdatedAt: order.lastUpdatedAt,
+            terminal: order.status === 'Completed',
+          })));
+        })
+        .catch(() => setRefreshError(TRACKING_MSG.unableRefresh));
+      return;
+    }
     setOrders(listClientOrders(userId, filters));
   }, [userId, filters]);
+
+  useFocusEffect(
+    useCallback(() => subscribeToBackendOrderChanges(() => syncOrders()), [syncOrders]),
+  );
 
   const pollRefresh = useCallback((connected = true) => {
     if (!userId) return;

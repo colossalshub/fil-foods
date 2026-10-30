@@ -137,6 +137,7 @@ test('status change writes notification with exact update sentence', () => {
   resetStore();
   __testResetAlerts();
   seedSampleOrders();
+  advanceOrderStatus('order-seed-2', ORDER_STATUS.READY_DELIVERY, { at: '2026-10-12T09:45:00.000Z' });
   advanceOrderStatus('order-seed-2', ORDER_STATUS.OUT_FOR_DELIVERY, { at: '2026-10-12T10:00:00.000Z' });
   const alerts = getAlertsForUser(MARIA);
   assert.ok(alerts.some((a) => a.message === 'Order TRK-2026-0002 is now Out for Delivery.'));
@@ -146,7 +147,7 @@ test('markAlertRead keeps notification in list and marks it read', () => {
   resetStore();
   __testResetAlerts();
   seedSampleOrders();
-  advanceOrderStatus('order-seed-2', ORDER_STATUS.READY_FOR_DELIVERY, { at: '2026-10-12T09:45:00.000Z' });
+  advanceOrderStatus('order-seed-2', ORDER_STATUS.READY_DELIVERY, { at: '2026-10-12T09:45:00.000Z' });
   const before = getAlertsForUser(MARIA);
   const target = before.find((a) => a.kind === 'notification');
   assert.ok(target);

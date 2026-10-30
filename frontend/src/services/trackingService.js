@@ -3,6 +3,8 @@
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { formatPhp } from './orderService.js';
 import { formatTimestamp } from '../utils/time.js';
+import { getClientOrders, subscribeToClientOrders } from './backendOrderService.js';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 
 export const TRACKING_MSG = {
   noOrders: 'You have no orders yet.',
@@ -42,6 +44,47 @@ const STATUS_META = {
 };
 
 export const POLL_INTERVAL_MS = 4000;
+
+function mapBackendOrder(order) {
+  return {
+    id: order.id,
+    userId: order.client_id,
+    trackingNumber: order.tracking_number,
+    status: String(order.status || '').replace(/(^|_)(\w)/g, (_, prefix, letter) => `${prefix ? ' ' : ''}${letter.toUpperCase()}`),
+    placedAt: order.created_at,
+    lastUpdatedAt: order.updated_at,
+    total: Number(order.total),
+    deliveryFee: Number(order.delivery_fee || 0),
+    items: (order.order_items || []).map((item) => ({
+      mealId: item.meal_id,
+      name: item.meals?.name || 'Meal',
+      quantity: item.quantity,
+      unitPrice: Number(item.unit_price),
+      lineTotal: Number(item.line_total),
+    })),
+    fulfillment: {
+      type: order.fulfillment_type === 'pick_up' ? 'pickup' : 'delivery',
+      address: order.address,
+      scheduledAt: order.schedule,
+      instructions: order.special_instructions,
+    },
+    statusHistory: (order.order_status_history || []).map((row) => ({
+      status: String(row.status || '').replace(/(^|_)(\w)/g, (_, prefix, letter) => `${prefix ? ' ' : ''}${letter.toUpperCase()}`),
+      at: row.changed_at,
+    })),
+  };
+}
+
+export async function refreshBackendOrdersForUser(userId) {
+  if (!isSupabaseConfigured) return null;
+  const rows = await getClientOrders();
+  return rows.filter((row) => row.client_id === userId).map(mapBackendOrder);
+}
+
+export function subscribeToBackendOrderChanges(onChange) {
+  if (!isSupabaseConfigured) return () => {};
+  return subscribeToClientOrders(onChange);
+}
 
 function ensureOrdersArray() {
   const db = getDb();
@@ -173,6 +216,8 @@ function toDetail(order) {
     })),
     total: order.total,
     totalLabel: formatPhp(order.total),
+    deliveryFee: order.deliveryFee || 0,
+    deliveryFeeLabel: formatPhp(order.deliveryFee || 0),
     fulfillment: {
       type: fulfillmentType,
       typeLabel: fulfillmentType === 'pickup' ? 'Pick-up' : 'Delivery',
@@ -284,6 +329,14 @@ export function recordStatusChange(order, newStatus, at) {
   const when = at || stamp();
   const previous = order.status;
   if (previous === newStatus) return { changed: false, order };
+  if (newStatus !== ORDER_STATUS.CANCELLED) {
+    const allowed = getStatusesForFulfillment(order.fulfillment?.type || 'delivery');
+    const previousIndex = allowed.indexOf(previous);
+    const nextIndex = allowed.indexOf(newStatus);
+    if (previousIndex < 0 || nextIndex !== previousIndex + 1) {
+      return { changed: false, order, message: 'Status transition is not allowed.' };
+    }
+  }
   order.status = newStatus;
   order.lastUpdatedAt = when;
   backfillHistory(order);

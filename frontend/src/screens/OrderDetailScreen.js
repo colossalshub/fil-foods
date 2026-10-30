@@ -137,7 +137,10 @@ export default function OrderDetailScreen() {
               <Text style={styles.sectionTitle} accessibilityRole="header">Fulfillment</Text>
               <Line label="Type" value={order.fulfillment.typeLabel} />
               {order.fulfillment.type === 'delivery' ? (
-                <Line label="Address" value={order.fulfillment.address} />
+                <>
+                  <Line label="Address" value={order.fulfillment.address} />
+                  <Line label="Delivery fee" value={order.deliveryFeeLabel} />
+                </>
               ) : null}
               <Line label="Schedule" value={order.fulfillment.scheduleLabel} />
               <Line label="Instructions" value={order.fulfillment.instructions} />
