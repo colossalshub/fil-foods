@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  View, Text, TextInput, ScrollView, StyleSheet, Pressable, Alert,
+  View, Text, TextInput, ScrollView, StyleSheet, Pressable, Alert, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import {
   parseQuantityInput,
   profileAllergensInMeal,
 } from '../services/orderService';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
 import { colors, font, radius, spacing, control } from '../theme/theme';
 
 export default function MealDetailScreen({ route, navigation }) {
@@ -89,7 +90,18 @@ export default function MealDetailScreen({ route, navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}><Text style={styles.emoji}>{meal.emoji}</Text></View>
+        <View style={styles.hero}>
+          {MEAL_PHOTOS[meal.id] ? (
+            <Image
+              source={MEAL_PHOTOS[meal.id]}
+              style={styles.heroImage}
+              resizeMode="cover"
+              accessibilityLabel={`${meal.name} photo`}
+            />
+          ) : (
+            <Text style={styles.emoji}>{meal.emoji}</Text>
+          )}
+        </View>
         <Text style={styles.category}>{meal.category}</Text>
         <Text style={styles.meta}>{meal.cuisine} · {formatPhp(meal.price)}</Text>
 
@@ -155,6 +167,7 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: font.lg, fontWeight: '700', color: colors.primary, marginLeft: spacing.sm },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   hero: { alignItems: 'center', marginBottom: spacing.md },
+  heroImage: { width: '100%', height: 220, borderRadius: radius.lg, backgroundColor: colors.surface },
   emoji: { fontSize: 64 },
   category: { fontSize: font.body, fontWeight: '700', color: colors.text },
   meta: { fontSize: font.md, color: colors.muted, marginTop: 4 },

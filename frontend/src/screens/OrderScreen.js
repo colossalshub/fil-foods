@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import {
-  View, Text, ScrollView, TextInput, Pressable, StyleSheet, Alert,
+  View, Text, ScrollView, TextInput, Pressable, Image, StyleSheet, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
@@ -21,6 +21,7 @@ import {
   validateFulfillment,
 } from '../services/orderService';
 import { colors, font, radius, spacing, control } from '../theme/theme';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { placeOrderWithBackend } from '../services/backendOrderService.js';
 import SchedulePicker from '../components/SchedulePicker';
@@ -230,6 +231,13 @@ export default function OrderScreen({ navigation }) {
         <Text style={styles.section}>Meals</Text>
         {items.map((row) => (
           <View key={row.meal.id} style={styles.line}>
+            <View style={styles.lineThumb}>
+              {MEAL_PHOTOS[row.meal.id] ? (
+                <Image source={MEAL_PHOTOS[row.meal.id]} style={styles.lineThumbImage} resizeMode="cover" accessibilityLabel={`${row.meal.name} photo`} />
+              ) : (
+                <Text style={styles.lineEmoji}>{row.meal.emoji || '🍽️'}</Text>
+              )}
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.lineName}>{row.meal.name}</Text>
               <Text style={styles.lineMeta}>{formatPhp(row.meal.price)} each</Text>
@@ -338,7 +346,10 @@ const styles = StyleSheet.create({
   section: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
   label: { fontSize: font.md, color: colors.muted, marginBottom: 4 },
   body: { fontSize: font.body, color: colors.text },
-  line: { flexDirection: 'row', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
+  line: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
+  lineThumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden' },
+  lineThumbImage: { width: 48, height: 48 },
+  lineEmoji: { fontSize: 22 },
   lineName: { fontSize: font.body, fontWeight: '700', color: colors.text },
   lineMeta: { fontSize: font.md, color: colors.muted, marginTop: 2 },
   qtyInput: { marginTop: spacing.sm, minHeight: control.minHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, fontSize: font.body, backgroundColor: colors.background, maxWidth: 120 },

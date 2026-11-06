@@ -7,7 +7,7 @@ Source of truth: [updated User Story Specification](../.github/Meal_Service_User
 Audited on 2026-10-30 before implementation changes.
 
 - The client is an Expo 58 JavaScript app using React Navigation, not Expo Router.
-- All application data is held in [`frontend/src/data/mockStore.js`](../frontend/src/data/mockStore.js); [`backend/`](../backend/) has no implementation.
+- All application data is held in [`frontend/src/data/mockStore.js`](../frontend/src/data/mockStore.js). The server schema is in [`supabase/`](../supabase/).
 - Supabase migrations `20261030131000`, `20261030140000`, and `20261030142000` are applied to project `jmayfxgpxzgyilyvnbju`; the `login-by-username` Edge Function is deployed and responding.
 - Existing unit tests pass: 91/91.
 - `npm run lint` fails in [`frontend/src/components/VerificationFlow.js`](../frontend/src/components/VerificationFlow.js) because of a state update inside an effect, plus two unused variables.

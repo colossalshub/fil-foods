@@ -15,7 +15,7 @@ function openAlerts(navigation) {
       return;
     }
     if (Array.isArray(names) && names.includes('Account')) {
-      nav.navigate('Account', { screen: 'Alerts' });
+      nav.navigate('Account', { screen: 'Alerts', initial: false });
       return;
     }
     nav = nav.getParent?.();

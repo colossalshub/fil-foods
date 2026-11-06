@@ -10,7 +10,7 @@ import AppInput from '../components/AppInput';
 import Chip from '../components/Chip';
 import FormMessage from '../components/FormMessage';
 import VerificationFlow from '../components/VerificationFlow';
-import { TermsModal } from '../components/LegalModals';
+import { PrivacyModal, TermsModal } from '../components/LegalModals';
 import { useAuth } from '../context/AuthContext';
 import { findTermsAcceptance, getPublicUser, getUser, logout } from '../services/authService';
 import { MSG } from '../data/messages';
@@ -116,6 +116,7 @@ export default function ProfileScreen() {
     };
   }, [user, refreshKey]);
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [confirmRemoveGuardian, setConfirmRemoveGuardian] = useState(false);
   const [toast, setToast] = useState([]);
@@ -614,11 +615,13 @@ export default function ProfileScreen() {
           <Text style={styles.accepted}>Accepted {acceptance.formatted}</Text>
         ) : null}
         <AppButton title="View Terms and Conditions" onPress={() => setShowTerms(true)} color={colors.action} />
+        <AppButton title="View Privacy Policy" variant="outline" onPress={() => setShowPrivacy(true)} color={colors.primary} style={styles.linkBtn} />
 
         <AppButton title="Log out" variant="outline" onPress={() => setConfirmLogout(true)} color={colors.primary} style={styles.logout} />
       </ScrollView>
 
       <TermsModal visible={showTerms} onClose={() => setShowTerms(false)} acceptedAt={acceptance?.formatted} />
+      <PrivacyModal visible={showPrivacy} onClose={() => setShowPrivacy(false)} />
 
       <Modal visible={personalOpen} animationType="slide" onRequestClose={tryClosePersonal}>
         <SafeAreaView style={styles.modalScreen}>

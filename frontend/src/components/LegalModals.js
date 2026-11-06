@@ -1,13 +1,24 @@
 import { Text } from 'react-native';
 import InfoModal, { modalText } from './InfoModal';
 import AppButton from './AppButton';
-import { TERMS_TEXT, HELP_TEXT } from '../data/legal';
+import { TERMS_TEXT, PRIVACY_TEXT, HELP_TEXT } from '../data/legal';
 import { colors } from '../theme/theme';
 
 export function HelpModal({ visible, onClose }) {
   return (
     <InfoModal visible={visible} title="Help" onClose={onClose}>
       <Text style={modalText}>{HELP_TEXT}</Text>
+    </InfoModal>
+  );
+}
+
+export function PrivacyModal({ visible, onClose }) {
+  return (
+    <InfoModal
+      visible={visible} title="Privacy Policy" onClose={onClose}
+      footer={<AppButton title="Close" onPress={onClose} variant="outline" color={colors.primary} />}
+    >
+      <Text style={modalText}>{PRIVACY_TEXT}</Text>
     </InfoModal>
   );
 }

@@ -1,39 +1,58 @@
 # F.I.L. FOODS Meal Management System
 
-A mobile app by Relish (Group 4) for F.I.L. FOODS, a personalized meal service that prepares nutritious meals around a client's diet and preferences.
+A meal app for F.I.L. FOODS (Food Is Life). Clients record a diet, browse meals, get a suggested day of meals, and place a pickup or delivery order.
 
-## About the Project
+Built by Relish (Group 4), III-BCSAD, S.Y. 2026–2027.
 
-The system is meant to keep meal service organized and easy to reach, for both clients and staff.
+Repository: https://github.com/colossalshub/fil-foods
 
-It is planned to cover meal browsing, dietary information, ordering, order tracking, kitchen operations, delivery, and admin work.
+## Where things are
 
-## Current Development
+| Folder | What it is |
+|---|---|
+| `frontend/` | The Expo app (React Native and web) |
+| `supabase/` | Database schema, row-level security, audit chain, and the username login function |
+| `docs/` | Draft privacy policy, terms, security checklist, and the user-story traceability notes |
 
-The Expo app is in `frontend/`. `backend/` is reserved for a later server and is empty for now.
+When `frontend/.env` is missing, the app runs on local sample data. The server schema is in `supabase/`.
 
-The app currently includes:
+## What the app already does
 
-- Login and account registration
-- Password recovery
-- Meal browsing with sample data
-- Order screen
-- Tracking, alerts, and profile
-- Bottom navigation and shared UI components
+- Create an account, verify it, log in, reset a password, and log out
+- Browse and search meals, with allergy and diet warnings
+- Suggest one breakfast, lunch, and dinner from daily calorie, protein, and fat targets
+- Cart, schedule, and order placement
+- Tracking, alerts, and a profile for health, allergies, preferences, and a guardian
+- Terms and a privacy policy on registration and on Profile
 
-Some of these screens still use sample data. Backend, database storage, and real authentication are not in place yet.
+Some of those flows still use the local sample store until Supabase is configured.
 
-## Technologies
+## Algorithms
 
-- JavaScript
-- React Native
-- Expo
-- React Navigation
-- React Native Web
+| Algorithm | What to open |
+|---|---|
+| Fuzzy meal search (edit distance) | `frontend/src/services/orderService.js` — `fuzzySearchMeals`, `levenshtein`. Used by the Meals search box. |
+| Nutritional target solver (one meal per slot, calorie and fat ceilings) | `frontend/src/services/nutritionService.js` — `solveNutritionPlan`. On the Meals screen, open Daily nutrition targets and choose Suggest a day of meals (`frontend/src/components/NutritionDayPanel.js`). |
 
-## Getting Started
+## Security
 
-You need Node.js and npm. Visual Studio Code is a good editor for this project.
+The three IAS controls are already implemented. The checklist, with what is still partial, is `docs/security-controls.md`.
+
+| Control | What to open |
+|---|---|
+| Bcrypt password hash (cost 12) | `frontend/src/services/securityService.js` |
+| Role bitmask (client, staff, admin) | same file, `ROLES` and `requireRole` |
+| SHA-256 audit chain | same file, `appendAuditEvent` and `verifyAuditChain` |
+| Database roles, row-level security, and `verify_audit_chain()` | `supabase/migrations/20261030131000_initial_schema.sql` |
+
+Drafts for the presentation:
+
+- `docs/privacy-policy.md` and `docs/terms-and-conditions.md`, filled from the [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/) (Simple)
+- `docs/security-controls.md`
+
+## Run it
+
+You need Node.js.
 
 ```bash
 git clone https://github.com/colossalshub/fil-foods.git
@@ -42,15 +61,22 @@ npm install
 npx expo start
 ```
 
-`npm install` downloads the dependencies into `frontend/`. They are not stored in the repository.
-
-For a browser preview, from `frontend/`:
+Browser preview, from `frontend/`:
 
 ```bash
 npx expo start --web
 ```
 
-## Project Team
+To point the app at Supabase, copy `frontend/.env.example` to `frontend/.env` and fill in the project URL and anon key. Do not put the service-role key in the app. See `supabase/README.md`.
+
+Checks, from `frontend/`:
+
+```bash
+npm test
+npm run lint
+```
+
+## Team
 
 Relish (Group 4)
 
@@ -59,6 +85,6 @@ Relish (Group 4)
 - Jetrick M. Roxas
 - Lourdes Jed R. Villanueva
 
-## Project Status
+## Status
 
-In development. The interface and navigation come first. Backend integration, testing, and deployment come after that.
+In development. The client screens, the local security controls, and the Supabase migrations are in place. Live SMS, Google sign-in, and a full two-account security test on the hosted database are still open. `docs/implementation-traceability.md` tracks that story by story.

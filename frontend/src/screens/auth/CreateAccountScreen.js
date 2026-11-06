@@ -9,7 +9,7 @@ import FormMessage from '../../components/FormMessage';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import LogoPlaceholder from '../../components/LogoPlaceholder';
 import { useAuth } from '../../context/AuthContext';
-import { TermsModal } from '../../components/LegalModals';
+import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { register } from '../../services/authService';
 import { MSG } from '../../data/messages';
 import { colors, font, spacing } from '../../theme/theme';
@@ -30,6 +30,7 @@ export default function CreateAccountScreen({ navigation }) {
   const [form, setForm] = useState(EMPTY);
   const [accepted, setAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [fields, setFields] = useState({});
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,14 @@ export default function CreateAccountScreen({ navigation }) {
             >
               <Text style={styles.termsLinkText}>View Terms and Conditions</Text>
             </Pressable>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="View Privacy Policy"
+              onPress={() => setShowPrivacy(true)}
+              style={styles.termsLink}
+            >
+              <Text style={styles.termsLinkText}>View Privacy Policy</Text>
+            </Pressable>
             {fields.terms ? <Text style={styles.fieldError}>{fields.terms}</Text> : null}
 
             <AppButton title="Register" onPress={onRegister} loading={loading} color={colors.action} style={styles.action} />
@@ -121,6 +130,7 @@ export default function CreateAccountScreen({ navigation }) {
         onClose={() => setShowTerms(false)}
         onAccept={() => { setAccepted(true); setShowTerms(false); }}
       />
+      <PrivacyModal visible={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </View>
   );
 }

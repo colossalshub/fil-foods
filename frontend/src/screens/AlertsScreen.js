@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import ScreenHeader from '../components/ScreenHeader';
+import HelpButton from '../components/HelpButton';
 import { useAuth } from '../context/AuthContext';
 import { getAlertsForUser, markAlertRead } from '../services/trackingService';
 import { colors, card, font, spacing, touch } from '../theme/theme';
@@ -27,6 +28,15 @@ export default function AlertsScreen() {
     }, [reload]),
   );
 
+  const backToAccount = () => {
+    const routes = navigation.getState()?.routes ?? [];
+    if (routes.some((route) => route.name === 'AccountMain')) {
+      navigation.navigate('AccountMain');
+      return;
+    }
+    navigation.reset({ index: 0, routes: [{ name: 'AccountMain' }] });
+  };
+
   const onOpen = (item) => {
     if (!userId) return;
     markAlertRead(userId, item.kind, item.id);
@@ -41,7 +51,19 @@ export default function AlertsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Notifications" />
+      <View style={styles.topBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back to account"
+          onPress={backToAccount}
+          style={styles.backBtn}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.primary} />
+          <Text style={styles.backText}>Account</Text>
+        </Pressable>
+        <Text style={styles.title}>Notifications</Text>
+        <HelpButton />
+      </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
@@ -74,6 +96,24 @@ export default function AlertsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: touch.min,
+    minWidth: touch.min,
+    paddingRight: spacing.sm,
+  },
+  backText: { fontSize: font.body, color: colors.primary, fontWeight: '600' },
+  title: { flex: 1, textAlign: 'center', fontSize: font.lg, fontWeight: '700', color: colors.primary },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   emptyCard: { ...card, padding: spacing.xl, alignItems: 'center' },
   emptyText: { fontSize: font.body, color: colors.muted, textAlign: 'center' },

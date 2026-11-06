@@ -1,5 +1,6 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { formatPhp } from '../services/orderService';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
 import { colors, card, font, radius, spacing } from '../theme/theme';
 
 export default function FoodCard({ meal, onAdd, onPress, restrictionMatch }) {
@@ -9,7 +10,13 @@ export default function FoodCard({ meal, onAdd, onPress, restrictionMatch }) {
       onPress={onPress}
       style={[styles.card, restrictionMatch && styles.cardHighlight]}
     >
-      <View style={styles.thumb}><Text style={{ fontSize: 42 }}>{meal.emoji}</Text></View>
+      <View style={styles.thumb}>
+        {MEAL_PHOTOS[meal.id] ? (
+          <Image source={MEAL_PHOTOS[meal.id]} style={styles.thumbImage} resizeMode="cover" accessibilityLabel={`${meal.name} photo`} />
+        ) : (
+          <Text style={{ fontSize: 42 }}>{meal.emoji}</Text>
+        )}
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{meal.name}</Text>
         <Text style={styles.category}>{meal.category}</Text>
@@ -38,7 +45,8 @@ const styles = StyleSheet.create({
   card: { ...card, flexDirection: 'row', padding: spacing.md, marginBottom: spacing.md },
   cardHighlight: { borderColor: colors.action, backgroundColor: colors.soft },
   match: { fontSize: font.body, lineHeight: 22, color: colors.action, fontWeight: '600', marginTop: 4 },
-  thumb: { width: 86, minHeight: 112, borderRadius: radius.md, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  thumb: { width: 86, height: 112, borderRadius: radius.md, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden' },
+  thumbImage: { width: 86, height: 112 },
   name: { fontSize: font.body, fontWeight: '800', color: colors.primaryDark },
   category: { fontSize: font.body, lineHeight: 22, color: colors.secondary, marginTop: 2, fontWeight: '600' },
   meta: { fontSize: font.body, lineHeight: 22, color: colors.muted, marginTop: 2 },

@@ -5,7 +5,7 @@ import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
 import FormMessage from '../../components/FormMessage';
-import { TermsModal } from '../../components/LegalModals';
+import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { useAuth } from '../../context/AuthContext';
 import { completeProfile, logout } from '../../services/authService';
 import { colors, font, spacing } from '../../theme/theme';
@@ -17,6 +17,7 @@ export default function CompleteProfileScreen() {
   const [contactNumber, setContactNumber] = useState(user?.contactNumber || '');
   const [accepted, setAccepted] = useState(!!user?.termsAcceptedAt);
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const [messages, setMessages] = useState([]);
   const [fields, setFields] = useState({});
 
@@ -49,17 +50,22 @@ export default function CompleteProfileScreen() {
       <Checkbox
         checked={accepted}
         onToggle={() => setAccepted((value) => !value)}
-        accessibilityLabel="I accept the Terms and Conditions"
+        accessibilityLabel="I accept the Terms and Conditions and Privacy Policy"
         labelToggles={false}
       >
         I accept the{' '}
         <Text style={styles.link} onPress={() => setShowTerms(true)} accessibilityRole="link">
           Terms and Conditions
         </Text>
+        {' and '}
+        <Text style={styles.link} onPress={() => setShowPrivacy(true)} accessibilityRole="link">
+          Privacy Policy
+        </Text>
       </Checkbox>
       <FormMessage messages={messages} />
       <AppButton title="Save and continue" onPress={onSave} />
       <TermsModal visible={showTerms} onClose={() => setShowTerms(false)} onAccept={() => { setAccepted(true); setShowTerms(false); }} />
+      <PrivacyModal visible={showPrivacy} onClose={() => setShowPrivacy(false)} />
     </AuthLayout>
   );
 }

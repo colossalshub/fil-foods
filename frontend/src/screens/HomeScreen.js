@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Image, useWindowDimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenHeader from '../components/ScreenHeader';
@@ -10,7 +10,8 @@ import { listClientOrders, refreshBackendOrdersForUser } from '../services/track
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useMealProfile } from '../hooks/useMealProfile';
 import { MEALS } from '../data/meals';
-import { ORDER_MSG, getRecommendedMeals } from '../services/orderService';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
+import { ORDER_MSG, formatPhp, getRecommendedMeals } from '../services/orderService';
 import { colors, card, font, radius, spacing } from '../theme/theme';
 
 const STEPS = ['Confirmed', 'Preparing', 'Ready for Pick-up', 'Completed'];
@@ -33,6 +34,89 @@ const STATUS_TO_STEP = {
   out_for_delivery: 'Ready for Pick-up',
   completed: 'Completed',
 };
+
+function mealFacts(meal) {
+  return [
+    meal.protein ? `${meal.protein} g protein` : null,
+    meal.calories ? `${meal.calories} kcal` : null,
+    meal.sodium ? `${meal.sodium} mg sodium` : null,
+    ...(meal.diets || []),
+  ].filter(Boolean);
+}
+
+function RecommendationPoster({ meal, reason, width, onPress }) {
+  const photo = MEAL_PHOTOS[meal.id];
+  const facts = mealFacts(meal);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${meal.name}. ${reason}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.posterPage, { width }, pressed && styles.pressed]}
+    >
+      <View style={styles.posterCard}>
+        {photo ? (
+          <Image
+            source={photo}
+            style={styles.posterImage}
+            resizeMode="cover"
+            accessibilityLabel={`${meal.name} photo`}
+          />
+        ) : (
+          <View style={styles.posterPlaceholder}>
+            <Text style={styles.posterEmoji}>{meal.emoji || '🍽️'}</Text>
+          </View>
+        )}
+        <View style={styles.posterBody}>
+          <Text style={styles.posterName}>{meal.name}</Text>
+          <Text style={styles.posterMeta}>{[meal.cuisine, meal.category].filter(Boolean).join(' · ')}</Text>
+          <View style={styles.tag}>
+            <Text style={styles.tagText}>{reason}</Text>
+          </View>
+          {facts.length ? (
+            <View style={styles.factRow}>
+              {facts.map((fact) => (
+                <View key={fact} style={styles.fact}>
+                  <Text style={styles.factText}>{fact}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {meal.ingredients?.length ? (
+            <Text style={styles.posterIngredients}>{meal.ingredients.join(', ')}</Text>
+          ) : null}
+          {meal.allergens?.length ? (
+            <Text style={styles.posterAllergen}>Contains {meal.allergens.join(', ')}</Text>
+          ) : null}
+          {meal.price ? <Text style={styles.posterPrice}>{formatPhp(meal.price)}</Text> : null}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const DOT = 8;
+const DOT_GAP = spacing.sm;
+const DOT_STEP = DOT + DOT_GAP;
+
+const PILL = 18;
+
+function PosterDots({ count, scrollX, pageWidth }) {
+  const page = Math.max(pageWidth, 1);
+  const indexes = Array.from({ length: count }, (_, index) => index);
+  const translateX = scrollX.interpolate({
+    inputRange: indexes.map((index) => index * page),
+    outputRange: indexes.map((index) => index * DOT_STEP - (PILL - DOT) / 2),
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={styles.dots}>
+      {indexes.map((index) => <View key={index} style={styles.dot} />)}
+      <Animated.View style={[styles.dotOn, { transform: [{ translateX }] }]} />
+    </View>
+  );
+}
 
 function OrderProgress({ status }) {
   const step = STATUS_TO_STEP[status] || 'Confirmed';
@@ -68,10 +152,18 @@ export default function HomeScreen() {
     () => getRecommendedMeals(MEALS, profile, 5),
     [profile],
   );
+  const { width: windowWidth } = useWindowDimensions();
+  const [posterWidth, setPosterWidth] = useState(Math.max(0, windowWidth - spacing.lg * 2));
+  const scrollX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    scrollX.setValue(0);
+  }, [recommendations, scrollX]);
 
   const openMeal = (meal) => navigation.navigate('Meals', {
     screen: 'MealDetail',
     params: { meal },
+    initial: false,
   });
 
   const greeting = user?.firstName ? `Hello, ${user.firstName}.` : 'Hello.';
@@ -109,7 +201,7 @@ export default function HomeScreen() {
         subtitle="Healthy meals, made with care"
         showBell
       />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} directionalLockEnabled>
         <View style={styles.hero}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.heroTitle}>Good food, made for your needs.</Text>
@@ -160,25 +252,50 @@ export default function HomeScreen() {
         ) : recommendations.none ? (
           <Text style={styles.noOrders}>{ORDER_MSG.noSuggestions}</Text>
         ) : (
-          <View style={styles.recList}>
-            {recommendations.items.map(({ meal, reason }) => (
-              <Pressable
-                key={meal.id}
-                accessibilityRole="button"
-                onPress={() => openMeal(meal)}
-                style={({ pressed }) => [styles.recCard, pressed && styles.pressed]}
-              >
-                <View style={styles.recIcon}>
-                  <Text style={styles.recEmoji}>{meal.emoji || '🍽️'}</Text>
-                </View>
-                <View style={styles.recCopy}>
-                  <Text style={styles.recName}>{meal.name}</Text>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{reason}</Text>
-                  </View>
-                </View>
-              </Pressable>
-            ))}
+          <View
+            style={styles.recList}
+            onLayout={(event) => {
+              const nextWidth = event.nativeEvent.layout.width;
+              if (nextWidth > 0 && nextWidth !== posterWidth) setPosterWidth(nextWidth);
+            }}
+          >
+            <Animated.FlatList
+              data={recommendations.items}
+              horizontal
+              pagingEnabled
+              nestedScrollEnabled
+              snapToInterval={posterWidth || undefined}
+              snapToAlignment="start"
+              disableIntervalMomentum
+              bounces={false}
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.meal.id}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: true },
+              )}
+              getItemLayout={(_, index) => ({ length: posterWidth, offset: posterWidth * index, index })}
+              renderItem={({ item }) => (
+                <RecommendationPoster
+                  meal={item.meal}
+                  reason={item.reason}
+                  width={posterWidth}
+                  onPress={() => openMeal(item.meal)}
+                />
+              )}
+            />
+            {recommendations.items.length > 1 ? (
+              <View style={styles.posterFooter}>
+                <PosterDots
+                  count={recommendations.items.length}
+                  scrollX={scrollX}
+                  pageWidth={posterWidth}
+                />
+                <Text style={styles.swipeHint}>Swipe left for another recommendation</Text>
+              </View>
+            ) : null}
             <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
           </View>
         )}
@@ -190,7 +307,7 @@ export default function HomeScreen() {
 
         <AppButton
           title="Browse Meals"
-          onPress={() => navigation.navigate('Meals')}
+          onPress={() => navigation.navigate('Meals', { screen: 'MealsList' })}
           color={colors.action}
           style={[styles.btn, styles.primaryAction]}
         />
@@ -280,26 +397,43 @@ const styles = StyleSheet.create({
   },
   recLoading: { marginBottom: spacing.xl },
   recList: { marginBottom: spacing.xl },
-  recCard: {
-    ...card,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    minHeight: 44,
-  },
-  recIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
+  posterPage: { minHeight: 44 },
+  posterCard: { ...card, overflow: 'hidden' },
+  posterImage: { width: '100%', height: 210, backgroundColor: colors.surface },
+  posterPlaceholder: {
+    height: 160,
     backgroundColor: colors.soft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recEmoji: { fontSize: 24, lineHeight: 30 },
-  recCopy: { flex: 1 },
-  recName: { fontSize: font.body, lineHeight: 22, fontWeight: '700', color: colors.primaryDark },
+  posterEmoji: { fontSize: 56, lineHeight: 64 },
+  posterBody: { padding: spacing.lg, gap: spacing.sm },
+  posterName: { fontSize: font.xl, lineHeight: 28, fontWeight: '800', color: colors.primaryDark },
+  posterMeta: { fontSize: font.body, lineHeight: 22, color: colors.muted },
+  factRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  fact: {
+    backgroundColor: colors.soft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  factText: { fontSize: font.sm, lineHeight: 16, fontWeight: '700', color: colors.primary },
+  posterIngredients: { fontSize: font.body, lineHeight: 22, color: colors.text },
+  posterAllergen: { fontSize: font.md, lineHeight: 20, fontWeight: '700', color: colors.warning },
+  posterPrice: { fontSize: font.lg, lineHeight: 24, fontWeight: '800', color: colors.primaryDark },
+  posterFooter: { alignItems: 'center', marginTop: spacing.md, gap: spacing.xs },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: DOT_GAP, height: DOT, position: 'relative' },
+  dot: { width: DOT, height: DOT, borderRadius: radius.pill, backgroundColor: colors.border },
+  dotOn: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: PILL,
+    height: DOT,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+  },
+  swipeHint: { fontSize: font.sm, lineHeight: 16, color: colors.muted },
   tag: {
     alignSelf: 'flex-start',
     marginTop: spacing.xs,

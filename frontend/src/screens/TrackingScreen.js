@@ -8,6 +8,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import FormMessage from '../components/FormMessage';
 import Chip from '../components/Chip';
+import DateRangeFields from '../components/DateRangeFields';
 import { useAuth } from '../context/AuthContext';
 import {
   TRACKING_MSG,
@@ -195,24 +196,12 @@ export default function TrackingScreen() {
 
         <View style={styles.section}>
           <Text style={styles.label}>Date range</Text>
-          <View style={styles.dateRow}>
-            <TextInput
-              style={[styles.input, styles.dateInput]}
-              value={dateFrom}
-              onChangeText={setDateFrom}
-              placeholder="From YYYY-MM-DD"
-              placeholderTextColor={colors.inactive}
-              accessibilityLabel="Date from"
-            />
-            <TextInput
-              style={[styles.input, styles.dateInput]}
-              value={dateTo}
-              onChangeText={setDateTo}
-              placeholder="To YYYY-MM-DD"
-              placeholderTextColor={colors.inactive}
-              accessibilityLabel="Date to"
-            />
-          </View>
+          <DateRangeFields
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onChangeFrom={setDateFrom}
+            onChangeTo={setDateTo}
+          />
         </View>
 
         {orders.length === 0 ? (
@@ -276,8 +265,6 @@ const styles = StyleSheet.create({
   searchBtnText: { color: colors.white, fontSize: font.body, fontWeight: '600' },
   errorText: { fontSize: font.body, color: colors.danger },
   chipRow: { gap: spacing.sm, paddingVertical: spacing.xs },
-  dateRow: { flexDirection: 'row', gap: spacing.sm },
-  dateInput: { flex: 1 },
   emptyCard: { ...card, padding: spacing.xl, alignItems: 'center' },
   emptyText: { fontSize: font.body, color: colors.muted, textAlign: 'center' },
   orderCard: { ...card, padding: spacing.lg, gap: spacing.sm },
