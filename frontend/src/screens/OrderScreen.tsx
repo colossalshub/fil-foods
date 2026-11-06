@@ -1,0 +1,397 @@
+import { useMemo, useRef, useState } from 'react';
+import type { Order, ServiceResult } from '../types';
+import * as Crypto from 'expo-crypto';
+import {
+  View, Text, ScrollView, TextInput, Pressable, Image, StyleSheet, Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenHeader from '../components/ScreenHeader';
+import AppButton from '../components/AppButton';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { getUser } from '../services/authService';
+import { useMealProfile } from '../hooks/useMealProfile';
+import {
+  ORDER_MSG,
+  calculateTotals,
+  collectOrderAllergenWarnings,
+  confirmOrder,
+  formatPhp,
+  lineSubtotal,
+  parseQuantityInput,
+  validateFulfillment,
+} from '../services/orderService';
+import { colors, font, radius, spacing, control } from '../theme/theme';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
+import { isSupabaseConfigured } from '../lib/supabaseClient.js';
+import { placeOrderWithBackend } from '../services/backendOrderService.js';
+import SchedulePicker from '../components/SchedulePicker';
+import { combineSchedule } from '../components/scheduleValue';
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function createRequestId() {
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID();
+  return Crypto.randomUUID();
+}
+
+function FulfillmentOption({ label, active, onPress }: {
+  label: string;
+  active?: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[styles.option, active && styles.optionActive]}
+    >
+      <Text style={[styles.optionText, active && styles.optionTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+interface ParentNav {
+  navigate: (name: string, params?: object) => void;
+  goBack?: () => void;
+  getParent?: () => ParentNav | undefined;
+}
+
+export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
+  const { user, session } = useAuth();
+  const { items, updateQuantity, removeItem, clearCart } = useCart();
+  const [fulfillmentType, setFulfillmentType] = useState<string | null>(null);
+  const [address, setAddress] = useState('');
+  const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
+  const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
+  const [instructions, setInstructions] = useState('');
+  const [fieldError, setFieldError] = useState('');
+  const [allergenAck, setAllergenAck] = useState(false);
+  const [placing, setPlacing] = useState(false);
+  const [lastOrder, setLastOrder] = useState<Order | null>(null);
+  const attemptRef = useRef<{ id: string | null; key: string }>({ id: null, key: '' });
+
+  const dbUser = useMemo(() => (user?.id ? getUser(user.id) : null), [user]);
+  const { profile } = useMealProfile(user);
+
+  const lineItems = useMemo(
+    () => items.map((row) => ({ meal: row.meal, quantity: row.quantity })),
+    [items],
+  );
+
+  const warnings = useMemo(
+    () => (profile ? collectOrderAllergenWarnings(lineItems, profile) : []),
+    [lineItems, profile],
+  );
+
+  const totals = useMemo(
+    () => calculateTotals(lineItems, dbUser || {}),
+    [lineItems, dbUser],
+  );
+
+  const onQtyChange = (mealId: string, text: string) => {
+    const parsed = parseQuantityInput(text);
+    if (!parsed.ok) {
+      Alert.alert('Quantity', parsed.message);
+      return;
+    }
+    updateQuantity(mealId, parsed.value || 0);
+  };
+
+  const onConfirm = async () => {
+    if (!user?.id || !lineItems.length) return;
+    if (warnings.length && !allergenAck) {
+      Alert.alert('Allergen warning', warnings.map((w) => w.message).join('\n'));
+      return;
+    }
+
+    const fulfillment = {
+      type: fulfillmentType,
+      address: fulfillmentType === 'delivery' ? address : '',
+      scheduledAt: combineSchedule(scheduleDate, scheduleTime),
+      instructions,
+    };
+    const check = validateFulfillment({ ...fulfillment, now: new Date() });
+    if (!check.ok) {
+      setFieldError(check.message || '');
+      return;
+    }
+    setFieldError('');
+    const attemptKey = JSON.stringify({
+      items: lineItems.map((row) => [row.meal.id, String(row.quantity)]),
+      type: fulfillment.type,
+      address: fulfillment.address,
+      scheduledAt: fulfillment.scheduledAt,
+      instructions: fulfillment.instructions,
+    });
+    if (attemptRef.current.key !== attemptKey || !UUID_PATTERN.test(attemptRef.current.id || '')) {
+      attemptRef.current = { id: createRequestId(), key: attemptKey };
+    }
+
+    setPlacing(true);
+    let result: (ServiceResult & {
+      order?: Order | null;
+      placing?: boolean;
+      needsAcknowledgement?: boolean;
+    }) | undefined;
+    try {
+      if (isSupabaseConfigured) {
+        const authSession = session?.access_token ? session : {
+          access_token: user.accessToken,
+          refresh_token: user.refreshToken,
+          expires_at: user.expiresAt,
+        };
+        const payload = {
+          authSession,
+          fulfillmentType: fulfillment.type,
+          schedule: check.scheduled!.toISOString(),
+          address: fulfillment.address,
+          specialInstructions: fulfillment.instructions,
+          items: lineItems.map((row) => {
+            const parsed = parseQuantityInput(row.quantity);
+            return {
+              mealId: row.meal.id,
+              mealName: row.meal.name,
+              quantity: parsed.ok ? parsed.value : 0,
+            };
+          }),
+        };
+        let backendOrder = await placeOrderWithBackend({
+          ...payload,
+          clientRequestId: attemptRef.current.id || '',
+        });
+        const createdAt = new Date(backendOrder?.created_at).getTime();
+        if (Number.isFinite(createdAt) && createdAt < Date.now() - 15000) {
+          attemptRef.current = { id: createRequestId(), key: attemptKey };
+          backendOrder = await placeOrderWithBackend({
+            ...payload,
+            clientRequestId: attemptRef.current.id || '',
+          });
+        }
+        result = {
+          ok: true,
+          order: backendOrder as Order,
+          message: ORDER_MSG.orderSuccess,
+        };
+        attemptRef.current = { id: null, key: '' };
+      } else {
+        result = confirmOrder(user.id, {
+          items: lineItems,
+          fulfillment,
+          now: new Date(),
+          clientRequestId: attemptRef.current.id || '',
+          allergenAcknowledged: allergenAck || warnings.length === 0,
+        }) as NonNullable<typeof result>;
+      }
+    } catch (error) {
+      const message = (error as { message?: string } | undefined)?.message;
+      result = { ok: false, messages: [message || 'Unable to place order.'] };
+    } finally {
+      setPlacing(false);
+    }
+
+    if (!result?.ok) {
+      if (result!.placing) return;
+      if (result!.needsAcknowledgement) {
+        Alert.alert('Allergen warning', (result.messages || []).join('\n'));
+        return;
+      }
+      setFieldError(result.messages?.[0] || 'Unable to place order.');
+      return;
+    }
+
+    setLastOrder(result.order ?? null);
+    clearCart();
+    setAllergenAck(false);
+    Alert.alert('Success', ORDER_MSG.orderSuccess);
+  };
+
+  if (!user?.id || user.role === 'visitor') {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScreenHeader title="Order" subtitle="Sign in required" />
+        <View style={styles.emptyWrap}>
+          <Text style={styles.empty}>Log in to place an order and keep your meals private.</Text>
+          <AppButton
+            title="Log in"
+            onPress={() => navigation.getParent?.()?.getParent?.()?.getParent?.()?.navigate('Login')}
+            style={{ alignSelf: 'stretch' }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!items.length && !lastOrder) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScreenHeader title="Order" subtitle="Review and confirm" />
+        <View style={styles.emptyWrap}>
+          <Text style={styles.empty}>Your cart is empty. Add meals to get started.</Text>
+          <AppButton title="Browse Meals" onPress={() => navigation.navigate('MealsList')} style={{ alignSelf: 'stretch' }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <ScreenHeader title="Order" subtitle="Review and confirm" />
+      <ScrollView contentContainerStyle={styles.content}>
+        {lastOrder ? (
+          <View style={styles.successBox}>
+            <Text style={styles.successTitle}>{ORDER_MSG.orderSuccess}</Text>
+            <Text style={styles.body}>Tracking: {lastOrder.trackingNumber}</Text>
+            <Text style={styles.body}>Status: {lastOrder.status}</Text>
+          </View>
+        ) : null}
+
+        <Text style={styles.section}>Meals</Text>
+        {items.map((row) => (
+          <View key={row.meal.id} style={styles.line}>
+            <View style={styles.lineThumb}>
+              {MEAL_PHOTOS[row.meal.id] ? (
+                <Image source={MEAL_PHOTOS[row.meal.id]} style={styles.lineThumbImage} resizeMode="cover" accessibilityLabel={`${row.meal.name} photo`} />
+              ) : (
+                <Text style={styles.lineEmoji}>{row.meal.emoji || '🍽️'}</Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.lineName}>{row.meal.name}</Text>
+              <Text style={styles.lineMeta}>{formatPhp(row.meal.price)} each</Text>
+              <TextInput
+                style={styles.qtyInput}
+                value={String(row.quantity)}
+                onChangeText={(t) => onQtyChange(row.meal.id, t)}
+                keyboardType="number-pad"
+                accessibilityLabel={`Quantity for ${row.meal.name}`}
+              />
+              <Pressable accessibilityRole="button" onPress={() => navigation.navigate('MealDetail', { meal: row.meal })}>
+                <Text style={styles.link}>Edit meal</Text>
+              </Pressable>
+            </View>
+            <View style={styles.lineRight}>
+              <Text style={styles.lineTotal}>{formatPhp(lineSubtotal(row.meal, row.quantity))}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${row.meal.name}`} onPress={() => removeItem(row.meal.id)} style={styles.removeBtn}>
+                <Text style={styles.removeText}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
+
+        <Text style={styles.section}>Fulfillment</Text>
+        <Text style={styles.label}>Choose delivery or pickup.</Text>
+        <View style={styles.row}>
+          <FulfillmentOption label="Delivery" active={fulfillmentType === 'delivery'} onPress={() => setFulfillmentType('delivery')} />
+          <FulfillmentOption label="Pickup" active={fulfillmentType === 'pickup'} onPress={() => setFulfillmentType('pickup')} />
+        </View>
+
+        {fulfillmentType === 'delivery' ? (
+          <>
+            <Text style={styles.label}>Delivery address</Text>
+            <TextInput
+              style={styles.input}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Street, city"
+              placeholderTextColor={colors.inactive}
+              accessibilityLabel="Delivery address"
+            />
+          </>
+        ) : null}
+
+        <SchedulePicker
+          date={scheduleDate}
+          time={scheduleTime}
+          onChangeDate={setScheduleDate}
+          onChangeTime={setScheduleTime}
+        />
+
+        <Text style={styles.label}>Instructions (optional)</Text>
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={instructions}
+          onChangeText={setInstructions}
+          multiline
+          accessibilityLabel="Delivery instructions"
+        />
+
+        {fieldError ? <Text style={styles.error}>{fieldError}</Text> : null}
+
+        {warnings.map((w) => (
+          <Text key={`${w.mealId}-${w.allergen}`} style={styles.warn}>{w.message}</Text>
+        ))}
+        {warnings.length ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: allergenAck }}
+            onPress={() => setAllergenAck((v) => !v)}
+            style={styles.checkRow}
+          >
+            <View style={[styles.checkbox, allergenAck && styles.checkboxOn]} />
+            <Text style={styles.checkLabel}>I understand the allergen warnings</Text>
+          </Pressable>
+        ) : null}
+
+        <View style={styles.totals}>
+          <Text style={styles.body}>Subtotal: {formatPhp(totals.subtotal)}</Text>
+          {totals.discountRate > 0 ? (
+            <>
+              <Text style={styles.body}>Discount ({Math.round(totals.discountRate * 100)}%): -{formatPhp(totals.discountAmount)}</Text>
+              <Text style={styles.totalLine}>Total: {formatPhp(totals.total)}</Text>
+            </>
+          ) : (
+            <Text style={styles.totalLine}>Total: {formatPhp(totals.total)}</Text>
+          )}
+        </View>
+
+        <AppButton
+          title={placing ? ORDER_MSG.placingOrder : 'Confirm order'}
+          onPress={onConfirm}
+          loading={placing}
+          disabled={placing || !items.length}
+        />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  emptyWrap: { flex: 1, padding: spacing.lg, justifyContent: 'center', gap: spacing.lg },
+  empty: { textAlign: 'center', color: colors.muted, fontSize: font.body },
+  section: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
+  label: { fontSize: font.md, color: colors.muted, marginBottom: 4 },
+  body: { fontSize: font.body, color: colors.text },
+  line: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm },
+  lineThumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden' },
+  lineThumbImage: { width: 48, height: 48 },
+  lineEmoji: { fontSize: 22 },
+  lineName: { fontSize: font.body, fontWeight: '700', color: colors.text },
+  lineMeta: { fontSize: font.md, color: colors.muted, marginTop: 2 },
+  qtyInput: { marginTop: spacing.sm, minHeight: control.minHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, fontSize: font.body, backgroundColor: colors.background, maxWidth: 120 },
+  link: { marginTop: spacing.sm, color: colors.action, fontSize: font.md, minHeight: control.minHeight, lineHeight: control.minHeight },
+  lineRight: { alignItems: 'flex-end', justifyContent: 'space-between' },
+  lineTotal: { fontSize: font.body, fontWeight: '700', color: colors.text },
+  removeBtn: { minHeight: control.minHeight, justifyContent: 'center' },
+  removeText: { color: colors.danger, fontSize: font.md, fontWeight: '600' },
+  row: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  option: { flex: 1, minHeight: control.minHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  optionActive: { borderColor: colors.action, backgroundColor: colors.soft },
+  optionText: { fontSize: font.body, color: colors.text },
+  optionTextActive: { color: colors.action, fontWeight: '700' },
+  input: { minHeight: control.minHeight, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, fontSize: font.body, backgroundColor: colors.white, marginBottom: spacing.md },
+  multiline: { minHeight: 80, paddingVertical: spacing.sm, textAlignVertical: 'top' },
+  error: { color: colors.danger, fontSize: font.body, marginBottom: spacing.sm },
+  warn: { color: colors.danger, fontSize: font.body, marginBottom: spacing.xs },
+  checkRow: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.sm, minHeight: control.minHeight },
+  checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: colors.border, borderRadius: 4, marginRight: spacing.sm },
+  checkboxOn: { backgroundColor: colors.action, borderColor: colors.action },
+  checkLabel: { flex: 1, fontSize: font.body, color: colors.text },
+  totals: { marginVertical: spacing.lg, gap: 4 },
+  totalLine: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginTop: 4 },
+  successBox: { backgroundColor: colors.soft, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
+  successTitle: { fontSize: font.body, fontWeight: '700', color: colors.success, marginBottom: 4 },
+});
