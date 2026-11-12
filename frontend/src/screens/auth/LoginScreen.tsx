@@ -130,6 +130,13 @@ export default function LoginScreen({ navigation }: {
             color={GREEN}
             style={styles.visitorButton}
           />
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => navigation.navigate('Staff')}
+            style={styles.textLink}
+          >
+            <Text style={styles.textLinkLabel}>Staff sign in</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

@@ -19,6 +19,7 @@ import { clearPersistedSession, persistSession, readPersistedSession } from '../
 import HelpScreen from '../screens/HelpScreen';
 import AboutScreen from '../screens/visitor/AboutScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
+import StaffNavigator from '../admin/navigation';
 import { colors } from '../theme/theme';
 import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../lib/supabaseClient.js';
 
@@ -206,6 +207,7 @@ export default function RootNavigator() {
             <>
               {user?.role === 'visitor' ? <Stack.Screen name="Visitor" component={VisitorTabs} /> : null}
               <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Staff" component={StaffNavigator} />
               <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
               <Stack.Screen name="LinkGoogle" component={LinkGoogleScreen} />
               <Stack.Screen name="VerifyAccount" component={VerifyAccountScreen} />

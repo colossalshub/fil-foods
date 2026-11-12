@@ -27,7 +27,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --experimental-strip-types --import ./test-register.mjs --test src/domain/registration.test.ts src/domain/terms.test.ts src/lib/authSession.test.ts src/services/verificationService.test.ts src/services/sessionPolicy.test.ts src/services/authService.test.ts src/services/googleAuthService.test.ts src/services/profileService.test.ts src/services/orderService.test.ts src/services/planService.test.ts src/data/helpContent.test.ts src/services/trackingService.test.ts src/services/biometricService.test.ts src/services/securityNutrition.test.ts",
+    "test": "node --experimental-strip-types --import ./test-register.mjs --test src/domain/registration.test.ts src/domain/terms.test.ts src/lib/authSession.test.ts src/services/verificationService.test.ts src/services/sessionPolicy.test.ts src/services/authService.test.ts src/services/googleAuthService.test.ts src/services/profileService.test.ts src/services/orderService.test.ts src/services/planService.test.ts src/data/helpContent.test.ts src/services/trackingService.test.ts src/services/biometricService.test.ts src/services/securityNutrition.test.ts src/admin/domain/adminRules.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
