@@ -1,8 +1,8 @@
 # Delivery Module specification (current)
 
-**Authority:** `FIL_Foods_User_5.xlsx` Delivery Module (30 pages). Canonical copy: [`FIL_Foods_Delivery_Module.pdf`](./FIL_Foods_Delivery_Module.pdf).
+**Authority:** [`canonical/delivery-module.export.md`](./canonical/delivery-module.export.md). PDF (may lag): [`FIL_Foods_Delivery_Module.pdf`](./FIL_Foods_Delivery_Module.pdf).
 
-This document is the working index. Verbatim page transcription: [`.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
+Verbatim handoff: [`.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
 
 Do not treat spreadsheet Passed / Failed / Total rows as features. Unresolved conflicts with the User, Admin, Dietitian, Kitchen, or Delivery modules must be recorded, not silently reinterpreted.
 
@@ -12,9 +12,9 @@ DEL-01 through DEL-17 (17 stories in this PDF).
 
 ## Module precondition and postcondition
 
-**Precondition:** The Delivery Staff member has an account, is logged in to the F.I.L. Foods staff app, and assigned delivery orders with customer address and contact details are available.
+**Precondition:** The Delivery Staff member has a staff account created by the Admin and is logged in. Paid orders marked Ready for Pickup and assigned for delivery exist.
 
-**Postcondition:** Delivery status updates are saved, the user receives tracking notifications, and completed deliveries close the order when rules are met.
+**Postcondition:** Delivery progress is saved, the Admin and user can see the updated status, and the action is logged.
 
 ## Story catalog
 
@@ -26,7 +26,7 @@ DEL-01 through DEL-17 (17 stories in this PDF).
 | DEL-04 | Authentication & Account Management | continue with my Google work account |
 | DEL-05 | Home & Navigation | open my notifications from the bell icon |
 | DEL-06 | Settings & Profile | view and edit my account details in Settings |
-| DEL-07 | — | See PDF / handoff |
+| DEL-07 | Settings & Profile | set language and appearance |
 | DEL-08 | Settings & Profile | open Help & Support and About F.I.L Foods |
 | DEL-09 | Authentication & Account Management | log out of the app |
 | DEL-10 | Dashboard | see my Dashboard with shortcuts to Orders and Menu |
@@ -36,7 +36,7 @@ DEL-01 through DEL-17 (17 stories in this PDF).
 | DEL-14 | Menu | see all menu items and manage them |
 | DEL-15 | Delivery | see the delivery address information of an order |
 | DEL-16 | Delivery | see a map of the delivery location |
-| DEL-17 | Delivery | update a delivery order from Out for Delivery to Completed |
+| DEL-17 | Delivery | update a delivery order from Out for Delivery to Completed (start from Ready for Pickup when assigned) |
 
 ## User Module touchpoints
 

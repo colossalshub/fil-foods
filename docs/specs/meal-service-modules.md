@@ -1,6 +1,6 @@
 # F.I.L. Foods meal service — module map
 
-This is the cross-module index for the User 5 specification set. Each module has a story index under `docs/specs/`, a canonical PDF, a verbatim handoff under `.github/`, and traceability in `docs/implementation-traceability.md` (User) or `docs/implementation-traceability-staff.md` (staff roles).
+This is the cross-module index for the User 5 specification set. Each module has a story index under `docs/specs/`, a verbatim export under `docs/specs/canonical/`, a generated handoff under `.github/`, an optional PDF, and traceability in `docs/implementation-traceability.md` (User) or `docs/implementation-traceability-staff.md` (staff roles). Refresh exports with `scripts/split_canonical_paste.py` and `scripts/sync_module_handoffs_from_canonical.py` (see [`canonical/README.md`](./canonical/README.md)).
 
 ## Modules
 

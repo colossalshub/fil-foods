@@ -1,8 +1,8 @@
 # User Module specification (current)
 
-**Authority:** `FIL_Foods_User_5.xlsx` User Module (61 pages). Canonical copy: [`FIL_Foods_User_Module.pdf`](./FIL_Foods_User_Module.pdf).
+**Authority:** Updated spreadsheet export (Nov 2026) — [`canonical/user-module.export.md`](./canonical/user-module.export.md). PDF (may lag): [`FIL_Foods_User_Module.pdf`](./FIL_Foods_User_Module.pdf).
 
-This document is the working index. Verbatim page transcription: [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](../../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). User implementation status: [`docs/implementation-traceability.md`](../implementation-traceability.md). Staff modules: [`implementation-traceability-staff.md`](../implementation-traceability-staff.md).
+This document is the working index. Verbatim handoff: [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](../../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md). Refresh: [`canonical/README.md`](./canonical/README.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). User implementation status: [`docs/implementation-traceability.md`](../implementation-traceability.md). Staff modules: [`implementation-traceability-staff.md`](../implementation-traceability-staff.md).
 
 Do not implement against the retired USR-01–USR-42 handoff. Unresolved conflicts with other modules (Admin, Dietitian, Kitchen, Delivery) must be recorded, not silently reinterpreted. Spreadsheet Passed / Failed / Total rows are test status, not features.
 
@@ -89,7 +89,7 @@ USR-01 through USR-50. The PDF adds USR-43–USR-50 and revises earlier stories 
 | USR-49 | Versioned, numbered Terms and Conditions content |
 | USR-50 | Acceptance recording, re-accept on new version, decline/session rules |
 
-USR-01, USR-07–USR-14, USR-20, USR-29, and several order/profile stories were also rewritten around recipient separation, Dietitian review, payment, and feedback.
+USR-01, USR-07–USR-14, USR-16–USR-20, USR-27 (fuzzy FAQ), USR-29 (feedback), USR-43–USR-50, and order/profile stories were rewritten around recipient separation, meal-time ordering, Dietitian review, payment, accessibility, and versioned Terms.
 
 ## Cross-module chain (from the PDF)
 

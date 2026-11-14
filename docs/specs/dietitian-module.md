@@ -1,8 +1,8 @@
 # Dietitian Module specification (current)
 
-**Authority:** `FIL_Foods_User_5.xlsx` Dietitian Module (32 pages). Canonical copy: [`FIL_Foods_Dietitian_Module.pdf`](./FIL_Foods_Dietitian_Module.pdf).
+**Authority:** [`canonical/dietitian-module.export.md`](./canonical/dietitian-module.export.md). PDF (may lag): [`FIL_Foods_Dietitian_Module.pdf`](./FIL_Foods_Dietitian_Module.pdf).
 
-This document is the working index. Verbatim page transcription: [`.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
+Verbatim handoff: [`.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
 
 Do not treat spreadsheet Passed / Failed / Total rows as features. Unresolved conflicts with the User, Admin, Dietitian, Kitchen, or Delivery modules must be recorded, not silently reinterpreted.
 
@@ -12,9 +12,9 @@ DIT-01 through DIT-17 (17 stories in this PDF).
 
 ## Module precondition and postcondition
 
-**Precondition:** The Dietitian has an account, is logged in to the F.I.L. Foods staff app, and customer profiles, allergies, preferences, menu items and submitted orders are available.
+**Precondition:** The Dietitian has a staff account created by the Admin and is logged in. User profiles, allergies, health conditions, doctor-provided restrictions, menu items and submitted orders are available.
 
-**Postcondition:** Review decisions, restriction approvals, and order suitability outcomes are saved, the user is notified where required, and Kitchen receives only approved, paid orders.
+**Postcondition:** The Dietitian has reviewed the user’s dietary information and submitted meal selections, and has approved or returned orders for correction before payment. Health information changes are recorded.
 
 ## Story catalog
 

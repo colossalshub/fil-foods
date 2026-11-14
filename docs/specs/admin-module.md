@@ -1,8 +1,8 @@
 # Admin Module specification (current)
 
-**Authority:** `FIL_Foods_User_5.xlsx` Admin Module (40 pages). Canonical copy: [`FIL_Foods_Admin_Module.pdf`](./FIL_Foods_Admin_Module.pdf).
+**Authority:** [`canonical/admin-module.export.md`](./canonical/admin-module.export.md). PDF (may lag): [`FIL_Foods_Admin_Module.pdf`](./FIL_Foods_Admin_Module.pdf).
 
-This document is the working index. Verbatim page transcription: [`.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
+Verbatim handoff: [`.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
 
 Do not treat spreadsheet Passed / Failed / Total rows as features. Unresolved conflicts with the User, Admin, Dietitian, Kitchen, or Delivery modules must be recorded, not silently reinterpreted.
 
@@ -30,13 +30,13 @@ ADM-01 through ADM-21 (21 stories in this PDF).
 | ADM-08 | Settings & Profile | open Help & Support and About F.I.L Foods |
 | ADM-09 | Authentication & Account Management | log out of the app |
 | ADM-10 | Dashboard | see totals for orders, sales, customers and menu items on my Dashboard |
-| ADM-11 | Orders | view, search and filter all customer orders and open any order |
+| ADM-11 | Orders | view, search (fuzzy name/order #) and filter all customer orders and open any order |
 | ADM-12 | Orders | update an order's status and assign it to a delivery staff member |
 | ADM-13 | Staff Management | view and filter all staff accounts |
 | ADM-14 | Staff Management | add a new staff member |
 | ADM-15 | Staff Management | edit a staff member and confirm before saving |
 | ADM-16 | Staff Management | delete a staff member after a clear warning |
-| ADM-17 | Menu Management | view the menu, meal categories, prices and availability |
+| ADM-17 | Menu Management | view the menu (Breakfast / Lunch / Dinner, plans), categories, prices and availability |
 | ADM-18 | Menu Management | add, edit, delete and set availability of menu items |
 | ADM-19 | Customers | view the customer list and each customer's allergies and nutritional preferences |
 | ADM-20 | Security & Auditability | see an audit log of staff, menu and order changes |
