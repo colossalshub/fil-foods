@@ -1,10 +1,12 @@
 # Meal Service Specification Traceability Plan
 
-Source of truth: [updated User Story Specification](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md).
+Source of truth: [User Module Requirements (USR-01 through USR-50)](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md), transcribed from the supplied 61-page PDF on 2026-11-14.
 
-## Baseline audit
+The supplied PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
 
-Audited on 2026-10-30 before implementation changes.
+## Historical baseline audit
+
+The following baseline was audited on 2026-10-30 against the previous 42-story specification, before later implementation changes. It is historical evidence only, not current compliance verification against the supplied PDF.
 
 - The client is an Expo 58 JavaScript app using React Navigation, not Expo Router.
 - All application data is held in [`frontend/src/data/mockStore.js`](../frontend/src/data/mockStore.js). The server schema is in [`supabase/`](../supabase/).
@@ -13,21 +15,23 @@ Audited on 2026-10-30 before implementation changes.
 - `npm run lint` fails in [`frontend/src/components/VerificationFlow.js`](../frontend/src/components/VerificationFlow.js) because of a state update inside an effect, plus two unused variables.
 - Existing code includes plan/biometric/demo features that are not in USR-01–USR-42 and must not become dependencies of the client stories.
 
-The current tests validate local service behavior, not production security, persistence, concurrency, provider delivery, or cross-client isolation.
+The tests at that time validated local service behavior, not production security, persistence, concurrency, provider delivery, or cross-client isolation.
 
-## Traceability matrix
+## Historical story-level traceability matrix
 
-Status values: **Partial** means a local prototype exists but one or more acceptance criteria or production boundaries are missing; **Missing** means there is no usable implementation; **Blocked** means the client cannot satisfy the criterion without the backend/provider decision identified below.
+The statuses below refer to that older specification and are not criterion-level verification. Re-audit every acceptance criterion in the current PDF before claiming a story is complete.
+
+Status values in this historical table: **Partial** means a local prototype existed but one or more acceptance criteria or production boundaries were missing; **Missing** means there was no usable implementation; **Blocked** means the client could not satisfy the criterion without the backend/provider decision identified below.
 
 | Story | Existing implementation | Required changes | Tests to add or update | Status |
 |---|---|---|---|---|
-| USR-01 Registration | `CreateAccountScreen`, `registration.js`, bcrypt-backed mock users, terms modal | Move registration and uniqueness checks to Auth/API; persist acceptance and unverified state server-side; exact labels and text show/hide control; real profile-completion transition | Registration acceptance matrix, database plaintext-password negative test, duplicate race test | Partial / Blocked by backend |
+| USR-01 Registration | `CreateAccountScreen`, `registration.ts`, bcrypt-backed mock users, terms modal; account-purpose choice and recipient onboarding in `CompleteProfileScreen`; `authService.completeOnboarding` stores recipient allergies, restrictions, and delivery details separately | Move registration and uniqueness checks to Auth/API; persist account purpose, recipient data, acceptance, and unverified state server-side; exact labels and text show/hide control | Registration validation, family recipient separation, Google-family completion, database plaintext-password negative test, duplicate race test | Partial / Blocked by backend |
 | USR-02 Login | `LoginScreen`, local fallback, and deployed `login-by-username` Edge Function | Add configured Auth secrets and execute five-failure, rate-limit, active/verified, session, and audit integration tests | API tests for five failures, ten-per-minute device limit, concurrent attempts, audit event | Partial / Integration tests pending |
 | USR-03 Keep logged in | `sessionPolicy`, AsyncStorage persistence | Secure session storage, inactivity expiry, password-reset session revocation across devices | Persistence, close/reopen, inactivity, revocation tests | Partial |
 | USR-04 Forgot password | `ForgotPasswordScreen`, local lookup and code service | Provider-backed SMS/email reset request, no account enumeration beyond exact required messages, server-side rate limits | Reset lookup/provider failure/Google-only scenarios | Partial / Blocked by provider |
 | USR-05 New password | `NewPasswordScreen`, local grant and bcrypt replacement | Server-issued one-time reset grant, invalidate every active session, clear lockout server-side | Grant replay, session revocation, same-password and validation tests | Partial / Blocked by backend |
 | USR-06 Logout | Profile logout and local audit-like auth events | Server session revocation and durable logout audit; exact confirmation flow on every logout surface | Logout confirmation, durable event, revoked-token test | Partial |
-| USR-07 View profile | `ProfileScreen`, `profileService.getProfile` | Persist and fetch all fields through authorized API; add explicit empty guardian message and full private-data gate | Profile field rendering and unauthorized access tests | Partial / Blocked by backend |
+| USR-07 View profile | `ProfileScreen`, `profileService.getProfile`; shows subscription purpose and family recipient details, and maps recipient health data to meal/profile operations | Persist and fetch all fields through authorized API; add explicit empty guardian message and full private-data gate | Profile field rendering, recipient-data separation, and unauthorized access tests | Partial / Blocked by backend |
 | USR-08 Edit personal info | Profile modal, pending contact verification | Atomic profile update; verify new contact/email separately; unsaved-navigation guard; durable change history | Validation, duplicate, wrong-code rollback, dirty-back tests | Partial |
 | USR-09 Health conditions | Profile modal and local arrays | Consent/privacy enforcement, server persistence, staff active-order authorization, history/audit entries | CRUD, last-updated, staff scope, cross-client RLS tests | Partial / Blocked by backend |
 | USR-10 Dietary restrictions | Profile modal and local arrays | Server persistence and meal matching/highlighting semantics; audit history | CRUD, highlighting, RLS/history tests | Partial |
@@ -64,16 +68,33 @@ Status values: **Partial** means a local prototype exists but one or more accept
 | USR-41 RBAC/privacy | Local role helpers plus Supabase role enum and deny-by-default RLS foundation | Apply policies, add staff/guardian scopes, and run two-client forged-ID integration tests | Supabase policy tests with two clients and forged IDs | Partial / Deployment and scope tests pending |
 | USR-42 Auditability | Local hash chain helper plus durable append-only audit table and `verify_audit_chain()` foundation | Apply migration, add all required event producers, and run tamper/delete/alter integration tests | Chain tamper/delete/alter tests and event coverage | Partial / Blocked by configured backend |
 
+## Current PDF verification gate
+
+No story is considered compliant solely because it appears in the historical matrix. Track each numbered system requirement in the current PDF to its implementation surface and automated/manual test; mark it complete only after that test passes. Current status for USR-01–USR-50: **Not yet re-audited criterion by criterion against the supplied PDF**.
+
+The PDF adds these stories beyond the historical matrix:
+
+| Story | Requirement area | Current status |
+|---|---|---|
+| USR-43 | Choose subscription recipient (self or family member) | Not yet re-audited against PDF criteria |
+| USR-44 | Enter separate family-member/meal-recipient details | Not yet re-audited against PDF criteria |
+| USR-45 | Edit meal-recipient details separately from user profile | Not yet re-audited against PDF criteria |
+| USR-46 | Show clearly who uses the app and who receives meals | Not yet re-audited against PDF criteria |
+| USR-47 | Delete account and associated recipient information | Not yet re-audited against PDF criteria |
+| USR-48 | User interface and accessibility requirements | Required shared palette applied; palette and primary/body-text contrast are covered by automated tests. Remaining layout, touch-target, state, and screen-reader criteria still need review. |
+| USR-49 | Numbered, accessible Terms and Conditions content | Nine required sections, version/date, section jump links, and Help-sourced contact details are implemented with automated content tests. Remote load-failure/retry behavior and full in-app source integration remain unverified. |
+| USR-50 | Record acceptance/decline and re-accept updated Terms and Conditions | Required agreement wording and decline controls are implemented. Versioned acceptance records, duplicate-safe audit writes, and blocking/re-acceptance after a published update remain outstanding. |
+
 ## Dependency-aware implementation batches
 
 1. **Foundation and contract cleanup:** exact message catalog, Expo/React Native architecture decision, four-tab navigation, Help reachability, lint cleanup, shared validators and test fixtures.
 2. **Backend/security foundation:** Supabase schema, roles, RLS, settings, audit chain, Auth/session model, test seed and dev-only status simulator.
-3. **Authentication:** USR-01–06, USR-30–34, USR-40, including real provider interfaces and session revocation.
-4. **Profile/privacy:** USR-07–15, USR-31, USR-38, USR-41–42, including consent and staff/guardian scopes.
+3. **Authentication and account lifecycle:** USR-01–06, USR-30–34, USR-40, USR-43, and USR-47, including real provider interfaces, recipient selection, and session revocation.
+4. **Profile/privacy:** USR-07–15, USR-31, USR-38, USR-41–46, USR-49–50, including recipient separation, consent, and staff/guardian scopes.
 5. **Catalog/recommendations:** USR-16–17, USR-35, USR-39 and the daily-target screen.
 6. **Ordering:** USR-18–20 with one atomic RPC and server-side ingredient checks.
 7. **Orders/notifications:** USR-21–25 with Realtime and status enforcement.
-8. **Help/navigation/accessibility:** USR-26–29, USR-36–37, followed by full acceptance and RLS verification.
+8. **Help/navigation/accessibility:** USR-26–29, USR-36–37, USR-48, followed by full acceptance and RLS verification.
 
 ## Blockers requiring configuration, not invented behavior
 

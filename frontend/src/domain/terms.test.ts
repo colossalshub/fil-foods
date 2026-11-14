@@ -10,12 +10,13 @@ test('registration without acceptance uses the specified message', () => {
   assert.equal(MSG.termsRequired, 'You must accept the Terms and Conditions to continue.');
 });
 
-test('the terms state how health and dietary information is collected and used', () => {
+test('the terms state how health and dietary information is used safely', () => {
   const text = TERMS_TEXT.toLowerCase();
-  assert.match(text, /collect/);
+  assert.match(text, /collects/);
   assert.match(text, /health/);
   assert.match(text, /dietary/);
-  assert.match(text, /we use that information/);
+  assert.match(text, /used only to recommend suitable meals/);
+  assert.match(text, /does not replace a doctor.s advice/);
 });
 
 test('acceptance time is stored and shown in the sample clock format', async () => {

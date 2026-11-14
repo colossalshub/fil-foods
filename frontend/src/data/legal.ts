@@ -1,4 +1,6 @@
-export const TERMS_TEXT = `DRAFT. Generated from the App Privacy Policy Generator (Simple): https://app-privacy-policy-generator.nisrulz.com/
+export { TERMS_TEXT } from './terms.js';
+
+export const GENERATED_TERMS_TEXT = `DRAFT. Generated from the App Privacy Policy Generator (Simple): https://app-privacy-policy-generator.nisrulz.com/
 
 Terms & Conditions
 

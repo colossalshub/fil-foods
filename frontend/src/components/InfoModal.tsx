@@ -1,15 +1,23 @@
-import type { ReactNode } from 'react';
-import { Modal, View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import type { ReactNode, Ref } from 'react';
+import { Modal, View, Text, ScrollView, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from './AppButton';
 import { colors, radius, font, spacing, touch } from '../theme/theme';
 
-export default function InfoModal({ visible, title, onClose, children, footer }: {
+export default function InfoModal({
+  visible,
+  title,
+  onClose,
+  children,
+  footer,
+  contentScrollRef,
+}: {
   visible?: boolean;
   title?: string;
   onClose?: () => void;
   children?: ReactNode;
   footer?: ReactNode;
+  contentScrollRef?: Ref<ScrollViewInstance>;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -21,7 +29,7 @@ export default function InfoModal({ visible, title, onClose, children, footer }:
               <Ionicons name="close" size={22} color={colors.primary} />
             </Pressable>
           </View>
-          <ScrollView style={{ marginVertical: spacing.md }}>{children}</ScrollView>
+          <ScrollView ref={contentScrollRef} style={{ marginVertical: spacing.md }}>{children}</ScrollView>
           {footer || <AppButton title="Close" onPress={onClose} />}
         </View>
       </View>
