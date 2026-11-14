@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Allergy, GuardianInput, MealPreferences, PersonalInfoInput, ServiceResult } from '../types';
+import type { Allergy, GuardianInput, MealPreferences, PersonalInfoInput, Profile, ServiceResult } from '../types';
 import { ensureSession, isSupabaseConfigured, requireSupabase } from '../../lib/supabaseClient.js';
 import { MSG } from '../data/messages.js';
 import { getProfile, nutritionIdsFromProfile, validateGuardian, validatePersonalFields } from './profileService.js';
@@ -20,25 +20,29 @@ function field(user: RemoteUser | null | undefined, camel: string, snake: string
   return value == null ? '' : String(value);
 }
 
-export function profileFromAuthUser(user: RemoteUser | null | undefined) {
+export function profileFromAuthUser(
+  user: RemoteUser | { id?: string } | null | undefined,
+): Profile | null {
   if (!user?.id) return null;
-  const updatedAt = user.updated_at || user.profileLastUpdated || null;
+  const row = user as RemoteUser;
+  const updatedAt = row.updated_at || row.profileLastUpdated || null;
   return {
     id: user.id,
-    firstName: field(user, 'firstName', 'first_name'),
-    middleName: field(user, 'middleName', 'middle_name'),
-    lastName: field(user, 'lastName', 'last_name'),
-    suffix: user.suffix || '',
-    contactNumber: field(user, 'contactNumber', 'contact_number'),
-    email: user.email || '',
-    address: user.address || '',
+    accountFor: 'self' as const,
+    firstName: field(row, 'firstName', 'first_name'),
+    middleName: field(row, 'middleName', 'middle_name'),
+    lastName: field(row, 'lastName', 'last_name'),
+    suffix: row.suffix || '',
+    contactNumber: field(row, 'contactNumber', 'contact_number'),
+    email: row.email || '',
+    address: row.address || '',
     healthConditions: [] as string[],
     dietaryRestrictions: [] as string[],
     allergies: [] as Allergy[],
     mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
     nutritionalPreference: null as string | null,
     nutritionalPreferences: [] as string[],
-    nutritionTargets: {},
+    nutritionTargets: { calories: 0, protein: 0, fat: 0 },
     guardian: null as { name: string; relationship: string; contactNumber: string } | null,
     profileLastUpdated: updatedAt,
     profileLastUpdatedFormatted: formatTimestamp(updatedAt),

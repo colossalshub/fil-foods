@@ -141,7 +141,7 @@ export async function login({ username, password }: {
     metadata: { type: 'auth' },
   });
 
-  // CLT-41 (plans) and meal ordering must reject unverified accounts the same way.
+  // Plan checkout and meal ordering must reject unverified accounts (USR-33).
   return { ok: true, user: toPublicUser(user) };
 }
 

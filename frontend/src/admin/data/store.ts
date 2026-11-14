@@ -1,3 +1,10 @@
+import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
+import {
+  fetchStaffMenuFromBackend,
+  fetchStaffOrdersFromBackend,
+  transitionOrderOnBackend,
+  upsertMealOnBackend,
+} from '../../lib/staffBackend.js';
 import type { AppDatabase, AuditEvent } from '../../user/types';
 import { appendAuditEvent, comparePasswordSync, hashPasswordSync, verifyAuditChain } from '../../user/services/securityService.js';
 import { COPY, DEMO_PASSWORD } from '../copy.js';
@@ -75,14 +82,26 @@ export const PLANS: PlanOffer[] = [
 export const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const DEFAULT_PREFS: Preferences = { language: 'en', appearance: 'light' };
-const STATUSES: OrderStatus[] = ['Pending', 'Preparing', 'Delivered', 'Cancelled'];
+const STATUSES: OrderStatus[] = [
+  'For Dietitian Review',
+  'Awaiting Payment',
+  'Paid',
+  'Preparing',
+  'Ready for Delivery',
+  'Out for Delivery',
+  'Ready for Pickup',
+  'Completed',
+  'Cancelled',
+];
 const RESET_TTL = 30 * 60 * 1000;
 
 let demoHash: string | null = null;
 let online = true;
 let seq = 100;
 let db = build();
+let backendSynced = false;
 const listeners = new Set<() => void>();
+const BACKEND_ORDER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function demoPasswordHash() {
   if (!demoHash) demoHash = hashPasswordSync(DEMO_PASSWORD);
@@ -178,11 +197,11 @@ function build(): AdminDb {
       { id: 'staff-mark', name: 'Mark Peralta', email: 'mark.peralta@filfoods.ph', role: 'delivery', passwordHash: hash, googleSub: null, disabled: false, deleted: false, mustSetPassword: false, sessionVersion: 1, preferences: prefs() },
     ],
     orders: [
-      { id: '00350', customerName: 'Juan Dela Cruz', status: 'Pending', price: 120, placedAt: '2026-10-29T20:45:00+08:00', when: 'Oct 29, 2026 · 08:45 PM', photo: 'wrap', lines: [{ name: 'Fried Chicken', price: 120 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00349', customerName: 'Maria Santos', status: 'Preparing', price: 99, placedAt: '2026-10-29T20:30:00+08:00', when: 'Oct 29, 2026 · 08:30 PM', photo: 'salad', lines: [{ name: 'Garden Bowl', price: 99 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00348', customerName: 'Carlos Reyes', status: 'Delivered', price: 180, placedAt: '2026-10-29T19:50:00+08:00', when: 'Oct 29, 2026 · 07:50 PM', photo: 'salmon', lines: [{ name: 'Salmon Teriyaki', price: 180 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00347', customerName: 'Ana Garcia', status: 'Cancelled', price: 85, placedAt: '2026-10-29T19:15:00+08:00', when: 'Oct 29, 2026 · 07:15 PM', photo: 'omelette', lines: [{ name: 'Egg White Omelette', price: 85 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00346', customerName: 'Mark Villanueva', status: 'Delivered', price: 140, placedAt: '2026-10-29T18:35:00+08:00', when: 'Oct 29, 2026 · 06:35 PM', photo: 'bangus', lines: [{ name: 'Grilled Bangus', price: 140 }], assigneeId: null, assigneeName: null, updates: [] },
+      { id: '00350', trackingNumber: 'TRK-2026-0350', customerName: 'Juan Dela Cruz', status: 'For Dietitian Review', price: 120, placedAt: '2026-10-29T20:45:00+08:00', when: 'Oct 29, 2026 · 08:45 PM', photo: 'wrap', lines: [{ name: 'Fried Chicken', price: 120 }], assigneeId: null, assigneeName: null, updates: [] },
+      { id: '00349', trackingNumber: 'TRK-2026-0349', customerName: 'Maria Santos', status: 'Preparing', price: 99, placedAt: '2026-10-29T20:30:00+08:00', when: 'Oct 29, 2026 · 08:30 PM', photo: 'salad', lines: [{ name: 'Garden Bowl', price: 99 }], assigneeId: null, assigneeName: null, updates: [] },
+      { id: '00348', trackingNumber: 'TRK-2026-0348', customerName: 'Carlos Reyes', status: 'Completed', price: 180, placedAt: '2026-10-29T19:50:00+08:00', when: 'Oct 29, 2026 · 07:50 PM', photo: 'salmon', lines: [{ name: 'Salmon Teriyaki', price: 180 }], assigneeId: null, assigneeName: null, updates: [] },
+      { id: '00347', trackingNumber: 'TRK-2026-0347', customerName: 'Ana Garcia', status: 'Cancelled', price: 85, placedAt: '2026-10-29T19:15:00+08:00', when: 'Oct 29, 2026 · 07:15 PM', photo: 'omelette', lines: [{ name: 'Egg White Omelette', price: 85 }], assigneeId: null, assigneeName: null, updates: [] },
+      { id: '00346', trackingNumber: 'TRK-2026-0346', customerName: 'Mark Villanueva', status: 'Completed', price: 140, placedAt: '2026-10-29T18:35:00+08:00', when: 'Oct 29, 2026 · 06:35 PM', photo: 'bangus', lines: [{ name: 'Grilled Bangus', price: 140 }], assigneeId: null, assigneeName: null, updates: [] },
     ],
     menu: [
       menuItem('menu-1', 'Ensaymada', 'Breakfast · Pastries', 45, 'flour, butter, sugar, cheese', 'Dairy, Gluten'),
@@ -484,12 +503,73 @@ export function searchStaffOrders(query: string, status: 'All' | OrderStatus) {
   return searchOrders(db.orders, query, status);
 }
 
-export function setOrderStatus(actor: Actor, orderId: string, status: OrderStatus) {
-  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+export async function syncStaffDataFromBackend() {
+  if (!isSupabaseConfigured) return { ok: true as const, skipped: true as const };
+  try {
+    const [orders, menu] = await Promise.all([
+      fetchStaffOrdersFromBackend(),
+      fetchStaffMenuFromBackend(),
+    ]);
+    if (orders.length) db.orders = orders;
+    if (menu.length) db.menu = menu;
+    backendSynced = true;
+    touch();
+    return { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, message: (error as { message?: string }).message || COPY.offline };
+  }
+}
+
+export function staffBackendSynced() {
+  return backendSynced;
+}
+
+function canManageOrders(actor: Actor) {
+  return actor.role === 'admin' || actor.role === 'dietitian' || actor.role === 'kitchen' || actor.role === 'delivery';
+}
+
+function applyLocalOrderStatus(actor: Actor, order: AdminOrder, status: OrderStatus) {
+  const from = order.status;
+  order.status = status;
+  const at = new Date().toISOString();
+  order.updates.push({ at, by: actor.name, summary: `${from} → ${status}` });
+  auditChange(actor, 'order.status', order.id, {
+    summary: `Status ${from} → ${status}`,
+    targetLabel: `Order #${order.trackingNumber || order.id}`,
+    oldValue: from,
+    newValue: status,
+  });
+  notifyOrder(order, `Order #${order.trackingNumber || order.id} is ${status.toLowerCase()}`);
+  touch();
+}
+
+export async function setOrderStatusAsync(actor: Actor, orderId: string, status: OrderStatus) {
+  if (!canManageOrders(actor)) return { ok: false as const, message: COPY.notAuthorized };
   if (!STATUSES.includes(status)) return { ok: false as const, message: 'Choose a valid status.' };
   const order = db.orders.find((row) => row.id === orderId);
   if (!order) return { ok: false as const, message: COPY.noOrders };
-  if (order.status === 'Delivered' || order.status === 'Cancelled') {
+  if (order.status === 'Completed' || order.status === 'Cancelled') {
+    return { ok: false as const, message: COPY.readOnlyOrder };
+  }
+  if (order.status === status) return { ok: true as const, message: '', unchanged: true };
+
+  if (isSupabaseConfigured && BACKEND_ORDER_ID.test(orderId)) {
+    const remote = await transitionOrderOnBackend(orderId, status);
+    if (!remote.ok) return { ok: false as const, message: remote.message || COPY.offline };
+    await syncStaffDataFromBackend();
+    return { ok: true as const, message: 'Status saved' };
+  }
+
+  applyLocalOrderStatus(actor, order, status);
+  return { ok: true as const, message: 'Status saved' };
+}
+
+export function setOrderStatus(actor: Actor, orderId: string, status: OrderStatus) {
+  if (!canManageOrders(actor)) return { ok: false as const, message: COPY.notAuthorized };
+  if (!STATUSES.includes(status)) return { ok: false as const, message: 'Choose a valid status.' };
+  const order = db.orders.find((row) => row.id === orderId);
+  if (!order) return { ok: false as const, message: COPY.noOrders };
+  if (order.status === 'Completed' || order.status === 'Cancelled') {
     return { ok: false as const, message: COPY.readOnlyOrder };
   }
   if (order.status === status) return { ok: true as const, message: '', unchanged: true };
@@ -512,7 +592,7 @@ export function assignDelivery(actor: Actor, orderId: string, staffId: string) {
   if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
   const order = db.orders.find((row) => row.id === orderId);
   if (!order) return { ok: false as const, message: COPY.noOrders };
-  if (order.status === 'Delivered' || order.status === 'Cancelled') {
+  if (order.status === 'Completed' || order.status === 'Cancelled') {
     return { ok: false as const, message: COPY.readOnlyOrder };
   }
   const person = db.staff.find((row) => row.id === staffId && row.role === 'delivery' && !row.deleted && !row.disabled);
@@ -581,6 +661,19 @@ export function menuChanges(id: string, draft: MenuDraft): FieldChange[] {
   const nextAllergens = next.allergens.join(', ');
   if (allergens !== nextAllergens) changes.push({ label: 'Allergens', from: allergens || 'None', to: nextAllergens || 'None' });
   return changes;
+}
+
+export async function saveMenuAsync(actor: Actor, id: string | null, draft: MenuDraft) {
+  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  const parsed = draftMenu(draft);
+  if (!parsed.ok) return parsed;
+  if (isSupabaseConfigured) {
+    const remote = await upsertMealOnBackend(id && BACKEND_ORDER_ID.test(id) ? id : null, parsed.value);
+    if (!remote.ok) return { ok: false as const, message: remote.message || COPY.offline };
+    await syncStaffDataFromBackend();
+    return { ok: true as const, message: id ? 'Menu item updated' : 'Menu item added' };
+  }
+  return saveMenu(actor, id, draft);
 }
 
 export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {

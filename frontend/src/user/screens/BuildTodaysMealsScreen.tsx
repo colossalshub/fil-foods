@@ -14,7 +14,7 @@ import {
 } from '../data/todayMenu';
 import { useAuth } from '../context/AuthContext';
 import { useMealProfile } from '../hooks/useMealProfile';
-import { MEALS } from '../data/meals';
+import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useCart } from '../context/CartContext';
 import { colors, font, radius, spacing } from '../theme/theme';
 
@@ -84,8 +84,20 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     navigation.setParams?.({ advanceFromSlot: undefined });
   }, [navigation, route.params?.advanceFromSlot]));
 
-  const meals = mealsForSlot(slot);
-  const group = meals[0]?.group;
+  const mealGroups = useMemo(() => {
+    const list = mealsForSlot(slot);
+    const order: string[] = [];
+    const map = new Map<string, TodayMeal[]>();
+    for (const meal of list) {
+      const key = meal.group || slot;
+      if (!map.has(key)) {
+        order.push(key);
+        map.set(key, []);
+      }
+      map.get(key)!.push(meal);
+    }
+    return order.map((title) => ({ title, meals: map.get(title)! }));
+  }, [slot]);
   const chosenCount = DAY_SLOTS.filter((item) => chosen[item]).length;
   const chosenMeals = useMemo(
     () => DAY_SLOTS.map((item) => {
@@ -106,7 +118,8 @@ export default function BuildTodaysMealsScreen({ navigation }: {
       navigation.navigate('BuildMealCustomize', { todayMealId: meal.id, slot: meal.slot });
       return;
     }
-    const catalog = meal.catalogMealId ? MEALS.find((item) => item.id === meal.catalogMealId) : undefined;
+    const catalogItem = MENU_CATALOG.find((item) => item.id === meal.id);
+    const catalog = catalogItem ? resolveMenuMeal(catalogItem) : undefined;
     if (catalog) {
       const error = addItem(catalog, 1, undefined, { daySlot: meal.slot, todayMealId: meal.id });
       if (error) {
@@ -172,18 +185,20 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           ))}
         </View>
 
-        <Text style={styles.group} accessibilityRole="header">
-          {group ? `${slot} · ${group}` : slot}
-        </Text>
         <Text style={styles.rule}>One meal per meal time. Maximum 3 meals per day.</Text>
 
-        {meals.map((meal) => (
-          <MealChoice
-            key={meal.id}
-            meal={meal}
-            selected={chosen[slot] === meal.id}
-            onPress={() => selectMeal(meal)}
-          />
+        {mealGroups.map(({ title, meals }) => (
+          <View key={title}>
+            <Text style={styles.group} accessibilityRole="header">{`${slot} · ${title}`}</Text>
+            {meals.map((meal) => (
+              <MealChoice
+                key={meal.id}
+                meal={meal}
+                selected={chosen[slot] === meal.id}
+                onPress={() => selectMeal(meal)}
+              />
+            ))}
+          </View>
         ))}
 
         <View style={styles.summaryCard}>

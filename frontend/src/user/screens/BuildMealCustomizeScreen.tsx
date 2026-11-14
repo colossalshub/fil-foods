@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from '../components/AppPageShell';
 import { todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
-import { MEALS } from '../data/meals';
+import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useMealProfile } from '../hooks/useMealProfile';
@@ -17,17 +17,15 @@ import {
 } from '../services/orderService';
 import { colors, font, radius, spacing, control } from '../theme/theme';
 
-const BUILD_VEGETABLES = ['Pinakbet', 'Ampalaya', 'Monggo'];
-const BUILD_MEATS = ['Chicken', 'Pork', 'Fish'];
-const BUILD_COOKING = ['Tinola', 'Sinigang', 'Adobo'];
-
 const DIETITIAN_NOTES: Record<string, string> = {
+  Steamed: 'Steamed vegetables keep sodium lower and preserve texture.',
+  'Stir-fried': 'Stir-fried vegetables add flavor—balance with lean protein.',
   Pinakbet: 'Pinakbet is a fiber-rich, vegetable-forward choice.',
-  Ampalaya: 'Ampalaya supports blood-sugar-friendly meals when paired with lean protein.',
-  Monggo: 'Monggo is a lighter protein option with steady energy.',
+  Adobo: 'Adobo packs more flavor—watch sodium if that is on your plan.',
   Tinola: 'Tinola is a lighter, balanced choice.',
   Sinigang: 'Sinigang is a lighter, balanced choice.',
-  Adobo: 'Adobo packs more flavor—watch sodium if that is on your plan.',
+  Kaldereta: 'Kaldereta is hearty—confirm tomato and sodium fit your plan.',
+  'Pinoy Steak': 'Pinoy steak adds protein—pair with steamed vegetables when possible.',
 };
 
 function ChoiceRow({ title, options, value, onChange }: {
@@ -68,14 +66,19 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const { user } = useAuth();
   const { profile } = useMealProfile(user);
   const { addItem } = useCart();
-  const [vegetableStyle, setVegetableStyle] = useState(BUILD_VEGETABLES[0]);
-  const [meatProtein, setMeatProtein] = useState(BUILD_MEATS[0]);
-  const [cookingStyle, setCookingStyle] = useState(BUILD_COOKING[1]);
-
-  const catalogMeal = useMemo(
-    () => MEALS.find((meal) => meal.id === todayMeal?.catalogMealId),
-    [todayMeal?.catalogMealId],
+  const [vegetableStyle, setVegetableStyle] = useState(
+    () => todayMeal?.defaultVegetableStyle || VEGETABLE_STYLES[0],
   );
+  const [meatProtein, setMeatProtein] = useState(
+    () => todayMeal?.defaultMeatProtein || MEAT_PROTEINS[2],
+  );
+  const [cookingStyle, setCookingStyle] = useState(COOKING_STYLES[2]);
+
+  const catalogMeal = useMemo(() => {
+    if (!todayMeal) return undefined;
+    const catalogItem = MENU_CATALOG.find((item) => item.id === todayMeal.id);
+    return catalogItem ? resolveMenuMeal(catalogItem) : undefined;
+  }, [todayMeal]);
 
   if (!todayMeal || !catalogMeal) {
     return (
@@ -90,7 +93,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
     );
   }
 
-  const displayName = `${meatProtein} ${cookingStyle}${vegetableStyle !== 'Pinakbet' ? ` with ${vegetableStyle}` : ` · ${vegetableStyle}`}`;
+  const displayName = `${meatProtein} ${cookingStyle} · ${vegetableStyle} vegetables`;
   const calories = todayMeal.calories + (meatProtein === 'Pork' ? 290 : meatProtein === 'Fish' ? 25 : 0);
   const highCalorie = calories >= 600;
   const allergens = profile ? profileAllergensInMeal(catalogMeal, profile) : [];
@@ -138,9 +141,9 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ChoiceRow title="Vegetables" options={BUILD_VEGETABLES} value={vegetableStyle} onChange={setVegetableStyle} />
-        <ChoiceRow title="Meat Option" options={BUILD_MEATS} value={meatProtein} onChange={setMeatProtein} />
-        <ChoiceRow title="Pinoy Cooking Style" options={BUILD_COOKING} value={cookingStyle} onChange={setCookingStyle} />
+        <ChoiceRow title="Vegetables" options={[...VEGETABLE_STYLES]} value={vegetableStyle} onChange={setVegetableStyle} />
+        <ChoiceRow title="Meat Option" options={[...MEAT_PROTEINS]} value={meatProtein} onChange={setMeatProtein} />
+        <ChoiceRow title="Pinoy Cooking Style" options={[...COOKING_STYLES]} value={cookingStyle} onChange={setCookingStyle} />
 
         <View style={[styles.summaryCard, allergens.length > 0 && styles.summaryWarn]}>
           <Text style={styles.summaryLabel}>{`Your ${slot}`}</Text>

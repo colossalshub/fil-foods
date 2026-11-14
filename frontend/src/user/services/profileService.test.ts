@@ -80,7 +80,7 @@ test('contact change applies only after correct verification code', () => {
   assert.equal(getDb().users.find((u) => u.id === MARIA_ID).contactNumber, '09181112233');
 });
 
-test('meal ranking sample matches CLT-12 expectations', () => {
+test('meal ranking sample matches USR-12 expectations', () => {
   const profile = {
     mealPreferences: { preferredCategories: ['Soup', 'Fish'], dislikedIngredients: ['Ampalaya'] },
     dietaryRestrictions: ['Low-sodium'],

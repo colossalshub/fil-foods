@@ -12,8 +12,10 @@ import {
   requestPasswordReset,
   resetPassword,
   setAdminOnline,
+  syncStaffDataFromBackend,
   tokenStatus,
 } from '../data/store.js';
+import { signInStaffToSupabase } from '../../lib/staffAuth.js';
 import { useAdmin } from '../context.js';
 import type { ScreenProps } from '../nav.js';
 import type { StaffRole } from '../types';
@@ -129,7 +131,13 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
       setAuthError({ title: gate.title, detail: gate.detail });
       return;
     }
+    const backend = await signInStaffToSupabase(account.email, password);
     await signIn(account, remember);
+    if (backend.ok && !backend.skipped) {
+      await syncStaffDataFromBackend();
+    } else if (backend.ok === false) {
+      showFlash('Signed in locally. Create this staff user in Supabase Auth to sync live orders.');
+    }
     showFlash(COPY.loggedIn);
     navigation.reset({ index: 0, routes: [{ name: account.role === 'admin' ? 'AdminApp' : 'RoleHome' }] });
   };

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AppPageShell from '../components/AppPageShell';
+import BackPageShell from '../components/BackPageShell';
 import AppInput from '../components/AppInput';
 import AppButton from '../components/AppButton';
 import { useAuth } from '../context/AuthContext';
@@ -49,97 +49,80 @@ export default function FeedbackScreen({ navigation }: {
   };
 
   return (
-    <AppPageShell edges={['top', 'bottom']} contentStyle={styles.shell}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {submitted ? (
-          <ScrollView contentContainerStyle={styles.successScroll} keyboardShouldPersistTaps="handled">
-            <View style={styles.successIcon}>
-              <Ionicons name="checkmark" size={40} color={colors.white} />
-            </View>
-            <Text style={styles.successTitle} accessibilityRole="header" allowFontScaling>
-              {FEEDBACK_COPY.thankYouTitle}
-            </Text>
-            <Text style={styles.successBody} allowFontScaling>
-              {MSG.commentSubmitted}
-            </Text>
+    <BackPageShell
+      title={FEEDBACK_COPY.title}
+      onBack={() => navigation.goBack()}
+      edges={['top', 'bottom']}
+      avoidKeyboard
+      scrollContentStyle={submitted ? styles.successScroll : undefined}
+    >
+      {submitted ? (
+        <>
+          <View style={styles.successIcon}>
+            <Ionicons name="checkmark" size={40} color={colors.white} />
+          </View>
+          <Text style={styles.successTitle} accessibilityRole="header" allowFontScaling>
+            {FEEDBACK_COPY.thankYouTitle}
+          </Text>
+          <Text style={styles.successBody} allowFontScaling>
+            {MSG.commentSubmitted}
+          </Text>
+          <AppButton
+            title={FEEDBACK_COPY.backToHelp}
+            onPress={onBackToHelp}
+            style={styles.submitBtn}
+          />
+        </>
+      ) : (
+        <>
+          <Text style={styles.subtitle} allowFontScaling>
+            {FEEDBACK_COPY.subtitle}
+          </Text>
+
+          <View style={styles.formCard}>
+            <AppInput
+              label={FEEDBACK_COPY.fieldLabel}
+              value={comment}
+              onChangeText={(text) => {
+                setComment(text);
+                if (fieldError) setFieldError('');
+              }}
+              placeholder={FEEDBACK_COPY.placeholder}
+              accessibilityLabel={FEEDBACK_COPY.fieldLabel}
+              multiline
+              textAlignVertical="top"
+              fieldStyle={styles.textArea}
+              style={styles.inputWrap}
+              error={fieldError ? true : undefined}
+            />
+            {fieldError ? (
+              <View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                <Ionicons name="alert-circle" size={20} color={colors.danger} />
+                <Text style={styles.errorText} allowFontScaling>{fieldError}</Text>
+              </View>
+            ) : null}
             <AppButton
-              title={FEEDBACK_COPY.backToHelp}
-              onPress={onBackToHelp}
+              title={FEEDBACK_COPY.submit}
+              onPress={onSubmit}
               style={styles.submitBtn}
             />
-          </ScrollView>
-        ) : (
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-            <Text style={styles.title} accessibilityRole="header" allowFontScaling>
-              {FEEDBACK_COPY.title}
-            </Text>
-            <Text style={styles.subtitle} allowFontScaling>
-              {FEEDBACK_COPY.subtitle}
-            </Text>
-
-            <View style={styles.formCard}>
-              <AppInput
-                label={FEEDBACK_COPY.fieldLabel}
-                value={comment}
-                onChangeText={(text) => {
-                  setComment(text);
-                  if (fieldError) setFieldError('');
-                }}
-                placeholder={FEEDBACK_COPY.placeholder}
-                accessibilityLabel={FEEDBACK_COPY.fieldLabel}
-                multiline
-                textAlignVertical="top"
-                fieldStyle={styles.textArea}
-                style={styles.inputWrap}
-                error={fieldError ? true : undefined}
-              />
-              {fieldError ? (
-                <View style={styles.errorRow} accessibilityRole="alert" accessibilityLiveRegion="polite">
-                  <Ionicons name="alert-circle" size={20} color={colors.danger} />
-                  <Text style={styles.errorText} allowFontScaling>{fieldError}</Text>
-                </View>
-              ) : null}
-              <AppButton
-                title={FEEDBACK_COPY.submit}
-                onPress={onSubmit}
-                style={styles.submitBtn}
-              />
-            </View>
-          </ScrollView>
-        )}
-      </KeyboardAvoidingView>
-    </AppPageShell>
+          </View>
+        </>
+      )}
+    </BackPageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1 },
-  flex: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl,
-  },
-  title: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '800',
-    color: colors.primary,
-  },
   subtitle: {
-    marginTop: spacing.xs,
     fontSize: font.body,
     lineHeight: 24,
     color: '#6B9B7A',
     fontWeight: '500',
+    marginBottom: spacing.lg,
   },
   formCard: {
     ...card,
-    marginTop: spacing.xl,
     padding: spacing.lg,
     borderRadius: radius.xl,
   },
@@ -165,9 +148,7 @@ const styles = StyleSheet.create({
   submitBtn: { marginTop: spacing.sm },
   successScroll: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl * 2,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.xxl,
     alignItems: 'center',
   },
   successIcon: {

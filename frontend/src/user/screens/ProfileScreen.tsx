@@ -5,10 +5,8 @@ import {
   View, Text, Modal, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import AppPageShell from '../components/AppPageShell';
-import AuthLayout from '../components/AuthLayout';
-import NotificationBell from '../components/NotificationBell';
+import BackPageShell from '../components/BackPageShell';
 import AppButton from '../components/AppButton';
 import AppInput from '../components/AppInput';
 import Checkbox from '../components/Checkbox';
@@ -21,7 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { recipientDisplayName } from '../domain/audience';
 import { setLoginNotice } from '../navigation/loginNotice';
 import { deleteAccount, deletionBlockReason, findTermsAcceptance, getPublicUser, getUser, isGoogleOnlyAccount, logout } from '../services/authService';
-import { ACCOUNT_COPY, FEEDBACK_COPY, MSG } from '../data/messages';
+import { ACCOUNT_COPY, FEEDBACK_COPY, MSG, NOTIFICATIONS_COPY } from '../data/messages';
 import {
   ALLERGY_PRESETS,
   NUTRITIONAL_OPTIONS,
@@ -59,6 +57,7 @@ import {
 } from '../services/biometricService';
 import {
   loadAccountProfile,
+  profileFromAuthUser,
   removeRemoteGuardian,
   saveRemoteAllergies,
   saveRemoteDiet,
@@ -147,7 +146,6 @@ function ProfilePageHeader({ subtitle }: { subtitle?: string }) {
   return (
     <>
       <View style={styles.toolsRow}>
-        <NotificationBell />
         <HelpButton />
       </View>
       <Text style={styles.pageTitle} accessibilityRole="header">{ACCOUNT_COPY.screenTitle}</Text>
@@ -205,13 +203,16 @@ function ProfileModalShell({
 }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
-        <AuthLayout variant="back" title={title} onBack={onClose} backgroundFrame>
-          {subtitle ? <Text style={styles.modalLead}>{subtitle}</Text> : null}
-          {children}
-          {footer}
-        </AuthLayout>
-      </View>
+      <BackPageShell
+        title={title}
+        onBack={onClose ?? (() => undefined)}
+        edges={['top', 'bottom']}
+        avoidKeyboard
+        footer={footer}
+      >
+        {subtitle ? <Text style={styles.modalLead}>{subtitle}</Text> : null}
+        <View style={styles.modalFormCard}>{children}</View>
+      </BackPageShell>
     </Modal>
   );
 }
@@ -224,17 +225,26 @@ export default function ProfileScreen() {
   const [loadedProfileId, setLoadedProfileId] = useState<string | null>(null);
   const localProfile = user?.id ? getProfile(user!.id as string) : null;
   const remoteReady = accountProfile?.id === user?.id && loadedProfileId === user?.id;
-  const profile = localProfile || (remoteReady ? accountProfile : null);
+  const authProfile = user?.id ? profileFromAuthUser(user as { id: string }) : null;
+  const profile = localProfile
+    || (remoteReady && accountProfile ? accountProfile : null)
+    || authProfile;
   const profileLoading = Boolean(user?.id) && !localProfile && !remoteReady;
 
   useEffect(() => {
     if (!user?.id || getProfile(user!.id as string)) return undefined;
     let active = true;
-    loadAccountProfile(user).then((next) => {
-      if (!active) return;
-      setAccountProfile(next);
-      setLoadedProfileId(user?.id ?? null);
-    });
+    loadAccountProfile(user)
+      .then((next) => {
+        if (!active) return;
+        setAccountProfile(next);
+        setLoadedProfileId(user?.id ?? null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAccountProfile(profileFromAuthUser(user as { id: string }));
+        setLoadedProfileId(user?.id ?? null);
+      });
     return () => {
       active = false;
     };
@@ -314,8 +324,12 @@ export default function ProfileScreen() {
   const [unlockNeedsPassword, setUnlockNeedsPassword] = useState(false);
 
   const acceptance = findTermsAcceptance(user?.username);
-  const history = user?.id ? readChangeHistory(user!.id as string, user!.id as string) : [];
-  const activity = user?.id ? readActivityRecord(user!.id as string, user!.id as string) : [];
+  const history = localProfile && user?.id
+    ? readChangeHistory(user.id as string, user.id as string)
+    : [];
+  const activity = localProfile && user?.id
+    ? readActivityRecord(user.id as string, user.id as string)
+    : [];
 
   const reload = useCallback(() => {
     if (!user?.id) return;
@@ -740,8 +754,8 @@ export default function ProfileScreen() {
   }
 
   const recipientName = recipientDisplayName(profile.mealRecipient);
-  const allergiesText = profile.allergies.length
-    ? profile.allergies.map((a) => (a.note ? `${a.name} (${a.note})` : a.name)).join(', ')
+  const allergiesText = (profile.allergies ?? []).length
+    ? (profile.allergies ?? []).map((a) => (a.note ? `${a.name} (${a.note})` : a.name)).join(', ')
     : '—';
   const healthContactLabel = profile.accountFor === 'family' ? 'Family contact' : 'Guardian';
   const healthContactValue = profile.accountFor === 'family' ? fullName(profile) : formatGuardian(profile);
@@ -815,19 +829,16 @@ export default function ProfileScreen() {
             label={ACCOUNT_COPY.activityRecord}
             onPress={() => setActivityOpen(true)}
           />
+          <AccountMenuRow
+            icon="notifications-outline"
+            label={NOTIFICATIONS_COPY.screenTitle}
+            onPress={() => (navigation as { navigate: (name: string) => void }).navigate('Alerts')}
+          />
           <AccountMenuRow icon="help-circle-outline" label={ACCOUNT_COPY.help} onPress={() => openHelp(navigation)} />
           <AccountMenuRow icon="log-out-outline" label={ACCOUNT_COPY.logOut} onPress={() => setConfirmLogout(true)} danger />
         </View>
 
         <View style={styles.moreCard}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => (navigation as { navigate: (name: string) => void }).navigate('Alerts')}
-            style={styles.moreRow}
-          >
-            <Text style={styles.moreLabel}>Notifications</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.inactive} />
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => openFeedback(navigation)}
@@ -854,7 +865,9 @@ export default function ProfileScreen() {
           ) : null}
 
           {acceptance ? (
-            <Text style={styles.accepted}>Accepted {acceptance.formatted}</Text>
+            <View style={styles.moreRow}>
+              <Text style={[styles.moreLabel, styles.acceptedMeta]}>Accepted {acceptance.formatted}</Text>
+            </View>
           ) : null}
           <Pressable accessibilityRole="button" onPress={() => setShowTerms(true)} style={styles.moreRow}>
             <Text style={styles.moreLabel}>Terms and Conditions</Text>
@@ -1101,82 +1114,96 @@ export default function ProfileScreen() {
       </ProfileModalShell>
 
       <Modal visible={healthOverviewOpen} animationType="slide" onRequestClose={() => setHealthOverviewOpen(false)}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalTitle} accessibilityRole="header">{ACCOUNT_COPY.healthInformation}</Text>
-            {profile.accountFor === 'family' ? (
-              <>
-                <ProfileCard title="Your details">
-                  <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                  <ProfileField label="Contact number" value={profile.contactNumber} />
-                  <ProfileField label="Email" value={profile.email} />
-                </ProfileCard>
-                <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
-                  <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
-                  <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
-                  {healthSummary}
-                </ProfileCard>
-              </>
-            ) : (
-              <>
-                <ProfileCard title="Personal information">
-                  <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                  <ProfileField label="Contact number" value={profile.contactNumber} />
-                  <ProfileField label="Email" value={profile.email} />
-                  <ProfileField label="Address" value={profile.address} />
-                </ProfileCard>
-                <ProfileCard title="Health Information">
-                  {healthSummary}
-                </ProfileCard>
-              </>
-            )}
-            {healthEditLinks}
-            <Text style={styles.lastUpdated}>
-              {profile.profileLastUpdatedFormatted
-                ? `Last updated ${profile.profileLastUpdatedFormatted}`
-                : 'Last updated —'}
-            </Text>
-            <AppButton title="Close" onPress={() => setHealthOverviewOpen(false)} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
+        <BackPageShell
+          title={ACCOUNT_COPY.healthInformation}
+          onBack={() => setHealthOverviewOpen(false)}
+          edges={['top', 'bottom']}
+          footer={(
+            <AppButton
+              title="Close"
+              onPress={() => setHealthOverviewOpen(false)}
+              color={colors.primary}
+              style={styles.modalCancel}
+            />
+          )}
+        >
+          {profile.accountFor === 'family' ? (
+            <>
+              <ProfileCard title="Your details">
+                <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+                <ProfileField label="Contact number" value={profile.contactNumber} />
+                <ProfileField label="Email" value={profile.email} />
+              </ProfileCard>
+              <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
+                <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
+                <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
+                {healthSummary}
+              </ProfileCard>
+            </>
+          ) : (
+            <>
+              <ProfileCard title="Personal information">
+                <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+                <ProfileField label="Contact number" value={profile.contactNumber} />
+                <ProfileField label="Email" value={profile.email} />
+                <ProfileField label="Address" value={profile.address} />
+              </ProfileCard>
+              <ProfileCard title="Health Information">
+                {healthSummary}
+              </ProfileCard>
+            </>
+          )}
+          {healthEditLinks}
+          <Text style={styles.lastUpdated}>
+            {profile.profileLastUpdatedFormatted
+              ? `Last updated ${profile.profileLastUpdatedFormatted}`
+              : 'Last updated —'}
+          </Text>
+        </BackPageShell>
       </Modal>
 
       <Modal visible={activityOpen} animationType="slide" onRequestClose={() => setActivityOpen(false)}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
-            <Text style={styles.modalTitle} accessibilityRole="header">{ACCOUNT_COPY.activityRecord}</Text>
-            {activity.length === 0 ? (
-              <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
-            ) : (
-              activity.map((entry) => (
-                <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
-              ))
-            )}
-            {!isAuditChainIntact() ? (
-              <Text style={styles.body}>{ACCOUNT_COPY.activityIntegrityWarning}</Text>
-            ) : null}
+        <BackPageShell
+          title={ACCOUNT_COPY.activityRecord}
+          onBack={() => setActivityOpen(false)}
+          edges={['top', 'bottom']}
+          footer={(
             <AppButton title="Close" onPress={() => setActivityOpen(false)} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
+          )}
+        >
+          {activity.length === 0 ? (
+            <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
+          ) : (
+            activity.map((entry) => (
+              <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
+            ))
+          )}
+          {!isAuditChainIntact() ? (
+            <Text style={styles.body}>{ACCOUNT_COPY.activityIntegrityWarning}</Text>
+          ) : null}
+        </BackPageShell>
       </Modal>
 
       <Modal visible={historyOpen} animationType="slide" onRequestClose={() => setHistoryOpen(false)}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
-            <Text style={styles.modalTitle} accessibilityRole="header">{ACCOUNT_COPY.changeHistory}</Text>
-            {history.length === 0 ? (
-              <Text style={styles.body}>{MSG.noChangesYet}</Text>
-            ) : (
-              history.map((entry) => (
-                <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
-              ))
-            )}
-            {!isAuditChainIntact() ? (
-              <Text style={styles.body}>Change history could not be verified. A stored event may have been altered.</Text>
-            ) : null}
+        <BackPageShell
+          title={ACCOUNT_COPY.changeHistory}
+          onBack={() => setHistoryOpen(false)}
+          edges={['top', 'bottom']}
+          footer={(
             <AppButton title="Close" onPress={() => setHistoryOpen(false)} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
+          )}
+        >
+          {history.length === 0 ? (
+            <Text style={styles.body}>{MSG.noChangesYet}</Text>
+          ) : (
+            history.map((entry) => (
+              <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
+            ))
+          )}
+          {!isAuditChainIntact() ? (
+            <Text style={styles.body}>Change history could not be verified. A stored event may have been altered.</Text>
+          ) : null}
+        </BackPageShell>
       </Modal>
 
       <Modal visible={discardPersonal} transparent animationType="fade" onRequestClose={() => setDiscardPersonal(false)}>
@@ -1247,13 +1274,21 @@ export default function ProfileScreen() {
       </Modal>
 
       <Modal visible={recipientOpen} animationType="slide" onRequestClose={closeRecipient}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            <View style={styles.sectionHead}>
-              <Text style={styles.modalTitle} accessibilityRole="header">Edit meal recipient</Text>
-              <HelpButton />
-            </View>
-            <FormMessage messages={recipientMessages} />
+        <BackPageShell
+          title="Edit meal recipient"
+          onBack={closeRecipient}
+          edges={['top', 'bottom']}
+          avoidKeyboard
+          trailing={<HelpButton />}
+          footer={(
+            <>
+              <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
+              <AppButton title="Back" variant="outline" onPress={closeRecipient} color={colors.primary} style={styles.modalCancel} />
+            </>
+          )}
+        >
+          <FormMessage messages={recipientMessages} />
+          <View style={styles.modalFormCard}>
             <AppInput label="First name" value={recipientForm.firstName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, firstName: value })); setRecipientDirty(true); }} />
             <AppInput label="Middle name" value={recipientForm.middleName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, middleName: value })); setRecipientDirty(true); }} />
             <AppInput label="Last name" value={recipientForm.lastName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, lastName: value })); setRecipientDirty(true); }} />
@@ -1261,10 +1296,8 @@ export default function ProfileScreen() {
             <AppInput label="Relationship" value={recipientForm.relationship} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, relationship: value })); setRecipientDirty(true); }} />
             <AppInput label="Contact number" value={recipientForm.contactNumber} keyboardType="phone-pad" onChangeText={(value) => { setRecipientForm((form) => ({ ...form, contactNumber: value })); setRecipientDirty(true); }} />
             <AppInput label="Delivery address" value={recipientForm.deliveryAddress} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, deliveryAddress: value })); setRecipientDirty(true); }} />
-            <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
-            <AppButton title="Back" variant="outline" onPress={closeRecipient} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
+          </View>
+        </BackPageShell>
       </Modal>
 
       <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
@@ -1413,7 +1446,7 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   sectionHeading: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
   body: { fontSize: font.body, lineHeight: 24, color: colors.text },
-  accepted: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.md },
+  acceptedMeta: { color: colors.muted },
   mutedLine: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.xs },
   editHit: { minHeight: touch.min, justifyContent: 'center', paddingHorizontal: spacing.sm },
   editLink: { fontSize: font.body, color: colors.action, fontWeight: '700' },
@@ -1427,12 +1460,9 @@ const styles = StyleSheet.create({
   },
   biometricLabel: { flex: 1, fontSize: font.body, lineHeight: 24, color: colors.text, paddingRight: spacing.md },
   logout: { marginTop: spacing.lg },
-  modalRoot: { flex: 1, backgroundColor: colors.authPage },
   modalLead: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.lg },
+  modalFormCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
   modalSave: { marginTop: spacing.lg },
-  modalScreen: { flex: 1, backgroundColor: colors.background },
-  modalScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
-  modalTitle: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginBottom: spacing.lg },
   modalCancel: { marginTop: spacing.sm },
   inputGroupLabel: {
     fontSize: font.sm,

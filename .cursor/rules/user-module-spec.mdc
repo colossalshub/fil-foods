@@ -8,7 +8,7 @@ alwaysApply: true
 Source of truth: [`docs/specs/user-module.md`](docs/specs/user-module.md), the PDF [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf), the verbatim transcription [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](.github/Meal_Service_User_Stories_AI_Agent_Handoff.md), and the full module map [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
 
 - Implement USR-01 through USR-50 as written. Do not use the retired USR-01–USR-42 handoff.
-- Preserve quoted UI strings, validation messages, screen labels, and story IDs. Put quoted strings in `frontend/src/data/messages.ts` instead of paraphrasing.
+- Preserve quoted UI strings, validation messages, screen labels, and story IDs. Put quoted strings in `frontend/src/user/data/messages.ts` instead of paraphrasing.
 - Keep the **user** (login, notifications, account) separate from the **meal recipient** (health, diet, delivery). One meal recipient per account.
 - Record conflicts with Admin / Dietitian / Kitchen / Delivery stories. Do not invent staff behavior to fill gaps.
 - Spreadsheet Passed / Failed / Total rows are not requirements. Status lives in `docs/implementation-traceability.md`; do not mark a story complete without a mapped passing test.

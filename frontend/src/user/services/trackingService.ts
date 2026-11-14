@@ -1,4 +1,4 @@
-// Order tracking, live refresh, and alerts (CLT-21 through CLT-26).
+// Order tracking, live refresh, and alerts (USR-21 through USR-26).
 
 import type { Announcement, AppNotification, Order, OrderItem } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';

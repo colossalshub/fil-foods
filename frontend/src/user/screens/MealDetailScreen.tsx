@@ -128,7 +128,7 @@ export default function MealDetailScreen({ route, navigation }: {
   const profileRef = profileReferenceLabel(user?.accountFor, recipientName);
 
   return (
-    <AppPageShell edges={['top', 'bottom']} contentStyle={styles.screen}>
+    <AppPageShell edges={['top']} contentStyle={styles.screen}>
       <ScrollView
         style={styles.scrollFlex}
         contentContainerStyle={styles.scroll}
@@ -331,9 +331,10 @@ const styles = StyleSheet.create({
   profileNote: { marginTop: spacing.md, fontSize: font.sm, lineHeight: 20, color: '#8A948C' },
   error: { marginTop: spacing.md, color: colors.danger, fontSize: font.body },
   footer: {
+    alignSelf: 'stretch',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: '#E6EBE3',
     backgroundColor: colors.authPage,
@@ -341,6 +342,7 @@ const styles = StyleSheet.create({
   secondaryAction: { marginBottom: spacing.sm, alignItems: 'center', minHeight: control.minHeight, justifyContent: 'center' },
   secondaryActionText: { fontSize: font.body, fontWeight: '700', color: colors.primary },
   primary: {
+    alignSelf: 'stretch',
     minHeight: 52,
     borderRadius: 16,
     backgroundColor: '#1E4D38',

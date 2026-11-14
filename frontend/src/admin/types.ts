@@ -1,6 +1,15 @@
 export type StaffRole = 'admin' | 'dietitian' | 'kitchen' | 'delivery';
 
-export type OrderStatus = 'Pending' | 'Preparing' | 'Delivered' | 'Cancelled';
+export type OrderStatus =
+  | 'For Dietitian Review'
+  | 'Awaiting Payment'
+  | 'Paid'
+  | 'Preparing'
+  | 'Ready for Delivery'
+  | 'Out for Delivery'
+  | 'Ready for Pickup'
+  | 'Completed'
+  | 'Cancelled';
 
 export type Appearance = 'light' | 'dark' | 'system';
 
@@ -39,6 +48,7 @@ export interface OrderUpdate {
 
 export interface AdminOrder {
   id: string;
+  trackingNumber?: string;
   customerName: string;
   status: OrderStatus;
   price: number;

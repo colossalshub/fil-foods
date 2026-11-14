@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding, logout, normalizeContact } from '../../services/authService';
 import { ALLERGY_PRESETS } from '../../services/profileService';
 import { MSG } from '../../data/messages';
-import { MEALS } from '../../data/meals';
+import { RECOMMENDATION_MEALS } from '../../data/meals';
 import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
 import type { FieldMap, MealMatchProfile } from '../../types';
 import { colors, font, spacing, card } from '../../theme/theme';
@@ -87,7 +87,7 @@ export default function CompleteProfileScreen() {
       dietaryRestrictions: savedRestrictions,
     };
   }, [allergies, allergyOther, allergyNote, dietaryRestrictions, dietaryOther, healthConditions, healthOther]);
-  const recommendations = getRecommendedMeals(MEALS, recommendationProfile, 3);
+  const recommendations = getRecommendedMeals(RECOMMENDATION_MEALS, recommendationProfile, 3);
 
   const toggle = (values: string[], setValues: (next: string[]) => void, value: string) => {
     setValues(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);

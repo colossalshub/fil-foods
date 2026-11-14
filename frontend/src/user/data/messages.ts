@@ -15,7 +15,7 @@ export const MSG = {
   noContact: 'No account found with this contact number.',
   noEmail: 'No account found with this email address.',
   googleOnly: 'This account signs in with Google. Please use that option to log in.',
-  // CLT-05 says to reject the current password, but the story does not quote a message.
+  // USR-05 says to reject the current password, but the story does not quote a message.
   samePassword: 'New password must be different from your current password.',
   passwordUpdated: 'Password updated. Please log in.',
   logoutConfirm: 'Are you sure you want to log out?',
@@ -81,6 +81,17 @@ export const GUIDE_COPY = {
   next: 'Next',
   close: 'Close',
   gotIt: 'Got it',
+};
+
+/** USR-27 FAQ — Figma labels; empty state matches quoted story text. */
+export const FAQ_COPY = {
+  title: 'FAQ',
+  subtitle: 'Answers to common questions about your account, orders, and delivery.',
+  searchPlaceholder: 'Search the FAQ',
+  clearSearch: 'Clear search',
+  tapToCollapse: 'Tap again to collapse',
+  searchMinChars: (min: number) => `Type at least ${min} characters to search.`,
+  openFromHelp: 'Browse frequently asked questions',
 };
 
 /** USR-29 Feedback — quoted labels from the user stories / Figma. */
@@ -158,6 +169,18 @@ export const ACCOUNT_COPY = {
   noActivityYet: 'No activity recorded yet.',
   activityIntegrityWarning:
     'Activity record could not be verified. A stored event may have been altered.',
+};
+
+/** USR-25 notifications screen — labels aligned with user stories / Figma. */
+export const NOTIFICATIONS_COPY = {
+  screenTitle: 'Notifications',
+  screenSubtitle: 'Updates on your orders.',
+  unreadSubtitle: (count: number) =>
+    `${count} unread notification${count === 1 ? '' : 's'}`,
+  emptyTitle: "You're all caught up.",
+  emptyBody: 'Notifications will appear here.',
+  tagAnnouncement: 'Announcement',
+  tagFamilyMember: 'Family Member',
 };
 
 export const ORDERS_COPY = {

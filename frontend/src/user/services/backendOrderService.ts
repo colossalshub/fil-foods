@@ -1,4 +1,4 @@
-import type { AuthTokenSession } from '../types';
+import type { AuthTokenSession } from '../types.js';
 import { ensureSession, requireSupabase } from '../../lib/supabaseClient.js';
 
 export async function placeOrderWithBackend({
@@ -81,6 +81,19 @@ export async function getClientNotifications() {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
+}
+
+export async function payOrderOnBackend(orderId: string, authSession?: AuthTokenSession | null) {
+  const client = requireSupabase();
+  const session = await ensureSession(authSession);
+  if (!session?.access_token) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+  const { data, error } = await client
+    .rpc('pay_order', { p_order_id: orderId })
+    .setHeader('Authorization', `Bearer ${session.access_token}`);
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 export function subscribeToClientOrders(onChange: () => void) {

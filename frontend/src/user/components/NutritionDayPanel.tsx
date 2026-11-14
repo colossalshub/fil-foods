@@ -3,13 +3,13 @@ import type { Meal, MealMatchProfile, NutritionTarget, NutritionTotals } from '.
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import AppButton from './AppButton';
 import AppInput from './AppInput';
-import { MEALS } from '../data/meals';
+import { RECOMMENDATION_MEALS } from '../data/meals';
 import { ORDER_MSG, profileAllergensInMeal, hasDislikedIngredient, hasRestrictionConflict, isMealAvailable } from '../services/orderService';
 import { NUTRITION_MSG, solveNutritionPlan } from '../services/nutritionService';
 import { colors, font, radius, spacing } from '../theme/theme';
 
 function eligibleMeals(profile: MealMatchProfile | null | undefined) {
-  return MEALS.filter((meal) => {
+  return RECOMMENDATION_MEALS.filter((meal) => {
     if (!isMealAvailable(meal)) return false;
     if (!profile) return true;
     if (profileAllergensInMeal(meal, profile).length) return false;

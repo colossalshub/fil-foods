@@ -127,9 +127,7 @@ export const checkoutFlow = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E4EAE2',
-    backgroundColor: colors.page,
+    backgroundColor: colors.authPage,
   },
   methodCard: {
     marginTop: spacing.lg,

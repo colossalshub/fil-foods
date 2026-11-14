@@ -14,6 +14,6 @@ Source of truth: [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-
 - **Delivery:** DEL-01–DEL-17 — [`docs/specs/delivery-module.md`](docs/specs/delivery-module.md).
 - **Staff traceability:** [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md).
 
-Implement stories as written in the PDF transcriptions. Preserve quoted UI strings in `frontend/src/data/messages.ts` (and staff equivalents under `frontend/src/admin` where present). Keep **user** (account holder) separate from **meal recipient**. When a User story references Admin, Dietitian, Kitchen, or Delivery behavior, implement or explicitly block on the linked staff story — see the cross-module chain in [`docs/specs/user-module.md`](docs/specs/user-module.md) and [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
+Implement stories as written in the PDF transcriptions. Preserve quoted UI strings in `frontend/src/user/data/messages.ts` (and staff equivalents under `frontend/src/admin` where present). Keep **user** (account holder) separate from **meal recipient**. When a User story references Admin, Dietitian, Kitchen, or Delivery behavior, implement or explicitly block on the linked staff story — see the cross-module chain in [`docs/specs/user-module.md`](docs/specs/user-module.md) and [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
 
 Spreadsheet Passed / Failed / Total rows are not requirements. Do not mark a story complete without criterion-level verification in the appropriate traceability doc.

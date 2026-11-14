@@ -16,7 +16,7 @@ Two search/selection algorithms are implemented in application code. A third, se
 
 ### 1.1 Fuzzy meal search
 
-**Where:** `frontend/src/services/orderService.ts`  
+**Where:** `frontend/src/user/services/orderService.ts`  
 **Functions:** `levenshtein`, `fuzzySearchMeals`, with private helpers `maxEditDistance`, `wordMatches`, `mealMatchScore`, `compactNameDistance`, and `catalogText`.  
 **Called from:** `searchAndFilterMeals` in the same file, which the Meals screen uses. An empty query is not fuzzy-ranked; it returns every meal already in the list.
 
@@ -43,12 +43,12 @@ Two search/selection algorithms are implemented in application code. A third, se
 
 **Performance shape.** Each distance call allocates a matrix of size `(len(a)+1) * (len(b)+1)`. Search walks every meal. The sort comparator calls `compactNameDistance`, so extra distance matrices are built during sorting. There is no index, no length filter before the matrix, and no result cap. The database migration creates a `pg_trgm` index on `meals.name` (`supabase/migrations/20261030131000_initial_schema.sql`). The application search does not query that index.
 
-**Catalog used by the app.** `frontend/src/data/meals.ts` currently holds 12 meals. Several names are Filipino (Chicken Adobo Bowl, Sinigang na Hipon, Chicken Tinola, Grilled Bangus, Ampalaya Stir-fry). Most rows omit `fat` and `carbs`.
+**Catalog used by the app.** `frontend/src/user/data/meals.ts` currently holds 12 meals. Several names are Filipino (Chicken Adobo Bowl, Sinigang na Hipon, Chicken Tinola, Grilled Bangus, Ampalaya Stir-fry). Most rows omit `fat` and `carbs`.
 
 ### 1.2 Nutritional target solver
 
-**Where:** `frontend/src/services/nutritionService.ts`, function `solveNutritionPlan`.  
-**UI:** `frontend/src/components/NutritionDayPanel.tsx`. The panel builds a target from the calorie, protein, and fat inputs, drops meals that fail allergy, disliked-ingredient, or diet-conflict checks, then calls `solveNutritionPlan`.
+**Where:** `frontend/src/user/services/nutritionService.ts`, function `solveNutritionPlan`.  
+**UI:** `frontend/src/user/components/NutritionDayPanel.tsx`. The panel builds a target from the calorie, protein, and fat inputs, drops meals that fail allergy, disliked-ingredient, or diet-conflict checks, then calls `solveNutritionPlan`.
 
 **What the code does**
 
@@ -75,8 +75,8 @@ Allergy and diet exclusions are **not** inside `solveNutritionPlan`. The panel a
 
 ### 1.3 Personalized meal ranking (separate from the solver)
 
-**Where:** `rankMeal` and `sortMealsForProfile` in `frontend/src/services/profileService.ts`.  
-**Used by:** `getRecommendedMeals` in `orderService.ts`, the Meals screen, and `frontend/src/screens/HomeScreen.tsx`.
+**Where:** `rankMeal` and `sortMealsForProfile` in `frontend/src/user/services/profileService.ts`.  
+**Used by:** `getRecommendedMeals` in `orderService.ts`, the Meals screen, and `frontend/src/user/screens/HomeScreen.tsx`.
 
 This is an additive preference score: +3 for a preferred category, +2 for a matching diet tag, +1 for each matching nutrition preference (`lower-calories` at 400 kcal or below, `higher-protein` at 25 g or a `High-protein` diet tag, `lower-sodium` at 500 mg or a `Low-sodium` tag), and −3 when a disliked ingredient string appears in an ingredient. An allergen tag conflict returns `null` and sorts the meal last. `getRecommendedMeals` also drops unavailable meals, ingredient-level allergen hints, disliked ingredients, and restriction conflicts, then keeps at most five.
 
@@ -94,11 +94,11 @@ The course controls exist in two places that do not share one implementation: th
 
 **Local sample store**
 
-- `hashPassword` / `hashPasswordSync` in `frontend/src/services/securityService.ts` call `bcrypt.hash` / `bcrypt.hashSync` from `bcryptjs` `^3.0.3` with cost factor **12**.
+- `hashPassword` / `hashPasswordSync` in `frontend/src/user/services/securityService.ts` call `bcrypt.hash` / `bcrypt.hashSync` from `bcryptjs` `^3.0.3` with cost factor **12**.
 - `comparePassword` / `comparePasswordSync` verify against that hash.
-- Registration (`frontend/src/domain/registration.ts`) stores `passwordHash` and does not put the password on the returned public user.
+- Registration (`frontend/src/user/domain/registration.ts`) stores `passwordHash` and does not put the password on the returned public user.
 - Login, password reset, and the local biometric check compare against `passwordHash`.
-- The seeded sample account in `frontend/src/data/mockStore.ts` is hashed at startup with the same function. The sample password is a fixed development string in that file. It is not a production secret, and it should not be copied into notebooks or slides.
+- The seeded sample account in `frontend/src/user/data/mockStore.ts` is hashed at startup with the same function. The sample password is a fixed development string in that file. It is not a production secret, and it should not be copied into notebooks or slides.
 - Tests check that the stored value matches `/^\$2[aby]\$/` and that `passwordStorage === 'bcrypt'`. They do **not** assert the cost factor. The cost 12 claim comes from reading the hash call, not from the assertion.
 
 **Hosted authentication**
@@ -176,23 +176,23 @@ No two-account RLS test was run in this audit. `docs/implementation-traceability
 
 | Concern | File |
 |---|---|
-| Levenshtein and fuzzy search | `frontend/src/services/orderService.ts` |
-| Fuzzy-search tests | `frontend/src/services/orderService.test.ts` |
-| Nutrition solver | `frontend/src/services/nutritionService.ts` |
-| Solver UI | `frontend/src/components/NutritionDayPanel.tsx` |
-| Solver tests | `frontend/src/services/orderService.test.ts`, `frontend/src/services/securityNutrition.test.ts` |
-| Preference ranking | `frontend/src/services/profileService.ts` |
-| Recommendation UI | `frontend/src/screens/HomeScreen.tsx`, `frontend/src/screens/MealsScreen.tsx` |
-| Sample meals | `frontend/src/data/meals.ts` |
-| Bcrypt, bitmask, local audit chain | `frontend/src/services/securityService.ts` |
-| Registration hashing | `frontend/src/domain/registration.ts` |
-| Local login hashing | `frontend/src/services/authService.ts` |
+| Levenshtein and fuzzy search | `frontend/src/user/services/orderService.ts` |
+| Fuzzy-search tests | `frontend/src/user/services/orderService.test.ts` |
+| Nutrition solver | `frontend/src/user/services/nutritionService.ts` |
+| Solver UI | `frontend/src/user/components/NutritionDayPanel.tsx` |
+| Solver tests | `frontend/src/user/services/orderService.test.ts`, `frontend/src/user/services/securityNutrition.test.ts` |
+| Preference ranking | `frontend/src/user/services/profileService.ts` |
+| Recommendation UI | `frontend/src/user/screens/HomeScreen.tsx`, `frontend/src/user/screens/MealsScreen.tsx` |
+| Sample meals | `frontend/src/user/data/meals.ts` |
+| Bcrypt, bitmask, local audit chain | `frontend/src/user/services/securityService.ts` |
+| Registration hashing | `frontend/src/user/domain/registration.ts` |
+| Local login hashing | `frontend/src/user/services/authService.ts` |
 | Schema, RLS, SQL audit chain | `supabase/migrations/20261030131000_initial_schema.sql` |
 | Order hardening and allergen function | `supabase/migrations/20261030140000_harden_order_and_auth_boundaries.sql` |
 | Username login | `supabase/functions/login-by-username/index.ts` |
 | Existing security write-up | `docs/security-controls.md` |
 | User-story status | `docs/implementation-traceability.md` |
-| Draft privacy policy and terms | `docs/privacy-policy.md`, `docs/terms-and-conditions.md`, `frontend/src/data/legal.ts` |
+| Draft privacy policy and terms | `docs/privacy-policy.md`, `docs/terms-and-conditions.md`, `frontend/src/user/data/legal.ts` |
 
 ---
 
@@ -233,7 +233,7 @@ No Supabase test, policy test, or notebook was run.
 - Staff and guardian access are not expressed in RLS policies.
 - The SQL audit log is privilege-restricted, not trigger-enforced append-only, and its verifier assumes contiguous ids.
 - Local verification still has a test-code path. Google sign-in remains a demo provider (`docs/security-controls.md`).
-- `docs/privacy-policy.md` and `docs/terms-and-conditions.md` are generator drafts. They already contain operational details that the source does not establish, including the contact `support@mealservice.ph` and an owner described as a company. Those drafts are not evidence of a Data Protection Officer, a retention period, or a completed legal review. In-app modals read `frontend/src/data/legal.ts`. There is no public URL for either document in this audit.
+- `docs/privacy-policy.md` and `docs/terms-and-conditions.md` are generator drafts. They already contain operational details that the source does not establish, including the contact `support@mealservice.ph` and an owner described as a company. Those drafts are not evidence of a Data Protection Officer, a retention period, or a completed legal review. In-app modals read `frontend/src/user/data/legal.ts`. There is no public URL for either document in this audit.
 
 ---
 

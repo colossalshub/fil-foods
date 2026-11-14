@@ -3,16 +3,14 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 
 declare const require: (id: string) => number;
 import HelpButton from './HelpButton';
-import NotificationBell from './NotificationBell';
 import { colors, font, spacing } from '../theme/theme';
 
 const logo = require('../../../assets/images/fil-foods-logo.png');
 
-export default function ScreenHeader({ title, subtitle, accessory, showBell = false }: {
+export default function ScreenHeader({ title, subtitle, accessory }: {
   title?: string;
   subtitle?: string;
   accessory?: ReactNode;
-  showBell?: boolean;
 }) {
   return (
     <View style={styles.wrap}>
@@ -28,7 +26,6 @@ export default function ScreenHeader({ title, subtitle, accessory, showBell = fa
         {subtitle ? <Text style={styles.sub} allowFontScaling>{subtitle}</Text> : null}
       </View>
       <View style={styles.actions}>
-        {showBell ? <NotificationBell /> : null}
         {accessory || null}
         <HelpButton />
       </View>

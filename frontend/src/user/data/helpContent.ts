@@ -93,7 +93,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'account-password',
         question: 'How do I reset my password?',
-        answer: 'On the login screen tap Forgot password?, enter your username, verify the code, then set a new password.',
+        answer: 'Forgot password → Verify identity → Set a new password.',
       },
       {
         id: 'account-google',

@@ -1,4 +1,4 @@
-// CLT-44 Biometric unlock. No fingerprint or face data is stored — only { enabled } on the user.
+// Biometric unlock demo (not in USR-01–USR-50). No fingerprint or face data is stored — only { enabled } on the user.
 import { getDb } from '../data/mockStore.js';
 import { comparePasswordSync } from './securityService.js';
 import { toPublicUser } from '../domain/registration.js';

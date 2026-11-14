@@ -1,5 +1,5 @@
-// One code flow for account verification (CLT-34), password reset (CLT-04),
-// and later for a changed contact number or email (CLT-08). Nothing is sent.
+// One code flow for account verification (USR-33), password reset (USR-04),
+// and profile contact changes (USR-08). Nothing is sent.
 
 import type { ServiceResult, User } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
@@ -116,7 +116,7 @@ export function sendCode({ userId, channel, purpose }: { userId: string; channel
     purpose,
     channel,
     target,
-    // Fixed test code from CLT-34. Delivery is not implemented.
+    // Fixed test code for USR-33. Delivery is not implemented.
     code: MOCK_CODE,
     createdAtMs: now,
     createdAt: stamp(),

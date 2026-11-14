@@ -10,13 +10,9 @@ import AppButton from '../components/AppButton';
 import { MSG } from '../data/messages';
 import { setPendingDestination } from './pendingDestination';
 import { CartProvider } from '../context/CartContext';
-import { colors, shadow } from '../theme/theme';
+import { FloatingTabBar, floatingTabScreenOptions } from './floatingTabBar';
 
 const Tab = createBottomTabNavigator();
-const ICONS: Record<string, 'home' | 'restaurant' | 'receipt' | 'person'> = {
-  Home: 'home', Meals: 'restaurant', Orders: 'receipt', Account: 'person',
-};
-const TAB_CONTENT_HEIGHT = 64;
 
 function GuestGate({ title, icon, destination }: {
   title: string;
@@ -51,26 +47,12 @@ export default function VisitorTabs() {
   return (
     <CartProvider>
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.inactive,
-        tabBarLabelStyle: { fontSize: 16, lineHeight: 20, flexShrink: 0 },
-        tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopWidth: 0,
-          height: TAB_CONTENT_HEIGHT + insets.bottom,
-          paddingBottom: insets.bottom,
-          ...shadow,
-          shadowOffset: { width: 0, height: -4 },
-        },
-        tabBarIcon: ({ focused, color, size }) => (
-          <Ionicons name={focused ? ICONS[route.name] : `${ICONS[route.name]}-outline`} size={size} color={color} />
-        ),
-      })}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      safeAreaInsets={{ ...insets, bottom: 0 }}
+      screenOptions={({ route }) => floatingTabScreenOptions(route, insets)}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Meals" component={MealsStack} options={{ tabBarLabel: 'Meal' }} />
+      <Tab.Screen name="Meals" component={MealsStack} />
       <Tab.Screen name="Orders" component={GuestOrders} />
       <Tab.Screen name="Account" component={GuestAccount} />
     </Tab.Navigator>

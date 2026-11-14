@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 import type { AuthUser } from '../types';
 import {
-  View, Text, Pressable, Modal, StyleSheet, ScrollView,
+  View, Text, Pressable, Modal, StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from './AppButton';
+import BackPageShell from './BackPageShell';
 import FormMessage from './FormMessage';
 import {
   PLAN_MSG,
@@ -169,27 +169,32 @@ export default function PlanPicker({
       </View>
 
       <Modal visible={summaryOpen} animationType="slide" onRequestClose={onCancelSummary}>
-        <SafeAreaView style={styles.modalScreen}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
-            <Text style={styles.modalTitle} accessibilityRole="header">Confirm your plan</Text>
-            {summary ? (
-              <>
-                <Text style={styles.body}>{summary.name}</Text>
-                <Text style={styles.body}>{summary.priceLabel}</Text>
-                {(summary.benefits || []).map((benefit) => (
-                  <Text key={benefit} style={styles.body}>• {benefit}</Text>
-                ))}
-                {summary.isChange && summary.effectiveDate ? (
-                  <Text style={styles.body}>
-                    Changes apply on {formatPlanDate(summary.effectiveDate)}.
-                  </Text>
-                ) : null}
-              </>
-            ) : null}
-            <AppButton title="Confirm" onPress={onConfirmSummary} color={colors.primary} />
-            <AppButton title="Cancel" variant="outline" onPress={onCancelSummary} color={colors.primary} style={styles.modalCancel} />
-          </ScrollView>
-        </SafeAreaView>
+        <BackPageShell
+          title="Confirm your plan"
+          onBack={onCancelSummary}
+          edges={['top', 'bottom']}
+          footer={(
+            <>
+              <AppButton title="Confirm" onPress={onConfirmSummary} color={colors.primary} />
+              <AppButton title="Cancel" variant="outline" onPress={onCancelSummary} color={colors.primary} style={styles.modalCancel} />
+            </>
+          )}
+        >
+          {summary ? (
+            <View style={styles.summaryCard}>
+              <Text style={styles.body}>{summary.name}</Text>
+              <Text style={styles.body}>{summary.priceLabel}</Text>
+              {(summary.benefits || []).map((benefit) => (
+                <Text key={benefit} style={styles.body}>• {benefit}</Text>
+              ))}
+              {summary.isChange && summary.effectiveDate ? (
+                <Text style={styles.body}>
+                  Changes apply on {formatPlanDate(summary.effectiveDate)}.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </BackPageShell>
       </Modal>
     </View>
   );
@@ -220,9 +225,7 @@ const styles = StyleSheet.create({
   benefit: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
   pendingNote: { fontSize: font.sm, color: colors.warning, marginTop: spacing.sm, marginBottom: spacing.sm },
   chooseBtn: { marginTop: spacing.md },
-  modalScreen: { flex: 1, backgroundColor: colors.background },
-  modalScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
-  modalTitle: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginBottom: spacing.lg },
+  summaryCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
   body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
   modalCancel: { marginTop: spacing.sm },
 });

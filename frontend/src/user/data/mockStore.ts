@@ -54,7 +54,7 @@ function sampleUsers(): User[] {
       pendingContactChange: null,
     },
     {
-      // Google-only sample from CLT-04. The story gives the contact number, not the email.
+      // Google-only sample from USR-04. The story gives the contact number, not the email.
       id: 'user-ana',
       accountFor: 'self',
       firstName: 'Ana',

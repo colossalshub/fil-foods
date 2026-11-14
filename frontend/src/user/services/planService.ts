@@ -1,4 +1,4 @@
-// Plan catalog, activation, changes, and order discounts (CLT-39–CLT-43).
+// Plan catalog and checkout discounts (demo helper; order totals cite USR-20 plan prices).
 
 import type { ServiceResult, StoredPlan, User } from '../types';
 import { getDb } from '../data/mockStore.js';

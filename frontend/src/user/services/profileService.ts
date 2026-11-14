@@ -1,4 +1,4 @@
-// Profile rules for CLT-07 through CLT-14 and CLT-45. Screens call this module only.
+// Profile rules for USR-07 through USR-14 and USR-45. Screens call this module only.
 
 import type {
   Allergy, AuditEvent, FieldMap, Guardian, GuardianInput, Meal, MealMatchProfile, MealPreferences,

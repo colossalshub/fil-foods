@@ -56,8 +56,8 @@ test('fuzzy search ranks Chicken Tinola for common typos and partial names', () 
 
 test('search finds catalog text and filters soup, low-sodium, and peanut-free meals', () => {
   assert.equal(ORDER_MSG.noMeals, 'No meals found.');
-  const papaya = fuzzySearchMeals(MEALS, 'Papaya');
-  assert.equal(papaya[0].name, 'Chicken Tinola');
+  const ginger = fuzzySearchMeals(MEALS, 'Ginger');
+  assert.equal(ginger[0].name, 'Chicken Tinola');
 
   const soup = applyMealFilters(MEALS, { category: 'Soup', diets: ['Low-sodium'], excludeAllergens: ['Peanuts'] });
   assert.ok(soup.some((meal) => meal.name === 'Chicken Tinola'));

@@ -11,10 +11,10 @@ The User 5 PDF supersedes the older USR-01–USR-42 specification. It adds USR-4
 The following baseline was audited on 2026-10-30 against the previous 42-story specification, before later implementation changes. It is historical evidence only, not current compliance verification against the supplied PDF.
 
 - The client is an Expo 58 JavaScript app using React Navigation, not Expo Router.
-- All application data is held in [`frontend/src/data/mockStore.js`](../frontend/src/data/mockStore.js). The server schema is in [`supabase/`](../supabase/).
+- All application data is held in [`frontend/src/user/data/mockStore.ts`](../frontend/src/user/data/mockStore.ts). The server schema is in [`supabase/`](../supabase/).
 - Supabase migrations `20261030131000`, `20261030140000`, and `20261030142000` are applied to project `jmayfxgpxzgyilyvnbju`; the `login-by-username` Edge Function is deployed and responding.
 - Existing unit tests pass: 91/91.
-- `npm run lint` fails in [`frontend/src/components/VerificationFlow.js`](../frontend/src/components/VerificationFlow.js) because of a state update inside an effect, plus two unused variables.
+- `npm run lint` may flag [`frontend/src/user/components/VerificationFlow.tsx`](../frontend/src/user/components/VerificationFlow.tsx) (historical note from pre–User 5 cleanup).
 - Existing code includes plan/biometric/demo features that are not in USR-01–USR-50 and must not become dependencies of the client stories.
 
 The tests at that time validated local service behavior, not production security, persistence, concurrency, provider delivery, or cross-client isolation.
@@ -53,7 +53,7 @@ Status values in this historical table: **Partial** means a local prototype exis
 | USR-24 Live tracking | Four-second local polling fallback plus deployed Supabase Realtime order/notification subscription path | Surface connection state and run reconnect/offline tests | Realtime event, reconnect, offline UI tests | Partial / Integration tests pending |
 | USR-25 Notifications | Local notifications/announcements and read state | Durable notification transaction/trigger, confirmed/status/cancelled/issue events, realtime delivery target | Trigger, unread/read persistence and announcement tests | Partial / Blocked by backend |
 | USR-26 Help/accessibility | `HelpScreen`, help data, guide, shared `HelpButton` | Put labeled Help control on every auth/main screen, remove icon-only header use, exact 16px/200% checks | Screen reachability and accessibility snapshot/manual checklist | Partial |
-| USR-27 FAQ | FAQ groups/search/expand in `HelpScreen` | Preserve exact content and empty message; expose through Account/relevant screens | Group/search/toggle tests (partially present) | Partial |
+| USR-27 FAQ | `FaqScreen` / `FaqExperience` (groups, search, expand); linked from `HelpScreen` | Preserve exact content and empty message; expose through Account/relevant screens | `helpContent.test.ts` search/group cases | Partial |
 | USR-28 Navigation guide | `AppGuideExperience`, `GuideReplayList`, `HelpGuideGate`, `HelpScreen` | First-login welcome + step flow matches Figma; reopen from Help; server-side viewed state still pending | `helpContent.test.ts`, first-login/reopen/manual | Partial |
 | USR-29 Contact | Static `helpContent` and `Linking` | Admin-configured settings API for phone/email/hours; robust dialer error handling | Settings override and link tests | Partial / Blocked by backend |
 | USR-30 Google sign-in | Mock `googleAuthService` and demo outcome picker | Replace demo with Expo-compatible OAuth/provider integration, verified identity, picker/cancel/error/inactive handling | Provider adapter contract and no-duplicate tests | Partial / Blocked by provider |

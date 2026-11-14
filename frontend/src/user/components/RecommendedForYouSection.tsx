@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HOME_COPY } from '../data/messages';
-import { MEALS } from '../data/meals';
+import { RECOMMENDATION_MEALS } from '../data/meals';
 import { PROFILE_DIET_OPTIONS } from '../constants/profileFormOptions';
 import type { Meal, MealMatchProfile } from '../types';
 import {
@@ -105,7 +105,7 @@ export default function RecommendedForYouSection({
 }) {
   const chips = useMemo(() => profileMatchChips(profile), [profile]);
   const recommendations = useMemo(
-    () => getRecommendedMeals(MEALS, profile, 5),
+    () => getRecommendedMeals(RECOMMENDATION_MEALS, profile, 5),
     [profile],
   );
 
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   list: { marginTop: spacing.lg, gap: spacing.md },
   mealCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.md,
     ...card,
     borderColor: colors.cardBorder,
@@ -247,7 +247,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center',
   },
   addButtonText: { fontSize: font.body, fontWeight: '700', color: colors.white },
   emptyCard: {

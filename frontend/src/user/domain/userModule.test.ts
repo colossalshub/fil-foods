@@ -31,12 +31,12 @@ test('order selection allows one meal per meal time and three meals a day', () =
   assert.equal(validateOrderSelection([
     { meal: breakfast!, quantity: 2 },
   ]).message, ORDER_MSG.oneMealPerTime);
-  const adoboCatalog = MEALS.find((meal) => meal.id === '1');
-  assert(adoboCatalog);
+  const lunchPlate = MEALS.find((meal) => meal.id === 'plate-lunch-chicken');
+  assert(lunchPlate);
   assert.equal(validateOrderSelection([
     { meal: breakfast!, quantity: 1 },
-    { meal: { ...adoboCatalog, category: 'Lunch' }, quantity: 1 },
-    { meal: { ...adoboCatalog, category: 'Dinner' }, quantity: 1 },
+    { meal: { ...lunchPlate, category: 'Lunch' }, quantity: 1 },
+    { meal: { ...lunchPlate, category: 'Dinner' }, quantity: 1 },
   ]).ok, true);
 });
 

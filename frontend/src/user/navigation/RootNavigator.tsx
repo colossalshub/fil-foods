@@ -19,6 +19,7 @@ import { buildPersistedSession, evaluateSessionRestore, shouldEndSession, should
 import { clearPersistedSession, persistSession, readPersistedSession } from '../services/sessionPersistence';
 import HelpScreen from '../screens/HelpScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
+import FaqScreen from '../screens/FaqScreen';
 import AboutScreen from '../screens/visitor/AboutScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
 import StaffNavigator from '../../admin/navigation';
@@ -222,6 +223,7 @@ export default function RootNavigator() {
             </>
           )}
           <Stack.Screen name="Help" component={HelpScreen} />
+          <Stack.Screen name="Faq" component={FaqScreen} />
           <Stack.Screen name="Feedback" component={FeedbackScreen} />
           <Stack.Screen name="About" component={AboutScreen} />
         </Stack.Navigator>

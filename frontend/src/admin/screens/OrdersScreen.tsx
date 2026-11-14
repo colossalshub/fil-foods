@@ -7,8 +7,9 @@ import {
   assignDelivery,
   deliveryStaff,
   searchStaffOrders,
-  setOrderStatus,
+  setOrderStatusAsync,
 } from '../data/store.js';
+import { statusesForStaffRole } from '../../lib/staffBackend.js';
 import { peso } from '../domain/format.js';
 import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
@@ -71,9 +72,9 @@ export function OrdersScreen({ navigation }: ScreenProps) {
           onChange={(id) => setStatus(id as 'All' | OrderStatus)}
           options={[
             { id: 'All', label: t('all') },
-            { id: 'Pending', label: t('pending') },
+            { id: 'For Dietitian Review', label: 'Review' },
             { id: 'Preparing', label: t('preparing') },
-            { id: 'Delivered', label: t('delivered') },
+            { id: 'Completed', label: 'Completed' },
           ]}
         />
       </View>
@@ -109,8 +110,9 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
   const { session, colors, showFlash } = useAdmin();
   const data = adminView();
   const order = data.orders.find((row) => row.id === route.params?.id);
-  const canManage = session?.role === 'admin';
-  const locked = !order || order.status === 'Delivered' || order.status === 'Cancelled';
+  const canManage = session?.role === 'admin' || session?.role === 'dietitian' || session?.role === 'kitchen' || session?.role === 'delivery';
+  const locked = !order || order.status === 'Completed' || order.status === 'Cancelled';
+  const transitionOptions = session ? statusesForStaffRole(session.role) : [];
   if (!session || !order) {
     return (
       <PhoneFrame>
@@ -144,11 +146,11 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
           <>
             <Text style={[styles.id, { color: colors.text }]}>Update status</Text>
             <View style={styles.statusRow}>
-              {(['Pending', 'Preparing', 'Delivered', 'Cancelled'] as OrderStatus[]).map((status) => (
+              {transitionOptions.map((status) => (
                 <Pressable
                   key={status}
-                  onPress={() => {
-                    const result = setOrderStatus(actor, order.id, status);
+                  onPress={async () => {
+                    const result = await setOrderStatusAsync(actor, order.id, status);
                     if (result.message) showFlash(result.message);
                   }}
                   style={[styles.statusBtn, { borderColor: colors.border, backgroundColor: order.status === status ? colors.mint : colors.card }]}

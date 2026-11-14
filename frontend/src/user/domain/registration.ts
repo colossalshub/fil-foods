@@ -1,4 +1,4 @@
-// CLT-01 registration rules. This module does not talk to React Native.
+// USR-01 registration rules. This module does not talk to React Native.
 // The local stand-in uses bcrypt so its credential contract matches the backend.
 
 import type { AppDatabase, FieldMap, PublicUser, RegistrationInput, User } from '../types';

@@ -250,9 +250,14 @@ export function FilterChips({
 }
 
 const BADGE: Record<OrderStatus, { bg: string; fg: string }> = {
-  Pending: { bg: '#FFDDBF', fg: '#8A4B12' },
+  'For Dietitian Review': { bg: '#FFDDBF', fg: '#8A4B12' },
+  'Awaiting Payment': { bg: '#FFE8A3', fg: '#7A5B00' },
+  Paid: { bg: '#CDE9FF', fg: '#1456A0' },
   Preparing: { bg: '#D8F3DC', fg: '#146B38' },
-  Delivered: { bg: '#1C773A', fg: '#FFFFFF' },
+  'Ready for Delivery': { bg: '#C8E8FF', fg: '#0F4F8C' },
+  'Out for Delivery': { bg: '#C8E8FF', fg: '#0F4F8C' },
+  'Ready for Pickup': { bg: '#C8E8FF', fg: '#0F4F8C' },
+  Completed: { bg: '#1C773A', fg: '#FFFFFF' },
   Cancelled: { bg: '#D76566', fg: '#FFFFFF' },
 };
 

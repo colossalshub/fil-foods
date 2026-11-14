@@ -1,6 +1,6 @@
 # Terms & Conditions
 
-Draft for F.I.L. FOODS. The wording below is the terms document from the [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/) ([source](https://github.com/nisrulz/app-privacy-policy-generator)), using the same wizard inputs as `docs/privacy-policy.md`. The same text is shown in the app from `frontend/src/data/legal.js`.
+Draft for F.I.L. FOODS. The wording below is the terms document from the [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/) ([source](https://github.com/nisrulz/app-privacy-policy-generator)), using the same wizard inputs as `docs/privacy-policy.md`. The same text is shown in the app from `frontend/src/user/data/legal.ts`.
 
 This is a class draft. The generator says its output is not legal advice.
 

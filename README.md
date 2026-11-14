@@ -35,8 +35,8 @@ Some of those flows still use the local sample store until Supabase is configure
 
 | Algorithm | What to open |
 |---|---|
-| Fuzzy meal search (edit distance) | `frontend/src/services/orderService.ts` — `fuzzySearchMeals`, `levenshtein`. Used by the Meals search box. |
-| Nutritional target solver (one meal per slot, calorie and fat ceilings) | `frontend/src/services/nutritionService.ts` — `solveNutritionPlan`. On the Meals screen, open Daily nutrition targets and choose Suggest a day of meals (`frontend/src/components/NutritionDayPanel.tsx`). |
+| Fuzzy meal search (edit distance) | `frontend/src/user/services/orderService.ts` — `fuzzySearchMeals`, `levenshtein`. Used by the Meals search box. |
+| Nutritional target solver (one meal per slot, calorie and fat ceilings) | `frontend/src/user/services/nutritionService.ts` — `solveNutritionPlan`. On the Meals screen, open Daily nutrition targets and choose Suggest a day of meals (`frontend/src/user/components/NutritionDayPanel.tsx`). |
 
 ## Security
 
@@ -44,7 +44,7 @@ The three IAS controls are already implemented. The checklist, with what is stil
 
 | Control | What to open |
 |---|---|
-| Bcrypt password hash (cost 12) | `frontend/src/services/securityService.ts` |
+| Bcrypt password hash (cost 12) | `frontend/src/user/services/securityService.ts` |
 | Role bitmask (client, staff, admin) | same file, `ROLES` and `requireRole` |
 | SHA-256 audit chain | same file, `appendAuditEvent` and `verifyAuditChain` |
 | Database roles, row-level security, and `verify_audit_chain()` | `supabase/migrations/20261030131000_initial_schema.sql` |

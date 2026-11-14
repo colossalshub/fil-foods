@@ -3,7 +3,6 @@ import TrackingScreen from '../screens/TrackingScreen';
 import OrderStatusScreen from '../screens/OrderStatusScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
 import OrderScreen from '../screens/OrderScreen';
-import AlertsScreen from '../screens/AlertsScreen';
 import OrderPaymentScreen from '../screens/checkout/OrderPaymentScreen';
 import OrderPaymentSuccessScreen from '../screens/checkout/OrderPaymentSuccessScreen';
 
@@ -18,7 +17,6 @@ export default function TrackingStack() {
       <Stack.Screen name="OrderPayment" component={OrderPaymentScreen} />
       <Stack.Screen name="OrderPaymentSuccess" component={OrderPaymentSuccessScreen} />
       <Stack.Screen name="Checkout" component={OrderScreen} />
-      <Stack.Screen name="Notifications" component={AlertsScreen} />
     </Stack.Navigator>
   );
 }
