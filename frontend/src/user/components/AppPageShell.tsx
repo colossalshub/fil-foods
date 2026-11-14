@@ -1,4 +1,5 @@
 import React, {
+  Children,
   isValidElement,
   type ReactElement,
   type ReactNode,
@@ -27,7 +28,7 @@ function withTabScrollInset(node: ReactNode, inset: number): ReactNode {
   if (!inset) return node;
   if (node == null || typeof node === 'boolean') return null;
   if (Array.isArray(node)) {
-    return node.map((child) => withTabScrollInset(child, inset));
+    return Children.map(node, (child) => withTabScrollInset(child, inset));
   }
   if (!isValidElement(node)) return node;
 
@@ -59,7 +60,7 @@ function withStickyFooterInset(node: ReactNode, inset: number): ReactNode {
   if (!inset) return node;
   if (node == null || typeof node === 'boolean') return null;
 
-  const items = Array.isArray(node) ? node : [node];
+  const items = Children.toArray(node);
   const scrollIndex = items.findIndex(
     (child) => isValidElement(child) && child.type === ScrollView,
   );
@@ -76,7 +77,7 @@ function withStickyFooterInset(node: ReactNode, inset: number): ReactNode {
   }
   if (footerIndex < 0) return node;
 
-  const patched = items.map((child, index) => {
+  return Children.map(items, (child, index) => {
     if (index !== footerIndex || !isValidElement(child)) return child;
     const footer = child as ReactElement<ViewProps>;
     const flat = StyleSheet.flatten(footer.props.style);
@@ -85,8 +86,6 @@ function withStickyFooterInset(node: ReactNode, inset: number): ReactNode {
       style: [footer.props.style, { paddingBottom: baseBottom + inset }],
     });
   });
-
-  return Array.isArray(node) ? patched : patched[0];
 }
 
 export default function AppPageShell({ children, edges = ['top'], contentStyle }: AppPageShellProps) {
