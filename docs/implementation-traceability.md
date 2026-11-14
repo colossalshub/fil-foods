@@ -70,20 +70,64 @@ Status values in this historical table: **Partial** means a local prototype exis
 
 ## Current PDF verification gate
 
-No story is considered compliant solely because it appears in the historical matrix. Track each numbered system requirement in the current PDF to its implementation surface and automated/manual test; mark it complete only after that test passes. Current status for USR-01–USR-50: **Not yet re-audited criterion by criterion against the supplied PDF**.
+No story is considered compliant solely because it appears in the historical matrix. The story-level re-audit is complete, but criterion-level test mapping and verification are still in progress. Track each numbered system requirement in the current PDF to its implementation surface and automated/manual test; mark it complete only after that test passes. The application is **not yet certified compliant with USR-01–USR-50**.
 
-The PDF adds these stories beyond the historical matrix:
+The audit below covers the current PDF at story level. “Partial” means some UI/local behavior exists but at least one acceptance criterion is not met or lacks verification. “Missing” means no usable implementation was found for the core workflow. Local unit tests do not establish remote security, deployment, provider delivery, or multi-user behavior.
 
-| Story | Requirement area | Current status |
+| Story | Status | Current evidence and outstanding acceptance gaps |
 |---|---|---|
-| USR-43 | Choose subscription recipient (self or family member) | Not yet re-audited against PDF criteria |
-| USR-44 | Enter separate family-member/meal-recipient details | Not yet re-audited against PDF criteria |
-| USR-45 | Edit meal-recipient details separately from user profile | Not yet re-audited against PDF criteria |
-| USR-46 | Show clearly who uses the app and who receives meals | Not yet re-audited against PDF criteria |
-| USR-47 | Delete account and associated recipient information | Not yet re-audited against PDF criteria |
-| USR-48 | User interface and accessibility requirements | Required shared palette applied; palette and primary/body-text contrast are covered by automated tests. Remaining layout, touch-target, state, and screen-reader criteria still need review. |
-| USR-49 | Numbered, accessible Terms and Conditions content | Nine required sections, version/date, section jump links, and Help-sourced contact details are implemented with automated content tests. Remote load-failure/retry behavior and full in-app source integration remain unverified. |
-| USR-50 | Record acceptance/decline and re-accept updated Terms and Conditions | Required agreement wording and decline controls are implemented. Versioned acceptance records, duplicate-safe audit writes, and blocking/re-acceptance after a published update remain outstanding. |
+| USR-01 | Partial | Local registration validates and hashes passwords and supports self/family onboarding; remote signup, separate recipient persistence, verified flow ordering, and remote terms acceptance are not wired end to end. |
+| USR-02 | Partial | Local lockout plus username-login Edge Function exist; fixed device key, deployment/secrets, verified-account enforcement, and backend integration/rate-limit tests remain gaps. |
+| USR-03 | Partial | Client session persistence/inactivity policy exists; remote password-reset revocation and cross-device/session expiry guarantees are unverified. |
+| USR-04 | Partial | Local reset lookup/code simulator exists; no SMS/email delivery provider or deployed reset request service. |
+| USR-05 | Partial | Local reset grant/hash flow exists; no remote password update or all-session revocation guarantee. |
+| USR-06 | Partial | Logout confirmation/local audit exist; durable remote logout audit and backend session revocation are unverified. |
+| USR-07 | Partial | Profile UI and remote profile reads exist; family recipient data is not modeled as a separate remote person and privacy/data-scope behavior is unverified. |
+| USR-08 | Partial | Local profile edits/verification and remote profile update exist; remote contact changes are not verify-before-save and durable history is missing. |
+| USR-09 | Partial | Health data has local/remote persistence, but the selectable condition list differs between screens/services and specified Dietitian access is not available under self-only RLS. |
+| USR-10 | Partial | Dietary restrictions persist locally/remotely; staff access and recipient-scoped remote storage are missing. |
+| USR-11 | Partial | Client allergen checks and a server order-RPC conflict check exist; nested/live catalog recommendation safety and staff scope are not comprehensively verified. |
+| USR-12 | Partial | Preference storage and local ranking exist; remote recipient separation and complete ranking behavior are unverified. |
+| USR-13 | Partial | Local filters and remote preference booleans exist; target persistence and complete remote filtering are missing. |
+| USR-14 | Partial | Local guardian management and remote guardian storage exist; family recipient relationship and required Admin access are not modeled by RLS. |
+| USR-15 | Partial | Terms text and local acceptance timestamp exist; accepted version/consent are not consistently persisted through remote registration/profile flows. |
+| USR-16 | Partial | Search/filter UI uses a bundled static catalog; live Admin catalog, availability, and complete combined-filter integration are not wired. |
+| USR-17 | Partial | Meal details use bundled meal objects; live catalog/components, availability, and consistent requirement pricing are not guaranteed. |
+| USR-18 | Partial | Local cart validation exists and the order RPC recomputes prices; server-side meal-slot/quantity/day limits, customization, and complete order rules are missing. |
+| USR-19 | Partial | Fulfillment/address/schedule collection and server validation exist; Admin-configured hours/fees and pickup operations details are not fully implemented. |
+| USR-20 | Partial | Idempotent order RPC exists; Dietitian review, payment state/provider, and paid-only Kitchen release workflow are absent. |
+| USR-21 | Partial | Client-scoped backend order reads/RLS exist; staff fulfillment and payment workflow integration is missing. |
+| USR-22 | Partial | Backend order detail/history reads exist; complete payment/customization data and integration verification are missing. |
+| USR-23 | Partial | Status display/Realtime exist; review/payment states and authorized staff transition workflow are missing. |
+| USR-24 | Partial | Order/notification Realtime subscriptions exist; status-triggered durable notifications, reconnect/offline coverage, and push delivery are not established. |
+| USR-25 | Partial | Local alerts/read state exist; the screen is not wired to the remote notifications table and Admin announcements/push delivery are missing. |
+| USR-26 | Partial | Shared palette/body/touch foundations and Help controls exist; Help reachability on every screen, minimum text sizing everywhere, large-text layouts, and screen-reader checks need verification. |
+| USR-27 | Partial | FAQ groups/search/expand and basic tests exist; required typo tolerance, exact-match ranking, and short-query behavior are not implemented. |
+| USR-28 | Partial | First-use guide/reopen UI exists; guide references are incomplete and viewed state is device-local rather than a durable per-user record. |
+| USR-29 | Missing | No user feedback form, persistence/API, or Admin review queue. |
+| USR-30 | Partial | Supabase OAuth flow and mock scenarios exist; real account type selection/persistence and deployed provider configuration are incomplete. |
+| USR-31 | Partial | Google profile completion UI/validation exists locally; remote completion/recipient persistence and ordering gate are missing. |
+| USR-32 | Partial | Username/password and username-login function exist; integrated remote reset and Google linking parity are missing. |
+| USR-33 | Partial | Local fixed-code simulator tests expiry/limits/replay; no hashed server issuance/verification or SMS/email provider delivery. |
+| USR-34 | Partial | Mock link flow handles validation/conflicts; real Supabase identity linking and provider-backed verification are absent. |
+| USR-35 | Partial | `getRecommendedMeals` filters local meals, limits results, and has tests for availability, conflicts, and empty results. Health/doctor restrictions and the mandatory Dietitian review-before-payment workflow are not comprehensively applied; client filtering is not clinical approval. |
+| USR-36 | Partial | Home has the required three shortcuts; no-active-order now includes Browse Meals and backend load errors are distinct from empty state. Cross-screen label consistency and navigation-level tests remain outstanding. |
+| USR-37 | Partial | Four Home/Meal/Orders/Account tabs and visitor Orders/Account gates exist; private-data and destination-restoration behavior lack end-to-end tests. |
+| USR-38 | Partial | Local history captures many old/new values and has integrity tests; allergy-note changes and remote profile/recipient history writers are missing. |
+| USR-39 | Partial | Local nutrition solver/recommendations exist; complete safety exclusions, doctor restrictions, and Dietitian approval are missing. |
+| USR-40 | Partial | Local bcrypt and Supabase Auth paths exist; remote reset/session revocation and database-level credential-storage evidence are missing. |
+| USR-41 | Partial | RLS protects several owner-scoped tables; separate recipient authorization, Dietitian role/scopes, and two-client deployed policy tests are missing. |
+| USR-42 | Partial | SQL hash-chain/audit functions exist and some auth/order events are recorded; profile/recipient/logout event coverage and deployed tamper tests are missing. |
+| USR-43 | Partial | Registration choice is local; screen now uses the specified descriptions, missing-choice message, and profile label. Google preselection/account persistence and Admin visibility remain missing remotely. |
+| USR-44 | Partial | Local family recipient fields/consent are validated and separate from user data; no remote recipient table/API or remote completion/order gate. |
+| USR-45 | Missing | No separate Edit meal recipient screen/save path, recipient-only update guarantee, or recipient-change history. |
+| USR-46 | Partial | Some local profile/order behavior uses recipient data; order summaries, warnings, and notifications do not consistently distinguish account user from meal recipient. |
+| USR-47 | Missing | No delete-account UI/service; reauthentication, in-progress order block, session revocation, retained-order anonymization, and deletion audit are absent. |
+| USR-48 | Partial | Palette/contrast/body/touch tests exist; sub-16px text, max-font responsive layout, and complete screen-reader coverage remain. |
+| USR-49 | Partial | Static numbered terms, version/date, links, and content tests exist; offline load/retry state and blocking acceptance until text loads are absent. |
+| USR-50 | Partial | Local acceptance timestamp and required checkbox/message exist; remote versioned immutable event, deduplication, save-failure handling, and update/reaccept session gate are absent. |
+
+These are not all criterion-level passes: stories remain Partial/Missing until each numbered criterion in the source PDF is mapped to a passing automated or documented manual test. The recommendation tests are local service tests; they do not prove the live Admin catalog, backend authorization, Dietitian decisions, or payment workflow.
 
 ## Dependency-aware implementation batches
 

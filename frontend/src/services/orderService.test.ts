@@ -79,6 +79,42 @@ test('recommendations explain the match in plain language', () => {
   assert.equal(result.items.some((row) => row.meal.name === 'Ampalaya Stir-fry'), false);
 });
 
+test('recommendations only include available suitable meals and respect the five-item limit', () => {
+  const profile = {
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts' }],
+  };
+  const meals = [
+    { id: 'safe-1', name: 'Safe 1', available: true, ingredients: ['Chicken'] },
+    { id: 'safe-2', name: 'Safe 2', available: true, ingredients: ['Fish'] },
+    { id: 'safe-3', name: 'Safe 3', available: true, ingredients: ['Rice'] },
+    { id: 'safe-4', name: 'Safe 4', available: true, ingredients: ['Beef'] },
+    { id: 'safe-5', name: 'Safe 5', available: true, ingredients: ['Vegetables'] },
+    { id: 'safe-6', name: 'Safe 6', available: true, ingredients: ['Pork'] },
+    { id: 'unavailable', name: 'Unavailable', available: false, ingredients: ['Chicken'] },
+    { id: 'unsafe', name: 'Unsafe', available: true, allergens: ['Peanuts'] },
+  ];
+
+  const result = getRecommendedMeals(meals, profile, 5);
+  assert.equal(result.items.length, 5);
+  assert.ok(result.items.every(({ meal }) => meal.available !== false));
+  assert.ok(result.items.every(({ meal }) => meal.id !== 'unsafe'));
+});
+
+test('recommendations show no conflicting meal when none pass suitability checks', () => {
+  const result = getRecommendedMeals([
+    { id: 'unsafe', name: 'Peanut meal', available: true, allergens: ['Peanuts'] },
+  ], {
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts' }],
+  });
+
+  assert.equal(result.none, true);
+  assert.deepEqual(result.items, []);
+});
+
 test('nutrition goals still suggest meals when a diet tag is not on the catalog', () => {
   const profile = {
     dietaryRestrictions: ['Low-sugar', 'Soft diet'],

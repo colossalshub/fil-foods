@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ScreenHeader from '../components/ScreenHeader';
 import AppButton from '../components/AppButton';
+import FormMessage from '../components/FormMessage';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { listClientOrders, refreshBackendOrdersForUser } from '../services/trackingService';
+import { listClientOrders, refreshBackendOrdersForUser, TRACKING_MSG } from '../services/trackingService';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { useMealProfile } from '../hooks/useMealProfile';
 import { MEALS } from '../data/meals';
@@ -163,6 +164,8 @@ export default function HomeScreen() {
     meals?: string;
     date?: string;
   }>>([]);
+  const [activeOrdersLoading, setActiveOrdersLoading] = useState(true);
+  const [activeOrdersError, setActiveOrdersError] = useState('');
   const { profile, loading: profileLoading } = useMealProfile(user);
   const recommendations = useMemo(
     () => getRecommendedMeals(MEALS, profile, 5),
@@ -189,16 +192,24 @@ export default function HomeScreen() {
       let active = true;
       if (!user?.id) {
         setActiveOrders([]);
+        setActiveOrdersLoading(false);
+        setActiveOrdersError('');
         return undefined;
       }
       if (isSupabaseConfigured) {
+        setActiveOrdersLoading(true);
+        setActiveOrdersError('');
         refreshBackendOrdersForUser(user.id)
           .then((orders) => {
             if (!active) return;
             setActiveOrders((orders || []).filter((order) => !order.terminal));
+            setActiveOrdersLoading(false);
           })
           .catch(() => {
-            if (active) setActiveOrders([]);
+            if (!active) return;
+            setActiveOrders([]);
+            setActiveOrdersError(TRACKING_MSG.unableRefresh);
+            setActiveOrdersLoading(false);
           });
         return () => {
           active = false;
@@ -206,6 +217,8 @@ export default function HomeScreen() {
       }
       const orders = listClientOrders(user.id);
       setActiveOrders(orders.filter((order) => !order.terminal));
+      setActiveOrdersLoading(false);
+      setActiveOrdersError('');
       return undefined;
     }, [user]),
   );
@@ -226,7 +239,10 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {activeOrders.length ? (
+        {activeOrdersError ? <FormMessage messages={[activeOrdersError]} tone="error" /> : null}
+        {activeOrdersLoading ? (
+          <ActivityIndicator color={colors.primary} style={styles.recLoading} />
+        ) : activeOrdersError ? null : activeOrders.length ? (
           activeOrders.map((order) => (
               <View key={order.id} style={[styles.orderCard, styles.orderAccent]}>
                 <View style={styles.orderTop}>
@@ -248,7 +264,15 @@ export default function HomeScreen() {
               </View>
           ))
         ) : (
-          <Text style={styles.noOrders}>You have no active orders</Text>
+          <View style={styles.orderCard}>
+            <Text style={styles.noOrders}>You have no active orders</Text>
+            <AppButton
+              title="Browse Meals"
+              onPress={() => navigation.navigate('Meals', { screen: 'MealsList' })}
+              color={colors.action}
+              style={styles.cardBtn}
+            />
+          </View>
         )}
 
         <View style={styles.sectionHeading}>

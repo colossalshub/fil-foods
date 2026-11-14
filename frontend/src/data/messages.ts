@@ -46,6 +46,7 @@ export const MSG = {
   noActiveOrders: 'You have no active orders',
   guestGate: 'Log in to continue',
   noGuardian: 'No guardian or family member added yet.',
+  registrationTypeRequired: 'Please choose Signing Up for Myself or Signing Up for a Family Member to continue.',
   allergyWarning: (allergen: string) => `This meal contains ${allergen}, which is listed in your profile.`,
   noExactCombo: 'No exact match is available. Here is the closest option.',
   notMedicalAdvice: "Suggestions are not medical advice. Follow your doctor or dietitian's guidance.",

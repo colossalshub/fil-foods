@@ -555,7 +555,9 @@ export default function ProfileScreen() {
         <FormMessage messages={toast} tone="ok" />
 
         <Section title="Meal subscription">
-          <Line label="For" value={profile.accountFor === 'family' ? 'A family member' : 'Myself'} />
+          <Text style={styles.body}>
+            Registered for: {profile.accountFor === 'family' ? 'Family Member' : 'Myself'}
+          </Text>
           {profile.accountFor === 'family' && profile.mealRecipient ? (
             <>
               <Line

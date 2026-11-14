@@ -83,7 +83,7 @@ export default function CreateAccountScreen({ navigation }: {
                   style={[styles.choice, accountFor === 'self' && styles.choiceSelected]}
                 >
                   <Text style={styles.choiceTitle}>Signing Up for Myself</Text>
-                  <Text style={styles.choiceDescription}>I will receive the meals.</Text>
+                  <Text style={styles.choiceDescription}>I will receive and consume the meals.</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="radio"
@@ -92,14 +92,14 @@ export default function CreateAccountScreen({ navigation }: {
                   style={[styles.choice, accountFor === 'family' && styles.choiceSelected]}
                 >
                   <Text style={styles.choiceTitle}>Signing Up for a Family Member</Text>
-                  <Text style={styles.choiceDescription}>I will manage meals for someone else.</Text>
+                  <Text style={styles.choiceDescription}>Ordering for a parent, senior relative, or loved one.</Text>
                 </Pressable>
                 {messages.length > 0 ? <FormMessage messages={messages} /> : null}
                 <AppButton
                   title="Continue"
                   onPress={() => {
                     if (!accountFor) {
-                      setMessages(['Choose who this meal subscription is for to continue.']);
+                      setMessages([MSG.registrationTypeRequired]);
                       return;
                     }
                     setMessages([]);
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   choice: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.md },
   choiceSelected: { borderColor: colors.primary, backgroundColor: colors.soft },
   choiceTitle: { color: colors.text, fontSize: font.body, fontWeight: '700' },
-  choiceDescription: { color: colors.muted, fontSize: font.sm, marginTop: spacing.xs },
+  choiceDescription: { color: colors.muted, fontSize: font.body, lineHeight: 24, marginTop: spacing.xs },
   fieldError: { fontSize: font.body, lineHeight: 22, color: colors.danger, marginBottom: spacing.md },
   action: { marginTop: spacing.sm },
   loginLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },

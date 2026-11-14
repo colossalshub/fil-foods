@@ -38,7 +38,14 @@ test('valid sample details are accepted and stay unverified', () => {
     email: 'maria.new@gmail.com',
     username: 'marias',
     password: 'Meal@2026',
-  }), db, { id: 'user-2', now: '2026-10-24T00:00:00.000Z' });
+  }), db, { id: 'user-2', now: '2026-10-24T00:00:00.000Z'   });
+
+  test('registration type validation uses the required user-story message', () => {
+    assert.equal(
+      MSG.registrationTypeRequired,
+      'Please choose Signing Up for Myself or Signing Up for a Family Member to continue.',
+    );
+  });
 
   assert.equal(result.ok, true);
   assert.equal(result.user.verified, false);
