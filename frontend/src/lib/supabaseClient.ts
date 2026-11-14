@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AuthTokenSession } from '../types';
+import type { AuthTokenSession } from '../user/types';
 import { accessTokenStillValid, jwtSubject, normalizeExpiresAt } from './authSession.js';
 
 type AuthGlobal = typeof globalThis & {

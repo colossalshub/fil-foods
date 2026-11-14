@@ -1,0 +1,324 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { getDb, resetStore } from '../data/mockStore.js';
+import { MEALS } from '../data/meals.js';
+import { ROLES } from './securityService.js';
+import {
+  ORDER_MSG,
+  __testResetConfirmState,
+  applyMealFilters,
+  calculateTotals,
+  confirmOrder,
+  formatPhp,
+  fuzzySearchMeals,
+  getKitchenOrderView,
+  getRecommendedMeals,
+  parseQuantityInput,
+  profileAllergensInMeal,
+  validateSchedule,
+} from './orderService.js';
+import { NUTRITION_MSG, solveNutritionPlan } from './nutritionService.js';
+import { combineSchedule, dateFromIsoDay, timeFromClock } from '../components/scheduleValue.js';
+
+const SAMPLE_NOW = new Date('2026-10-12T09:00:00');
+
+test('formatPhp uses the specification currency format', () => {
+  assert.equal(formatPhp(240), 'PHP 240.00');
+  assert.equal(formatPhp(Number.NaN), 'PHP 0.00');
+});
+
+test('meal allergen warning names the meal recipient on family accounts (USR-46)', () => {
+  assert.equal(
+    ORDER_MSG.mealAllergen('Peanuts', 'Lia Dizon'),
+    "This meal contains Peanuts, which is listed in Lia Dizon's profile.",
+  );
+  assert.equal(
+    ORDER_MSG.mealAllergen('Peanuts', null),
+    'This meal contains Peanuts, which is listed in your profile.',
+  );
+});
+
+test('fuzzy search ranks Chicken Tinola for common typos and partial names', () => {
+  const tinola = MEALS.find((m) => m.name === 'Chicken Tinola');
+  assert.ok(tinola);
+
+  for (const query of ['Chiken Tinola', 'tinula', 'CHICKEN']) {
+    const results = fuzzySearchMeals(MEALS, query);
+    assert.ok(results.length > 0, query);
+    assert.equal(results[0].name, 'Chicken Tinola', query);
+  }
+
+  for (const query of ['Pizzaa', 'xyz123']) {
+    const results = fuzzySearchMeals(MEALS, query);
+    assert.equal(results.length, 0, query);
+  }
+});
+
+test('search finds catalog text and filters soup, low-sodium, and peanut-free meals', () => {
+  assert.equal(ORDER_MSG.noMeals, 'No meals found.');
+  const papaya = fuzzySearchMeals(MEALS, 'Papaya');
+  assert.equal(papaya[0].name, 'Chicken Tinola');
+
+  const soup = applyMealFilters(MEALS, { category: 'Soup', diets: ['Low-sodium'], excludeAllergens: ['Peanuts'] });
+  assert.ok(soup.some((meal) => meal.name === 'Chicken Tinola'));
+  assert.equal(soup.some((meal) => meal.name === 'Chicken Satay'), false);
+
+  const sauceOnly = {
+    id: 'sauce',
+    name: 'Peanut Bowl',
+    allergens: [],
+    ingredients: ['Peanut sauce'],
+    category: 'Lunch',
+    diets: [],
+    dietaryTags: [],
+    mealCategories: [],
+  };
+  const hidden = applyMealFilters([sauceOnly], { excludeAllergens: ['Peanuts'] });
+  assert.equal(hidden.length, 0);
+});
+
+test('recommendations explain the match in plain language', () => {
+  const profile = {
+    mealPreferences: { preferredCategories: ['Soup'], dislikedIngredients: ['Ampalaya'] },
+    dietaryRestrictions: ['Low-sodium'],
+    allergies: [{ name: 'Peanuts' }],
+  };
+  const result = getRecommendedMeals(MEALS, profile, 5);
+  const tinola = result.items.find((row) => row.meal.name === 'Chicken Tinola');
+  assert.equal(tinola.reason, 'Matches your preference for soup');
+  assert.equal(result.items.some((row) => row.meal.name === 'Chicken Satay'), false);
+  assert.equal(result.items.some((row) => row.meal.name === 'Ampalaya Stir-fry'), false);
+});
+
+test('recommendations only include available suitable meals and respect the five-item limit', () => {
+  const profile = {
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts' }],
+  };
+  const meals = [
+    { id: 'safe-1', name: 'Safe 1', available: true, ingredients: ['Chicken'] },
+    { id: 'safe-2', name: 'Safe 2', available: true, ingredients: ['Fish'] },
+    { id: 'safe-3', name: 'Safe 3', available: true, ingredients: ['Rice'] },
+    { id: 'safe-4', name: 'Safe 4', available: true, ingredients: ['Beef'] },
+    { id: 'safe-5', name: 'Safe 5', available: true, ingredients: ['Vegetables'] },
+    { id: 'safe-6', name: 'Safe 6', available: true, ingredients: ['Pork'] },
+    { id: 'unavailable', name: 'Unavailable', available: false, ingredients: ['Chicken'] },
+    { id: 'unsafe', name: 'Unsafe', available: true, allergens: ['Peanuts'] },
+  ];
+
+  const result = getRecommendedMeals(meals, profile, 5);
+  assert.equal(result.items.length, 5);
+  assert.ok(result.items.every(({ meal }) => meal.available !== false));
+  assert.ok(result.items.every(({ meal }) => meal.id !== 'unsafe'));
+});
+
+test('recommendations show no conflicting meal when none pass suitability checks', () => {
+  const result = getRecommendedMeals([
+    { id: 'unsafe', name: 'Peanut meal', available: true, allergens: ['Peanuts'] },
+  ], {
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts' }],
+  });
+
+  assert.equal(result.none, true);
+  assert.deepEqual(result.items, []);
+});
+
+test('nutrition goals still suggest meals when a diet tag is not on the catalog', () => {
+  const profile = {
+    dietaryRestrictions: ['Low-sugar', 'Soft diet'],
+    nutritionalPreferences: ['lower-calories', 'higher-protein'],
+    allergies: [{ name: 'Peanuts' }],
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+  };
+  const result = getRecommendedMeals(MEALS, profile, 5);
+  assert.equal(result.emptyProfile, false);
+  assert.equal(result.none, false);
+  assert.ok(result.items.length > 0);
+  assert.equal(result.items.some((row) => row.meal.name === 'Chicken Satay'), false);
+  assert.ok(result.items.some((row) => /calories|protein/i.test(row.reason)));
+});
+
+test('nutrition solver keeps an exact day and reports the closest set when targets cannot be met', () => {
+  const exact = solveNutritionPlan([
+    { id: 'breakfast', category: 'Breakfast', calories: 400, protein: 25, fat: 10 },
+    { id: 'lunch', category: 'Lunch', calories: 600, protein: 40, fat: 15 },
+    { id: 'dinner', category: 'Dinner', calories: 700, protein: 55, fat: 20 },
+  ], { calories: 1800, protein: 120, fat: 50 });
+  assert.equal(exact.ok, true);
+  assert.equal(exact.exactMatch, true);
+
+  const closest = solveNutritionPlan([
+    { id: 'breakfast', category: 'Breakfast', calories: 900, protein: 20, fat: 40 },
+    { id: 'lunch', category: 'Lunch', calories: 900, protein: 20, fat: 40 },
+    { id: 'dinner', category: 'Dinner', calories: 900, protein: 20, fat: 40 },
+  ], { calories: 1800, protein: 120, fat: 50 });
+  assert.equal(closest.ok, false);
+  assert.equal(closest.exactMatch, false);
+  assert.equal(closest.meals.length, 3);
+  assert.match(closest.reason, /No exact match/);
+  assert.equal(NUTRITION_MSG.noExact.includes('No exact match'), true);
+});
+
+test('kitchen staff can read health details on an order and a client cannot', () => {
+  resetStore();
+  __testResetConfirmState();
+  const meal = MEALS.find((m) => m.name === 'Chicken Tinola');
+  const placed = confirmOrder('user-maria', {
+    items: [{ meal, quantity: 1 }],
+    fulfillment: { type: 'pickup', scheduledAt: new Date('2026-10-13T10:00:00'), instructions: '' },
+    now: SAMPLE_NOW,
+  });
+  assert.equal(placed.ok, true);
+  assert.throws(
+    () => getKitchenOrderView({ id: 'user-maria', roleMask: ROLES.CLIENT }, placed.order.id),
+    { code: 'FORBIDDEN' },
+  );
+  const staffView = getKitchenOrderView({ id: 'staff-1', roleMask: ROLES.STAFF }, placed.order.id);
+  assert.ok(staffView.healthConditions.includes('Hypertension'));
+  assert.equal(staffView.allergies[0].name, 'Peanuts');
+});
+
+test('profileAllergensInMeal detects peanut sauce without allergen tag', () => {
+  const meal = {
+    id: 'test-satay',
+    name: 'Chicken Satay',
+    allergens: [],
+    ingredients: ['Chicken', 'Peanut sauce'],
+  };
+  const hits = profileAllergensInMeal(meal, { allergies: [{ name: 'Peanuts' }] });
+  assert.deepEqual(hits, ['Peanuts']);
+});
+
+test('parseQuantityInput rejects zero, negative, decimal, and non-numeric values', () => {
+  assert.equal(parseQuantityInput(0).ok, false);
+  assert.equal(parseQuantityInput(-1).ok, false);
+  assert.equal(parseQuantityInput('1.5').ok, false);
+  assert.equal(parseQuantityInput('abc').ok, false);
+  assert.equal(parseQuantityInput('2').ok, true);
+  assert.equal(parseQuantityInput('2').value, 2);
+  assert.equal(parseQuantityInput(0).message, ORDER_MSG.quantityInvalid);
+});
+
+test('combineSchedule keeps the chosen calendar day and clock time', () => {
+  const combined = combineSchedule(dateFromIsoDay('2026-11-02'), timeFromClock('10:30'));
+  assert.equal(combined.getFullYear(), 2026);
+  assert.equal(combined.getMonth(), 10);
+  assert.equal(combined.getDate(), 2);
+  assert.equal(combined.getHours(), 10);
+  assert.equal(combined.getMinutes(), 30);
+  assert.equal(combineSchedule(null, timeFromClock('10:00')), '');
+});
+
+test('validateSchedule rejects a year or date without a time', () => {
+  assert.equal(validateSchedule('2027', SAMPLE_NOW).ok, false);
+  assert.equal(validateSchedule('2027', SAMPLE_NOW).message, ORDER_MSG.scheduleInvalid);
+  assert.equal(validateSchedule('2026-10-13', SAMPLE_NOW).message, ORDER_MSG.scheduleInvalid);
+  assert.equal(validateSchedule('2026-10-13T10:00:00', SAMPLE_NOW).ok, true);
+});
+
+test('validateSchedule enforces lead time and kitchen hours', () => {
+  const sameDay = validateSchedule(new Date('2026-10-12T12:00:00'), SAMPLE_NOW);
+  assert.equal(sameDay.ok, false);
+  assert.equal(sameDay.message, ORDER_MSG.scheduleLead);
+
+  const nextDay = validateSchedule(new Date('2026-10-13T09:00:00'), SAMPLE_NOW);
+  assert.equal(nextDay.ok, true);
+
+  const early = validateSchedule(new Date('2026-10-13T06:00:00'), SAMPLE_NOW);
+  assert.equal(early.ok, false);
+  assert.equal(early.message, ORDER_MSG.kitchenClosed);
+
+  const late = validateSchedule(new Date('2026-10-13T19:00:00'), SAMPLE_NOW);
+  assert.equal(late.ok, false);
+  assert.equal(late.message, ORDER_MSG.kitchenClosed);
+
+  const sunday = validateSchedule(new Date('2026-10-18T10:00:00'), SAMPLE_NOW);
+  assert.equal(sunday.ok, false);
+  assert.equal(sunday.message, ORDER_MSG.kitchenClosed);
+});
+
+test('calculateTotals applies active plan discount rate', () => {
+  const meal = MEALS.find((m) => m.name === 'Chicken Tinola');
+  const lines = [{ meal, quantity: 2 }];
+  const plain = calculateTotals(lines, {});
+  assert.equal(plain.subtotal, 600);
+  assert.equal(plain.discountAmount, 0);
+  assert.equal(plain.total, 600);
+
+  const discounted = calculateTotals(lines, { plan: { status: 'active', discountRate: 0.1 } });
+  assert.equal(discounted.discountRate, 0.1);
+  assert.equal(discounted.discountAmount, 60);
+  assert.equal(discounted.total, 540);
+});
+
+test('confirmOrder is idempotent for the same cart and fulfillment', () => {
+  resetStore();
+  __testResetConfirmState();
+  const meal = MEALS.find((m) => m.name === 'Chicken Tinola');
+  const payload = {
+    items: [{ meal, quantity: 1 }],
+    fulfillment: {
+      type: 'pickup',
+      scheduledAt: new Date('2026-10-13T10:00:00'),
+      instructions: '',
+    },
+    now: SAMPLE_NOW,
+    allergenAcknowledged: false,
+  };
+
+  const first = confirmOrder('user-maria', payload);
+  assert.equal(first.ok, true);
+  assert.match(first.order.trackingNumber, /^TRK-2026-\d{4}$/);
+  assert.equal(first.order.status, 'For Dietitian Review');
+  assert.equal(first.message, ORDER_MSG.orderSuccess);
+
+  const countAfter = getDb().orders.length;
+  const second = confirmOrder('user-maria', payload);
+  assert.equal(second.ok, true);
+  assert.equal(second.order.trackingNumber, first.order.trackingNumber);
+  assert.equal(getDb().orders.length, countAfter);
+});
+
+test('family recipient allergies are used for order warnings and the kitchen record', () => {
+  resetStore();
+  __testResetConfirmState();
+  const user = getDb().users.find((item) => item.id === 'user-maria');
+  user.accountFor = 'family';
+  user.mealRecipient = {
+    id: 'recipient-lia',
+    firstName: 'Lia',
+    lastName: 'Santos',
+    relationship: 'Child',
+    deliveryAddress: '8 Sampaguita St.',
+    healthConditions: ['Diabetes'],
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts', note: 'Rash' }],
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    nutritionalPreference: null,
+    nutritionalPreferences: [],
+    nutritionTargets: {},
+  };
+  const satay = MEALS.find((meal) => meal.name === 'Chicken Satay');
+  const payload = {
+    items: [{ meal: satay, quantity: 1 }],
+    fulfillment: {
+      type: 'pickup',
+      scheduledAt: new Date('2026-10-13T10:00:00'),
+      instructions: '',
+    },
+    now: SAMPLE_NOW,
+    allergenAcknowledged: false,
+  };
+
+  const blocked = confirmOrder(user.id, payload);
+  assert.equal(blocked.needsAcknowledgement, true);
+  assert.match(blocked.messages[0], /Peanuts/);
+
+  const placed = confirmOrder(user.id, { ...payload, allergenAcknowledged: true });
+  assert.equal(placed.ok, true);
+  assert.deepEqual(placed.order.kitchenView.allergies, [{ name: 'Peanuts', note: 'Rash' }]);
+  assert.deepEqual(placed.order.kitchenView.healthConditions, ['Diabetes']);
+});

@@ -1,4 +1,4 @@
-import type { AuthTokenSession } from '../types';
+import type { AuthTokenSession } from '../user/types';
 
 // The order screen can still show a signed-in user after the Supabase client
 // has dropped its stored session. Checkout keeps the access token from login

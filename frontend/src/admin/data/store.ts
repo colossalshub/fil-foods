@@ -1,5 +1,5 @@
-import type { AppDatabase, AuditEvent } from '../../types';
-import { appendAuditEvent, comparePasswordSync, hashPasswordSync, verifyAuditChain } from '../../services/securityService.js';
+import type { AppDatabase, AuditEvent } from '../../user/types';
+import { appendAuditEvent, comparePasswordSync, hashPasswordSync, verifyAuditChain } from '../../user/services/securityService.js';
 import { COPY, DEMO_PASSWORD } from '../copy.js';
 import { formatWhen, isValidEmail, parsePrice, peso, splitList } from '../domain/format.js';
 import { searchOrders } from '../domain/search.js';
