@@ -1,0 +1,19 @@
+---
+description: Follow all User 5 meal service module specs (USR, ADM, DIT, KIT, DEL)
+alwaysApply: true
+---
+
+# Meal service specifications
+
+Source of truth: [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md) and the per-role indexes under `docs/specs/`. Canonical PDFs and verbatim handoffs live beside each index in `docs/specs/` and `.github/`.
+
+- **User (client):** USR-01–USR-50 — [`docs/specs/user-module.md`](docs/specs/user-module.md), traceability [`docs/implementation-traceability.md`](docs/implementation-traceability.md).
+- **Admin:** ADM-01–ADM-21 — [`docs/specs/admin-module.md`](docs/specs/admin-module.md).
+- **Dietitian:** DIT-01–DIT-17 — [`docs/specs/dietitian-module.md`](docs/specs/dietitian-module.md).
+- **Kitchen:** KIT-01–KIT-15 — [`docs/specs/kitchen-module.md`](docs/specs/kitchen-module.md).
+- **Delivery:** DEL-01–DEL-17 — [`docs/specs/delivery-module.md`](docs/specs/delivery-module.md).
+- **Staff traceability:** [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md).
+
+Implement stories as written in the PDF transcriptions. Preserve quoted UI strings in `frontend/src/data/messages.ts` (and staff equivalents under `frontend/src/admin` where present). Keep **user** (account holder) separate from **meal recipient**. When a User story references Admin, Dietitian, Kitchen, or Delivery behavior, implement or explicitly block on the linked staff story — see the cross-module chain in [`docs/specs/user-module.md`](docs/specs/user-module.md) and [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
+
+Spreadsheet Passed / Failed / Total rows are not requirements. Do not mark a story complete without criterion-level verification in the appropriate traceability doc.

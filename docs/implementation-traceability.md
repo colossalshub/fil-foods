@@ -2,6 +2,8 @@
 
 Source of truth: [User Module specification](./specs/user-module.md) ([canonical PDF](./specs/FIL_Foods_User_Module.pdf), [verbatim transcription](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md)). Current stories are **USR-01 through USR-50**.
 
+Staff modules (Admin, Dietitian, Kitchen, Delivery) are indexed in [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). Staff story traceability lives in [`implementation-traceability-staff.md`](./implementation-traceability-staff.md). When a User story depends on staff behavior (menu, Dietitian review, kitchen/delivery status, audit), map the matching **ADM / DIT / KIT / DEL** story before marking the User criterion complete.
+
 The User 5 PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
 
 ## Historical baseline audit
@@ -52,7 +54,7 @@ Status values in this historical table: **Partial** means a local prototype exis
 | USR-25 Notifications | Local notifications/announcements and read state | Durable notification transaction/trigger, confirmed/status/cancelled/issue events, realtime delivery target | Trigger, unread/read persistence and announcement tests | Partial / Blocked by backend |
 | USR-26 Help/accessibility | `HelpScreen`, help data, guide, shared `HelpButton` | Put labeled Help control on every auth/main screen, remove icon-only header use, exact 16px/200% checks | Screen reachability and accessibility snapshot/manual checklist | Partial |
 | USR-27 FAQ | FAQ groups/search/expand in `HelpScreen` | Preserve exact content and empty message; expose through Account/relevant screens | Group/search/toggle tests (partially present) | Partial |
-| USR-28 Navigation guide | `AppGuidePanel`, `HelpGuideGate` | Include Help step and labeled screen references; first-login persistence server/device-safe | First-login/reopen/reference tests | Partial |
+| USR-28 Navigation guide | `AppGuideExperience`, `GuideReplayList`, `HelpGuideGate`, `HelpScreen` | First-login welcome + step flow matches Figma; reopen from Help; server-side viewed state still pending | `helpContent.test.ts`, first-login/reopen/manual | Partial |
 | USR-29 Contact | Static `helpContent` and `Linking` | Admin-configured settings API for phone/email/hours; robust dialer error handling | Settings override and link tests | Partial / Blocked by backend |
 | USR-30 Google sign-in | Mock `googleAuthService` and demo outcome picker | Replace demo with Expo-compatible OAuth/provider integration, verified identity, picker/cancel/error/inactive handling | Provider adapter contract and no-duplicate tests | Partial / Blocked by provider |
 | USR-31 Google profile completion | `CompleteProfileScreen`, local completion | Persist contact/terms/consent, block ordering until complete, duplicate contact transaction | Completion/relogin/order-gate tests | Partial |
@@ -103,7 +105,7 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-25 | Partial | Local alerts/read state exist; the screen is not wired to the remote notifications table and Admin announcements/push delivery are missing. |
 | USR-26 | Partial | Shared palette/body/touch foundations and Help controls exist; Help reachability on every screen, minimum text sizing everywhere, large-text layouts, and screen-reader checks need verification. |
 | USR-27 | Partial | FAQ search ignores case and extra spaces, ranks an exact match first, allows the specified typo budget, and leaves a one-character query unfiltered. |
-| USR-28 | Partial | First-use guide/reopen UI exists; guide references are incomplete and viewed state is device-local rather than a durable per-user record. |
+| USR-28 | Partial | Figma welcome, stepped tour, and Help replay list cover menu, order, tracking, profile, and help with labeled screen references; viewed state remains device-local. |
 | USR-29 | Partial | Signed-in Help has a comments field, rejects an empty comment, and stores the comment locally. Admin review of submitted feedback is still an Admin-module gap. |
 | USR-30 | Partial | Supabase OAuth flow and mock scenarios exist; real account type selection/persistence and deployed provider configuration are incomplete. |
 | USR-31 | Partial | Google profile completion UI/validation exists locally; remote completion/recipient persistence and ordering gate are missing. |
@@ -142,8 +144,10 @@ These are not all criterion-level passes: stories remain Partial/Missing until e
 
 ## Blockers requiring configuration, not invented behavior
 
-- Supabase project URL/anon key and deployment environment are not present.
-- SMS, email, Google OAuth, and Admin-configured settings providers are not present.
-- The specification requires Admin/Kitchen/Delivery behavior for authorization and status simulation, but no staff API exists.
+Checked against `frontend/.env` and the running Expo process on 2026-11-14. Values are not recorded here.
+
+- `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set. Expo loads them, Auth health returns 200, and the anon key can see `meals`, `profiles`, `orders`, and `notifications`. Those reads currently return no rows. `menu_items` and `staff` are not tables in this project.
+- SMS and email providers are still not configured. Google OAuth is a Supabase Auth provider setting, not an app environment variable. The client secret must stay in the Supabase dashboard.
+- The in-app Admin console (`frontend/src/admin`) has Admin, Dietitian, Kitchen, and Delivery roles, but it keeps its own local order list. It does not read or update the user app's Supabase orders. Its statuses are Pending, Preparing, Delivered, and Cancelled. The database roles are `client`, `owner_admin`, `kitchen_staff`, and `delivery_staff`, with no Dietitian role.
 - The specification says Expo Router in project guidance while the current app uses React Navigation. This plan preserves the existing navigation until the migration is implemented deliberately; no mixed routing architecture should be introduced.
 - Existing plan/biometric/demo behavior is outside USR-01–USR-50. It will not be used to satisfy stories; removal or retention must be decided when the corresponding UI surfaces are refactored.

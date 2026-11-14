@@ -2,7 +2,7 @@
 
 **Authority:** `FIL_Foods_User_5.xlsx` User Module (61 pages). Canonical copy: [`FIL_Foods_User_Module.pdf`](./FIL_Foods_User_Module.pdf).
 
-This document is the working index. Verbatim page transcription: [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](../../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md). Implementation status: [`docs/implementation-traceability.md`](../implementation-traceability.md).
+This document is the working index. Verbatim page transcription: [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](../../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). User implementation status: [`docs/implementation-traceability.md`](../implementation-traceability.md). Staff modules: [`implementation-traceability-staff.md`](../implementation-traceability-staff.md).
 
 Do not implement against the retired USR-01–USR-42 handoff. Unresolved conflicts with other modules (Admin, Dietitian, Kitchen, Delivery) must be recorded, not silently reinterpreted. Spreadsheet Passed / Failed / Total rows are test status, not features.
 

@@ -1,6 +1,6 @@
 # User Module Requirements - USR-01 through USR-50
 
-**Source:** [`docs/specs/FIL_Foods_User_Module.pdf`](../docs/specs/FIL_Foods_User_Module.pdf) (`FIL_Foods_User_5.xlsx` User Module, 61 pages). Story index: [`docs/specs/user-module.md`](../docs/specs/user-module.md).
+**Source:** [`docs/specs/FIL_Foods_User_Module.pdf`](../docs/specs/FIL_Foods_User_Module.pdf) (`FIL_Foods_User_5.xlsx` User Module, 61 pages). Story index: [`docs/specs/user-module.md`](../docs/specs/user-module.md). All modules: [`docs/specs/meal-service-modules.md`](../docs/specs/meal-service-modules.md).
 **Authority:** This PDF is the current User Module specification. It supersedes the former USR-01–USR-42 handoff. Requirements and acceptance criteria must be followed as written; unresolved conflicts must be recorded, not silently reinterpreted.
 
 ## Implementation instructions

@@ -12,12 +12,12 @@ Repository: https://github.com/colossalshub/fil-foods
 |---|---|
 | `frontend/` | The Expo app (React Native and web) |
 | `supabase/` | Database schema, row-level security, audit chain, and the username login function |
-| `docs/` | Draft privacy policy, terms, security checklist, and the user-story traceability notes |
-| `docs/specs/` | Current User Module specification (USR-01–USR-50) |
+| `docs/` | Privacy policy, terms, security checklist, and traceability notes |
+| `docs/specs/` | User + staff module specs (USR, ADM, DIT, KIT, DEL) and [`meal-service-modules.md`](docs/specs/meal-service-modules.md) |
 
 When `frontend/.env` is missing, the app runs on local sample data. The server schema is in `supabase/`.
 
-Client requirements are **USR-01 through USR-50** in [`docs/specs/user-module.md`](docs/specs/user-module.md) (PDF: [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf)). That module replaced the older 42-story user handoff. Implementation status is in [`docs/implementation-traceability.md`](docs/implementation-traceability.md).
+Client requirements are **USR-01 through USR-50** in [`docs/specs/user-module.md`](docs/specs/user-module.md) (PDF: [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf)). Staff requirements are **ADM-01–ADM-21**, **DIT-01–DIT-17**, **KIT-01–KIT-15**, and **DEL-01–DEL-17** in [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md). Implementation status: User [`docs/implementation-traceability.md`](docs/implementation-traceability.md); staff [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md).
 
 ## What the app already does
 

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # User Module spec
 
-Source of truth: [`docs/specs/user-module.md`](docs/specs/user-module.md), the PDF [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf), and the verbatim transcription [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](.github/Meal_Service_User_Stories_AI_Agent_Handoff.md).
+Source of truth: [`docs/specs/user-module.md`](docs/specs/user-module.md), the PDF [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf), the verbatim transcription [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](.github/Meal_Service_User_Stories_AI_Agent_Handoff.md), and the full module map [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
 
 - Implement USR-01 through USR-50 as written. Do not use the retired USR-01–USR-42 handoff.
 - Preserve quoted UI strings, validation messages, screen labels, and story IDs. Put quoted strings in `frontend/src/data/messages.ts` instead of paraphrasing.

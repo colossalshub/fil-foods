@@ -1,6 +1,6 @@
 # Supabase backend
 
-The migration in [`migrations/20261030131000_initial_schema.sql`](./migrations/20261030131000_initial_schema.sql) creates the client-facing schema, role model, RLS policies, audit chain, order status validation, and atomic `place_order` RPC used by the User Module (USR-01–USR-50). Recipient tables, Dietitian/payment workflow, feedback, and account deletion from the current spec are not fully covered by this migration. The story index is [`docs/specs/user-module.md`](../docs/specs/user-module.md).
+The migration in [`migrations/20261030131000_initial_schema.sql`](./migrations/20261030131000_initial_schema.sql) creates the client-facing schema, role model, RLS policies, audit chain, order status validation, and atomic `place_order` RPC used by the User Module (USR-01–USR-50). Staff modules (ADM, DIT, KIT, DEL) in [`docs/specs/meal-service-modules.md`](../docs/specs/meal-service-modules.md) require additional schema work (Dietitian role, shared order workflow, staff auth). Recipient tables, Dietitian/payment workflow, feedback, and account deletion from the current spec are not fully covered by this migration. Story indexes: User [`docs/specs/user-module.md`](../docs/specs/user-module.md); staff [`docs/implementation-traceability-staff.md`](../docs/implementation-traceability-staff.md).
 
 Apply it with the Supabase CLI:
 
