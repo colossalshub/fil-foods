@@ -554,6 +554,28 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormMessage messages={toast} tone="ok" />
 
+        <Section title="Meal subscription">
+          <Line label="For" value={profile.accountFor === 'family' ? 'A family member' : 'Myself'} />
+          {profile.accountFor === 'family' && profile.mealRecipient ? (
+            <>
+              <Line
+                label="Meal recipient"
+                value={[
+                  profile.mealRecipient.firstName,
+                  profile.mealRecipient.middleName,
+                  profile.mealRecipient.lastName,
+                  profile.mealRecipient.suffix,
+                ].filter((part) => part && String(part).trim()).join(' ')}
+              />
+              <Line label="Relationship" value={profile.mealRecipient.relationship} />
+              {profile.mealRecipient.contactNumber ? (
+                <Line label="Recipient contact" value={profile.mealRecipient.contactNumber} />
+              ) : null}
+              <Line label="Delivery address" value={profile.mealRecipient.deliveryAddress} />
+            </>
+          ) : null}
+        </Section>
+
         <Section title="Personal information" onEdit={openPersonal}>
           <Line label="Name" value={fullName(profile)} />
           <Line label="Contact" value={profile.contactNumber} />

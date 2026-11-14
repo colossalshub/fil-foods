@@ -20,6 +20,25 @@ export interface Guardian {
   contactNumber: string;
 }
 
+export interface MealRecipientProfile {
+  id: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  suffix?: string;
+  contactNumber?: string;
+  relationship: string;
+  deliveryAddress: string;
+  consentAt?: string;
+  healthConditions: string[];
+  dietaryRestrictions: string[];
+  allergies: Allergy[];
+  mealPreferences: MealPreferences;
+  nutritionalPreference: string | null;
+  nutritionalPreferences: string[];
+  nutritionTargets: NutritionTargets;
+}
+
 export interface AuthEvent {
   type: string;
   at: string;
@@ -37,6 +56,8 @@ export interface ProfileHistoryEntry {
   newValue?: string;
   formatted?: string;
 }
+
+export type AccountFor = 'self' | 'family';
 
 export interface PendingContactChange {
   contactNumber: string | null;
@@ -75,7 +96,8 @@ export interface PublicPlan {
 
 export interface User {
   id: string;
-  accountFor?: string;
+  accountFor?: AccountFor;
+  mealRecipient?: MealRecipientProfile;
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -117,6 +139,8 @@ export interface User {
 export interface AuthUser {
   id?: string;
   role?: string;
+  accountFor?: AccountFor;
+  mealRecipient?: MealRecipientProfile;
   firstName?: string;
   middleName?: string;
   lastName?: string;
@@ -128,6 +152,7 @@ export interface AuthUser {
   profileComplete?: boolean;
   inactive?: boolean;
   termsAcceptedAt?: string | null;
+  address?: string;
   plan?: PublicPlan | null;
   biometricUnlock?: { enabled: boolean };
   first_name?: string;
@@ -141,6 +166,8 @@ export interface AuthUser {
 
 export interface PublicUser {
   id: string;
+  accountFor?: AccountFor;
+  mealRecipient?: MealRecipientProfile;
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -183,6 +210,7 @@ export interface Meal {
 }
 
 export interface MealMatchProfile {
+  healthConditions?: string[];
   dietaryRestrictions?: string[];
   allergies?: Allergy[];
   mealPreferences?: {
@@ -196,6 +224,8 @@ export interface MealMatchProfile {
 
 export interface Profile {
   id: string;
+  accountFor?: AccountFor;
+  mealRecipient?: MealRecipientProfile;
   firstName: string;
   middleName: string;
   lastName: string;
@@ -442,14 +472,35 @@ export interface ServiceResult {
 }
 
 export interface RegistrationInput {
+  accountFor?: AccountFor;
   firstName?: string;
   middleName?: string;
   lastName?: string;
   suffix?: string;
   contactNumber?: string;
+  address?: string;
   email?: string;
   username?: string;
   password?: string;
+  acceptedTerms?: boolean;
+}
+
+export interface OnboardingInput {
+  personal?: PersonalInfoInput;
+  recipient?: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    suffix?: string;
+    contactNumber?: string;
+    relationship?: string;
+    relationshipOther?: string;
+    deliveryAddress?: string;
+    consentConfirmed?: boolean;
+  };
+  allergies?: Allergy[];
+  healthConditions?: string[];
+  dietaryRestrictions?: string[];
   acceptedTerms?: boolean;
 }
 

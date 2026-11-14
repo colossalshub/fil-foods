@@ -1,7 +1,7 @@
 // Mocked Google sign-in. There is no Google SDK. Pick an outcome in dev to demo each branch.
 // A real backend still must not store a password for these accounts.
 
-import type { GoogleProfile, User } from '../types';
+import type { AccountFor, GoogleProfile, User } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { MSG } from '../data/messages.js';
 import { recordLogin } from './authService.js';
@@ -58,9 +58,9 @@ function scenarioProfile(outcome: string): GoogleProfile | null {
   return null;
 }
 
-function createGoogleUser(profile: GoogleProfile, accountFor: string | undefined): User {
+function createGoogleUser(profile: GoogleProfile, accountFor: AccountFor | undefined): User {
   const createdAt = stamp();
-  const user = {
+  const user: User = {
     id: nextId('user'),
     accountFor: accountFor === 'family' ? 'family' : 'self',
     firstName: profile.firstName,
@@ -86,7 +86,7 @@ function createGoogleUser(profile: GoogleProfile, accountFor: string | undefined
   return user;
 }
 
-export function resolveGoogleProfile(profile: GoogleProfile | null | undefined, accountFor?: string) {
+export function resolveGoogleProfile(profile: GoogleProfile | null | undefined, accountFor?: AccountFor) {
   if (!profile?.email || !profile?.firstName || !profile?.lastName) {
     return { ok: false, message: MSG.googleNeedsName };
   }
@@ -121,7 +121,7 @@ export async function continueWithGoogle({
 }: {
   outcome: string;
   profile?: GoogleProfile | null;
-  accountFor?: string;
+  accountFor?: AccountFor;
 }) {
   await new Promise((resolve) => setTimeout(resolve, 350));
 

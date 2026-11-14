@@ -39,6 +39,8 @@ export function validateRegistration(input: RegistrationInput, users: User[] = [
   const email = trim(input.email);
   const username = trim(input.username);
   const password = String(input.password ?? '');
+  const accountFor = input.accountFor;
+  const address = trim(input.address);
   const messages: string[] = [];
   const fields: FieldMap = {};
 
@@ -82,6 +84,11 @@ export function validateRegistration(input: RegistrationInput, users: User[] = [
     fields.password = MSG.shortPassword;
   }
 
+  if (accountFor === 'self' && !address) {
+    pushOnce(messages, MSG.required);
+    fields.address = MSG.required;
+  }
+
   if (!input.acceptedTerms) {
     pushOnce(messages, MSG.termsRequired);
     fields.terms = MSG.termsRequired;
@@ -93,12 +100,13 @@ export function validateRegistration(input: RegistrationInput, users: User[] = [
 export function buildUnverifiedAccount(input: RegistrationInput, { id, now }: { id: string; now: string }): User {
   return {
     id,
-    accountFor: 'self',
+    accountFor: input.accountFor || 'self',
     firstName: trim(input.firstName),
     middleName: trim(input.middleName),
     lastName: trim(input.lastName),
     suffix: trim(input.suffix),
     contactNumber: trim(input.contactNumber),
+    address: trim(input.address),
     email: trim(input.email),
     username: trim(input.username),
     passwordHash: hashPasswordSync(input.password),
@@ -121,6 +129,19 @@ export function toPublicUser(user: User | null | undefined): PublicUser | null {
   if (!user) return null;
   return {
     id: user.id,
+    accountFor: user.accountFor || 'self',
+    mealRecipient: user.mealRecipient ? {
+      ...user.mealRecipient,
+      healthConditions: [...user.mealRecipient.healthConditions],
+      dietaryRestrictions: [...user.mealRecipient.dietaryRestrictions],
+      allergies: user.mealRecipient.allergies.map((allergy) => ({ ...allergy })),
+      mealPreferences: {
+        preferredCategories: [...user.mealRecipient.mealPreferences.preferredCategories],
+        dislikedIngredients: [...user.mealRecipient.mealPreferences.dislikedIngredients],
+      },
+      nutritionalPreferences: [...user.mealRecipient.nutritionalPreferences],
+      nutritionTargets: { ...user.mealRecipient.nutritionTargets },
+    } : undefined,
     firstName: user.firstName,
     middleName: user.middleName,
     lastName: user.lastName,
@@ -131,6 +152,7 @@ export function toPublicUser(user: User | null | undefined): PublicUser | null {
     verified: user.verified,
     profileComplete: user.profileComplete,
     termsAcceptedAt: user.termsAcceptedAt,
+    address: user.address,
     plan: user.plan
       ? {
         status: user.plan.status,

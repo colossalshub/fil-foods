@@ -219,8 +219,16 @@ export function getProfile(userId: string): Profile | null {
   const user = getUser(userId);
   if (!user) return null;
   ensureProfileFields(user);
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
   return {
     id: user.id,
+    accountFor: user.accountFor || 'self',
+    mealRecipient: recipient ? {
+      ...recipient,
+      healthConditions: [...recipient.healthConditions],
+      dietaryRestrictions: [...recipient.dietaryRestrictions],
+      allergies: recipient.allergies.map((allergy) => ({ ...allergy })),
+    } : undefined,
     firstName: user.firstName,
     middleName: user.middleName || '',
     lastName: user.lastName,
@@ -228,16 +236,16 @@ export function getProfile(userId: string): Profile | null {
     contactNumber: user.contactNumber,
     email: user.email,
     address: user.address,
-    healthConditions: [...user.healthConditions],
-    dietaryRestrictions: [...user.dietaryRestrictions],
-    allergies: user.allergies.map((a) => ({ ...a })),
+    healthConditions: [...(recipient?.healthConditions || user.healthConditions)],
+    dietaryRestrictions: [...(recipient?.dietaryRestrictions || user.dietaryRestrictions)],
+    allergies: (recipient?.allergies || user.allergies).map((a) => ({ ...a })),
     mealPreferences: {
-      preferredCategories: [...user.mealPreferences.preferredCategories],
-      dislikedIngredients: [...user.mealPreferences.dislikedIngredients],
+      preferredCategories: [...(recipient?.mealPreferences.preferredCategories || user.mealPreferences.preferredCategories)],
+      dislikedIngredients: [...(recipient?.mealPreferences.dislikedIngredients || user.mealPreferences.dislikedIngredients)],
     },
-    nutritionalPreference: user.nutritionalPreference,
-    nutritionalPreferences: [...user.nutritionalPreferences],
-    nutritionTargets: { ...user.nutritionTargets },
+    nutritionalPreference: recipient?.nutritionalPreference ?? user.nutritionalPreference,
+    nutritionalPreferences: [...(recipient?.nutritionalPreferences || user.nutritionalPreferences)],
+    nutritionTargets: { ...(recipient?.nutritionTargets || user.nutritionTargets) },
     guardian: user.guardian ? { ...user.guardian } : null,
     profileLastUpdated: user.profileLastUpdated,
     profileLastUpdatedFormatted: formatTimestamp(user.profileLastUpdated),
@@ -247,9 +255,12 @@ export function getProfile(userId: string): Profile | null {
 }
 
 export function getProfileForMeals(userId: string) {
+  const user = getUser(userId);
+  if (!user) return null;
   const profile = getProfile(userId);
   if (!profile) return null;
   return {
+    healthConditions: profile.healthConditions,
     dietaryRestrictions: profile.dietaryRestrictions,
     allergies: profile.allergies,
     mealPreferences: profile.mealPreferences,
@@ -404,8 +415,11 @@ export function saveHealthConditions(userId: string, conditions: string[] | null
   if (!user) return { ok: false, messages: [MSG.required] };
   ensureProfileFields(user);
   const next = [...new Set((conditions || []).map(trim).filter(Boolean))];
-  diffListHistory(user, 'health', user.healthConditions, next);
-  user.healthConditions = next;
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+  const current = recipient?.healthConditions || user.healthConditions;
+  diffListHistory(user, 'health', current, next);
+  if (recipient) recipient.healthConditions = next;
+  else user.healthConditions = next;
   touchProfile(user);
   return { ok: true, message: MSG.healthSaved };
 }
@@ -415,8 +429,11 @@ export function saveDietaryRestrictions(userId: string, restrictions: string[] |
   if (!user) return { ok: false, messages: [MSG.required] };
   ensureProfileFields(user);
   const next = [...new Set((restrictions || []).map(trim).filter(Boolean))];
-  diffListHistory(user, 'restrictions', user.dietaryRestrictions, next);
-  user.dietaryRestrictions = next;
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+  const current = recipient?.dietaryRestrictions || user.dietaryRestrictions;
+  diffListHistory(user, 'restrictions', current, next);
+  if (recipient) recipient.dietaryRestrictions = next;
+  else user.dietaryRestrictions = next;
   touchProfile(user);
   return { ok: true, message: MSG.dietarySaved };
 }
@@ -428,8 +445,11 @@ export function saveAllergies(userId: string, allergies: Allergy[] | null | unde
   const next = (allergies || [])
     .map((item) => ({ name: trim(item.name), note: trim(item.note) }))
     .filter((item) => item.name);
-  diffAllergyHistory(user, user.allergies, next);
-  user.allergies = next;
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+  const current = recipient?.allergies || user.allergies;
+  diffAllergyHistory(user, current, next);
+  if (recipient) recipient.allergies = next;
+  else user.allergies = next;
   touchProfile(user);
   return { ok: true, message: MSG.allergiesSaved };
 }
@@ -438,10 +458,13 @@ export function saveMealPreferences(userId: string, prefs: Partial<MealPreferenc
   const user = getUser(userId);
   if (!user) return { ok: false, messages: [MSG.required] };
   ensureProfileFields(user);
-  user.mealPreferences = {
+  const next = {
     preferredCategories: [...new Set((prefs?.preferredCategories || []).map(trim).filter(Boolean))],
     dislikedIngredients: [...new Set((prefs?.dislikedIngredients || []).map(trim).filter(Boolean))],
   };
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+  if (recipient) recipient.mealPreferences = next;
+  else user.mealPreferences = next;
   touchProfile(user);
   return { ok: true, message: MSG.mealPrefsSaved };
 }
@@ -464,15 +487,24 @@ export function saveNutritionalPreference(userId: string, preferenceId: string |
   const allowed = NUTRITIONAL_OPTIONS.map((item) => item.id);
   const incoming = Array.isArray(preferenceId) ? preferenceId : (preferenceId ? [preferenceId] : []);
   const ids = incoming.filter((id) => allowed.includes(id));
-  const previousValue = user.nutritionalPreferences.join(', ');
-  user.nutritionalPreferences = ids;
-  user.nutritionalPreference = ids[0] || null;
+  const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+  const preferenceList = recipient?.nutritionalPreferences || user.nutritionalPreferences;
+  const previousValue = preferenceList.join(', ');
+  if (recipient) {
+    recipient.nutritionalPreferences = ids;
+    recipient.nutritionalPreference = ids[0] || null;
+  } else {
+    user.nutritionalPreferences = ids;
+    user.nutritionalPreference = ids[0] || null;
+  }
   if (targets) {
-    user.nutritionTargets = {
+    const nextTargets = {
       calories: Math.max(0, Number(targets.calories) || 0),
       protein: Math.max(0, Number(targets.protein) || 0),
       fat: Math.max(0, Number(targets.fat) || 0),
     };
+    if (recipient) recipient.nutritionTargets = nextTargets;
+    else user.nutritionTargets = nextTargets;
   }
   appendHistory(user, {
     section: 'nutrition',

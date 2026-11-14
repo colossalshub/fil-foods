@@ -535,17 +535,20 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       return { ok: false, messages: [(fulfillmentCheck as { message?: string }).message] };
     }
 
+    const recipient = user.accountFor === 'family' ? user.mealRecipient : undefined;
+    const allergies = recipient?.allergies || user.allergies;
+    const dietaryRestrictions = recipient?.dietaryRestrictions || user.dietaryRestrictions;
     const profile = {
-      allergies: user.allergies,
-      dietaryRestrictions: user.dietaryRestrictions,
-      mealPreferences: user.mealPreferences,
-      nutritionalPreference: user.nutritionalPreference,
-      nutritionalPreferences: user.nutritionalPreferences,
+      allergies,
+      dietaryRestrictions,
+      mealPreferences: recipient?.mealPreferences || user.mealPreferences,
+      nutritionalPreference: recipient?.nutritionalPreference ?? user.nutritionalPreference,
+      nutritionalPreferences: recipient?.nutritionalPreferences || user.nutritionalPreferences,
     };
     const kitchenView = {
-      healthConditions: [...(user.healthConditions || [])],
-      dietaryRestrictions: [...(user.dietaryRestrictions || [])],
-      allergies: (user.allergies || []).map((item) => ({ name: item.name, note: item.note || '' })),
+      healthConditions: [...(recipient?.healthConditions || user.healthConditions || [])],
+      dietaryRestrictions: [...(dietaryRestrictions || [])],
+      allergies: (allergies || []).map((item) => ({ name: item.name, note: item.note || '' })),
     };
     const warnings = collectOrderAllergenWarnings(lineItems, profile);
     if (warnings.length && !payload.allergenAcknowledged) {

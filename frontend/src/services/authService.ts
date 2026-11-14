@@ -1,6 +1,6 @@
 // Temporary local stubs. Swap these bodies for real API calls once a backend is chosen.
 // Screens only call these functions, so no screen code needs to change later.
-import type { FieldMap, GoogleProfile, RegistrationInput, ServiceResult, User } from '../types';
+import type { FieldMap, GoogleProfile, OnboardingInput, RegistrationInput, ServiceResult, User } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { registerAccount, toPublicUser, trim, isValidContact, isValidEmail } from '../domain/registration.js';
 import { MSG } from '../data/messages.js';
@@ -152,6 +152,137 @@ export function getPublicUser(userId: string | null | undefined) {
 }
 
 export const publicUser = getPublicUser;
+
+export function completeOnboarding(userId: string, input: OnboardingInput): ServiceResult {
+  const user = getUser(userId);
+  if (!user) return { ok: false, messages: [MSG.required], fields: {} };
+
+  const accountFor = user.accountFor || 'self';
+  const fields: FieldMap = {};
+  const messages: string[] = [];
+  const details = input.personal || {};
+  const firstName = trim(details.firstName || user.firstName);
+  const lastName = trim(details.lastName || user.lastName);
+  const contactNumber = normalizeContact(details.contactNumber || user.contactNumber);
+  const address = trim(details.address || user.address);
+  if (!firstName || !lastName || !contactNumber || (accountFor === 'self' && !address)) {
+    messages.push(MSG.required);
+    if (!firstName) fields.firstName = MSG.required;
+    if (!lastName) fields.lastName = MSG.required;
+    if (!contactNumber) fields.contactNumber = MSG.required;
+    if (accountFor === 'self' && !address) fields.address = MSG.required;
+  }
+  if (contactNumber && !isValidContact(contactNumber)) {
+    messages.push(MSG.invalidContact);
+    fields.contactNumber = MSG.invalidContact;
+  }
+  if (contactNumber && isValidContact(contactNumber)
+    && getDb().users.some((item) => item.id !== userId && item.contactNumber === contactNumber)) {
+    messages.push(MSG.duplicateUser);
+    fields.contactNumber = MSG.duplicateUser;
+  }
+  const personal = {
+    firstName,
+    middleName: trim(details.middleName || user.middleName),
+    lastName,
+    suffix: trim(details.suffix || user.suffix),
+    contactNumber,
+    address,
+  };
+  let recipient: NonNullable<User['mealRecipient']> | null = null;
+
+  if (accountFor === 'family') {
+    const firstName = trim(input.recipient?.firstName);
+    const lastName = trim(input.recipient?.lastName);
+    const relationshipCategory = trim(input.recipient?.relationship);
+    const relationship = relationshipCategory === 'Other'
+      ? trim(input.recipient?.relationshipOther)
+      : relationshipCategory;
+    const deliveryAddress = trim(input.recipient?.deliveryAddress);
+    const recipientContactNumber = normalizeContact(input.recipient?.contactNumber);
+    if (!firstName || !lastName || !relationship || !deliveryAddress) {
+      messages.push(MSG.required);
+      if (!firstName) fields.recipientFirstName = MSG.required;
+      if (!lastName) fields.recipientLastName = MSG.required;
+      if (!relationship) fields.relationship = MSG.required;
+      if (!deliveryAddress) fields.deliveryAddress = MSG.required;
+    }
+    if (relationshipCategory && !['Child', 'Parent', 'Spouse', 'Sibling', 'Grandparent', 'Other'].includes(relationshipCategory)) {
+      messages.push(MSG.required);
+      fields.relationship = MSG.required;
+    }
+    if (relationshipCategory === 'Other' && !relationship) {
+      messages.push(MSG.required);
+      fields.relationship = MSG.required;
+    }
+    if (recipientContactNumber && !isValidContact(recipientContactNumber)) {
+      messages.push(MSG.invalidContact);
+      fields.recipientContactNumber = MSG.invalidContact;
+    }
+    if (!input.recipient?.consentConfirmed) {
+      messages.push("Please confirm that you are allowed to manage this person's information.");
+      fields.recipientConsent = "Please confirm that you are allowed to manage this person's information.";
+    }
+    if (firstName && lastName && relationship && deliveryAddress
+      && (!recipientContactNumber || isValidContact(recipientContactNumber))
+      && input.recipient?.consentConfirmed) {
+      recipient = {
+        id: user.mealRecipient?.id || nextId('recipient'),
+        firstName,
+        middleName: trim(input.recipient?.middleName),
+        lastName,
+        suffix: trim(input.recipient?.suffix),
+        contactNumber: recipientContactNumber || undefined,
+        relationship,
+        deliveryAddress,
+        consentAt: user.mealRecipient?.consentAt || stamp(),
+        healthConditions: [...new Set((input.healthConditions || []).map(trim).filter(Boolean))],
+        dietaryRestrictions: [...new Set((input.dietaryRestrictions || []).map(trim).filter(Boolean))],
+        allergies: (input.allergies || [])
+          .map((item) => ({ name: trim(item.name), note: trim(item.note) }))
+          .filter((item) => item.name),
+        mealPreferences: user.mealRecipient?.mealPreferences || {
+          preferredCategories: [],
+          dislikedIngredients: [],
+        },
+        nutritionalPreference: user.mealRecipient?.nutritionalPreference || null,
+        nutritionalPreferences: user.mealRecipient?.nutritionalPreferences || [],
+        nutritionTargets: user.mealRecipient?.nutritionTargets || {},
+      };
+    }
+  }
+
+  if (!user.termsAcceptedAt && !input.acceptedTerms) {
+    messages.push(MSG.termsRequired);
+    fields.terms = MSG.termsRequired;
+  }
+  if (messages.length) return { ok: false, messages: [...new Set(messages)], fields };
+
+  Object.assign(user, personal);
+  if (accountFor === 'self') {
+    Object.assign(user, {
+      healthConditions: [...new Set((input.healthConditions || []).map(trim).filter(Boolean))],
+      dietaryRestrictions: [...new Set((input.dietaryRestrictions || []).map(trim).filter(Boolean))],
+      allergies: (input.allergies || [])
+        .map((item) => ({ name: trim(item.name), note: trim(item.note) }))
+        .filter((item) => item.name),
+    });
+  }
+  if (recipient) user.mealRecipient = recipient;
+  if (!user.termsAcceptedAt) user.termsAcceptedAt = stamp();
+  user.profileComplete = true;
+  user.profileLastUpdated = stamp();
+  appendAuditEvent(getDb(), {
+    action: 'profile.onboarding_completed',
+    userId,
+    targetId: recipient?.id || userId,
+    metadata: {
+      accountFor,
+      mealRecipientId: recipient?.id || null,
+    },
+  });
+  return { ok: true, user: toPublicUser(user) };
+}
 
 export function recordLogin(userId: string) {
   const user = getUser(userId);

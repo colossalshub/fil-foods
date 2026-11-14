@@ -234,3 +234,44 @@ test('confirmOrder is idempotent for the same cart and fulfillment', () => {
   assert.equal(second.order.trackingNumber, first.order.trackingNumber);
   assert.equal(getDb().orders.length, countAfter);
 });
+
+test('family recipient allergies are used for order warnings and the kitchen record', () => {
+  resetStore();
+  __testResetConfirmState();
+  const user = getDb().users.find((item) => item.id === 'user-maria');
+  user.accountFor = 'family';
+  user.mealRecipient = {
+    id: 'recipient-lia',
+    firstName: 'Lia',
+    lastName: 'Santos',
+    relationship: 'Child',
+    deliveryAddress: '8 Sampaguita St.',
+    healthConditions: ['Diabetes'],
+    dietaryRestrictions: [],
+    allergies: [{ name: 'Peanuts', note: 'Rash' }],
+    mealPreferences: { preferredCategories: [], dislikedIngredients: [] },
+    nutritionalPreference: null,
+    nutritionalPreferences: [],
+    nutritionTargets: {},
+  };
+  const satay = MEALS.find((meal) => meal.name === 'Chicken Satay');
+  const payload = {
+    items: [{ meal: satay, quantity: 1 }],
+    fulfillment: {
+      type: 'pickup',
+      scheduledAt: new Date('2026-10-13T10:00:00'),
+      instructions: '',
+    },
+    now: SAMPLE_NOW,
+    allergenAcknowledged: false,
+  };
+
+  const blocked = confirmOrder(user.id, payload);
+  assert.equal(blocked.needsAcknowledgement, true);
+  assert.match(blocked.messages[0], /Peanuts/);
+
+  const placed = confirmOrder(user.id, { ...payload, allergenAcknowledged: true });
+  assert.equal(placed.ok, true);
+  assert.deepEqual(placed.order.kitchenView.allergies, [{ name: 'Peanuts', note: 'Rash' }]);
+  assert.deepEqual(placed.order.kitchenView.healthConditions, ['Diabetes']);
+});

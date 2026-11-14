@@ -14,11 +14,13 @@ const maria = {
 
 function form(overrides = {}) {
   return {
+    accountFor: 'self',
     firstName: 'Juan',
     middleName: '',
     lastName: 'Reyes',
     suffix: '',
     contactNumber: '09181234567',
+    address: '12 Mabini St., Quezon City',
     email: 'juan.reyes@gmail.com',
     username: 'jreyes',
     password: 'Meal@2026',
@@ -111,6 +113,13 @@ test('terms must be accepted with the specified message', () => {
   const result = validateRegistration(form({ acceptedTerms: false }), []);
   assert.equal(result.fields.terms, MSG.termsRequired);
   assert.equal(result.ok, false);
+});
+
+test('self sign-up requires a delivery address while family sign-up collects it later', () => {
+  const self = validateRegistration(form({ address: '' }), []);
+  const family = validateRegistration(form({ accountFor: 'family', address: '' }), []);
+  assert.equal(self.fields.address, MSG.required);
+  assert.equal(family.ok, true);
 });
 
 test('credentials are stored as bcrypt hashes and never exposed', () => {

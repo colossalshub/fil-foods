@@ -62,7 +62,7 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
   const { user, session } = useAuth();
   const { items, updateQuantity, removeItem, clearCart } = useCart();
   const [fulfillmentType, setFulfillmentType] = useState<string | null>(null);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(user?.mealRecipient?.deliveryAddress || user?.address || '');
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
   const [instructions, setInstructions] = useState('');

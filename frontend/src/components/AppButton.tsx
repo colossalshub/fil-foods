@@ -12,6 +12,7 @@ export default function AppButton({
   style,
   color,
   icon,
+  iconColor,
 }: {
   title: string;
   onPress?: () => void | Promise<void>;
@@ -22,6 +23,7 @@ export default function AppButton({
   style?: StyleProp<ViewStyle>;
   color?: string;
   icon?: ComponentProps<typeof Ionicons>['name'];
+  iconColor?: string;
 }) {
   const outline = variant === 'outline';
   const tint = color || colors.primary;
@@ -42,7 +44,7 @@ export default function AppButton({
     >
       {loading ? <ActivityIndicator color={labelColor} /> : (
         <View style={styles.content}>
-          {icon ? <Ionicons name={icon} size={18} color={labelColor} /> : null}
+          {icon ? <Ionicons name={icon} size={18} color={iconColor || labelColor} /> : null}
           <Text style={[styles.text, { color: labelColor }]}>{title}</Text>
         </View>
       )}

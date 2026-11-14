@@ -4,22 +4,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HelpButton from './HelpButton';
 import { colors, font, radius, spacing } from '../theme/theme';
 
-export default function AuthHeader({ variant = 'login', title, onBack }: {
+export default function AuthHeader({ variant = 'login', title, onBack, framed = false }: {
   variant?: string;
   title?: string;
   onBack?: () => void;
+  framed?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.header, { paddingTop: insets.top + spacing.sm }, variant === 'login' && styles.loginHeader]}>
+    <View style={[
+      styles.header,
+      { paddingTop: insets.top + spacing.sm },
+      variant === 'login' && styles.loginHeader,
+      framed && styles.framedHeader,
+    ]}>
       {variant === 'back' ? (
         <View style={styles.bar}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}>
             <Ionicons name="arrow-back" size={18} color={colors.primary} />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <Text style={styles.barTitle} accessibilityRole="header">{title}</Text>
-          <HelpButton color={colors.white} />
+          <Text style={[styles.barTitle, framed && styles.framedTitle]} accessibilityRole="header">{title}</Text>
+          <HelpButton color={framed ? colors.primary : colors.white} />
         </View>
       ) : (
         <View style={styles.login}>
@@ -50,6 +56,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
   },
+  framedHeader: { backgroundColor: 'transparent', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   loginHeader: { paddingBottom: spacing.xxl },
   bar: { flexDirection: 'row', alignItems: 'center', minHeight: 56, gap: 8 },
   back: {
@@ -69,6 +76,7 @@ const styles = StyleSheet.create({
     fontSize: font.xl,
     fontWeight: '700',
   },
+  framedTitle: { color: colors.deep },
   login: { alignItems: 'center' },
   loginTools: { alignSelf: 'flex-end' },
   plate: {

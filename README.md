@@ -18,14 +18,15 @@ When `frontend/.env` is missing, the app runs on local sample data. The server s
 
 ## What the app already does
 
-- Create an account, verify it, log in, reset a password, and log out
+- Choose whether a meal subscription is for yourself or a family member, register, verify the account, and complete the recipient's allergy and diet profile
+- Log in, reset a password, and log out
 - Browse and search meals, with allergy and diet warnings
 - Suggest one breakfast, lunch, and dinner from daily calorie, protein, and fat targets
 - Cart, schedule, and order placement
 - Tracking, alerts, and a profile for health, allergies, preferences, and a guardian
 - Terms and a privacy policy on registration and on Profile
 
-Some of those flows still use the local sample store until Supabase is configured.
+Some of those flows still use the local sample store until Supabase is configured. The new family-recipient onboarding is currently handled by this local service layer and is not yet persisted to Supabase.
 
 ## Algorithms
 

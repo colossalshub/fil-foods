@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Image, useWindowDimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -170,7 +170,7 @@ export default function HomeScreen() {
   );
   const { width: windowWidth } = useWindowDimensions();
   const [posterWidth, setPosterWidth] = useState(Math.max(0, windowWidth - spacing.lg * 2));
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollX = useMemo(() => new Animated.Value(0), []);
 
   useEffect(() => {
     scrollX.setValue(0);

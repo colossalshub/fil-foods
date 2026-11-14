@@ -13,8 +13,11 @@ import {
   sendCode,
   linkGoogleAccount,
   completeProfile,
+  completeOnboarding,
   register,
 } from './authService.js';
+import { getProfile, getProfileForMeals } from './profileService.js';
+import { resolveGoogleProfile } from './googleAuthService.js';
 import { MOCK_CODE } from './verificationService.js';
 import { buildPersistedSession } from './sessionPolicy.js';
 import { __setTestStore, persistSession, readPersistedSession } from './sessionPersistence.js';
@@ -184,6 +187,130 @@ test('password registration and login still work without Google', async () => {
   const signedIn = await login({ username: 'pcruz', password: 'Meal@2026' });
   assert.equal(signedIn.ok, true);
   assert.equal(signedIn.user.username, 'pcruz');
+});
+
+test('family onboarding saves recipient health and delivery data separately from the account holder', () => {
+  resetStore();
+  const created = registerAccount(form({ accountFor: 'family' }), getDb(), {
+    id: 'user-family',
+    now: '2026-10-24T00:00:00.000Z',
+  });
+  assert.equal(created.ok, true);
+
+  const result = completeOnboarding('user-family', {
+    recipient: {
+      firstName: 'Lia',
+      lastName: 'Dizon',
+      contactNumber: '09171234567',
+      relationship: 'Child',
+      deliveryAddress: '8 Sampaguita St., Quezon City',
+      consentConfirmed: true,
+    },
+    allergies: [{ name: 'Peanuts', note: 'Rash' }],
+    healthConditions: ['Diabetes'],
+    dietaryRestrictions: ['Low-sugar'],
+  });
+
+  assert.equal(result.ok, true);
+  const account = getDb().users.find((item) => item.id === 'user-family');
+  assert.equal(account.profileComplete, true);
+  assert.equal(account.accountFor, 'family');
+  assert.equal(account.healthConditions, undefined);
+  assert.equal(account.mealRecipient.firstName, 'Lia');
+  assert.equal(account.mealRecipient.contactNumber, '09171234567');
+  assert.ok(account.mealRecipient.consentAt);
+  assert.equal(account.mealRecipient.deliveryAddress, '8 Sampaguita St., Quezon City');
+  assert.deepEqual(getProfileForMeals('user-family').healthConditions, ['Diabetes']);
+  assert.deepEqual(getProfile('user-family').allergies, [{ name: 'Peanuts', note: 'Rash' }]);
+});
+
+test('family onboarding requires recipient-management consent and validates optional contact numbers', () => {
+  resetStore();
+  registerAccount(form({ accountFor: 'family' }), getDb(), {
+    id: 'user-family-consent',
+    now: '2026-10-24T00:00:00.000Z',
+  });
+  const recipient = {
+    firstName: 'Lia',
+    lastName: 'Dizon',
+    relationship: 'Child',
+    deliveryAddress: '8 Sampaguita St., Quezon City',
+  };
+
+  const missingConsent = completeOnboarding('user-family-consent', { recipient });
+  assert.equal(missingConsent.ok, false);
+  assert.ok(missingConsent.fields.recipientConsent);
+  assert.equal(getDb().users.find((item) => item.id === 'user-family-consent').profileComplete, false);
+
+  const invalidContact = completeOnboarding('user-family-consent', {
+    recipient: { ...recipient, contactNumber: '0917123', consentConfirmed: true },
+  });
+  assert.equal(invalidContact.ok, false);
+  assert.equal(invalidContact.fields.recipientContactNumber, MSG.invalidContact);
+});
+
+test('family onboarding accepts and stores a specified other relationship', () => {
+  resetStore();
+  registerAccount(form({ accountFor: 'family' }), getDb(), {
+    id: 'user-family-other-relationship',
+    now: '2026-10-24T00:00:00.000Z',
+  });
+
+  const result = completeOnboarding('user-family-other-relationship', {
+    recipient: {
+      firstName: 'Lia',
+      lastName: 'Dizon',
+      relationship: 'Other',
+      relationshipOther: 'Cousin',
+      deliveryAddress: '8 Sampaguita St., Quezon City',
+      consentConfirmed: true,
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(
+    getDb().users.find((item) => item.id === 'user-family-other-relationship').mealRecipient.relationship,
+    'Cousin',
+  );
+});
+
+test('family Google signup gathers required manager details before completing the recipient profile', () => {
+  resetStore();
+  const created = resolveGoogleProfile({
+    sub: 'google-family-new',
+    email: 'family.manager@example.com',
+    firstName: 'Carlos',
+    lastName: 'Dizon',
+  }, 'family');
+  assert.equal(created.ok, true);
+  if (!created.ok || !created.user?.id) return;
+
+  const recipient = {
+    firstName: 'Lia',
+    lastName: 'Dizon',
+    relationship: 'Child',
+    deliveryAddress: '8 Sampaguita St., Quezon City',
+    consentConfirmed: true,
+  };
+  const missingManagerDetails = completeOnboarding(created.user.id, { recipient });
+  assert.equal(missingManagerDetails.ok, false);
+  assert.ok(missingManagerDetails.fields.contactNumber);
+  assert.ok(missingManagerDetails.fields.terms);
+
+  const completed = completeOnboarding(created.user.id, {
+    personal: {
+      firstName: 'Carlos',
+      lastName: 'Dizon',
+      contactNumber: '09175550123',
+    },
+    recipient,
+    acceptedTerms: true,
+  });
+  assert.equal(completed.ok, true);
+  const user = getDb().users.find((item) => item.id === created.user.id);
+  assert.equal(user.contactNumber, '09175550123');
+  assert.equal(user.profileComplete, true);
+  assert.equal(user.mealRecipient.deliveryAddress, recipient.deliveryAddress);
 });
 
 test('link Google requires correct password and records login', async () => {

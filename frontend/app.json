@@ -3,6 +3,7 @@
     "name": "fil-foods",
     "slug": "fil-foods",
     "version": "1.0.0",
+    "scheme": "filfoods",
     "orientation": "portrait",
     "icon": "./assets/icons/icon.png",
     "userInterfaceStyle": "light",

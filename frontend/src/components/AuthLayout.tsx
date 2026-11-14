@@ -4,19 +4,22 @@ import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, StyleShe
 declare const require: (id: string) => number;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from './AuthHeader';
+import AuthBackgroundDecor from './AuthBackgroundDecor';
 import { colors, font, spacing, card } from '../theme/theme';
 
-export default function AuthLayout({ variant, title, subtitle, onBack, children }: {
+export default function AuthLayout({ variant, title, subtitle, onBack, backgroundFrame = false, children }: {
   variant?: string;
   title?: string;
   subtitle?: string;
   onBack?: () => void;
+  backgroundFrame?: boolean;
   children?: ReactNode;
 }) {
   if (variant === 'back') {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <AuthHeader variant="back" title={title} onBack={onBack} />
+      <View style={[styles.backRoot, backgroundFrame && styles.framedRoot]}>
+        {backgroundFrame ? <AuthBackgroundDecor /> : null}
+        <AuthHeader variant="back" title={title} onBack={onBack} framed={backgroundFrame} />
         <SafeAreaView edges={['bottom']} style={{ flex: 1 }}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView contentContainerStyle={styles.backScroll} keyboardShouldPersistTaps="handled">
@@ -50,6 +53,8 @@ export default function AuthLayout({ variant, title, subtitle, onBack, children 
 }
 
 const styles = StyleSheet.create({
+  backRoot: { flex: 1, backgroundColor: colors.background },
+  framedRoot: { backgroundColor: '#F6F9EF' },
   backScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   scroll: { padding: spacing.xl, alignItems: 'center' },
   logo: { width: 88, height: 88, marginTop: spacing.lg },
