@@ -14,6 +14,7 @@ import {
 import { confirmChoosePlan, setPendingPlanPeriod } from '../services/planService';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { placeOrderWithBackend } from '../services/backendOrderService.js';
+import { mapBackendOrder } from '../services/trackingService.js';
 import { combineSchedule } from '../components/scheduleValue';
 import type { MealMatchProfile } from '../types';
 
@@ -109,6 +110,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
             return {
               mealId: row.meal.id,
               mealName: row.meal.name,
+              mealCategory: row.meal.category,
               quantity: parsed.ok ? parsed.value : 0,
             };
           }),
@@ -127,7 +129,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
         }
         result = {
           ok: true,
-          order: backendOrder as Order,
+          order: mapBackendOrder(backendOrder as Parameters<typeof mapBackendOrder>[0]),
           message: ORDER_MSG.orderSuccess,
         };
         attemptRef.current = { id: null, key: '' };

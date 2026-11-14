@@ -48,6 +48,7 @@ export interface OrderUpdate {
 
 export interface AdminOrder {
   id: string;
+  clientId?: string | null;
   trackingNumber?: string;
   customerName: string;
   status: OrderStatus;

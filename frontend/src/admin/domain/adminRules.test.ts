@@ -170,10 +170,12 @@ test('staff, menu, orders, and notifications', () => {
   assert.equal(removed.message, COPY.menuDeleted);
   assert.equal(adminView().menu.length, 23);
 
-  assert.equal(setOrderStatus(adminActor, '00348', 'Pending').message, COPY.readOnlyOrder);
+  assert.equal(setOrderStatus(adminActor, '00348', 'Awaiting Payment').message, COPY.readOnlyOrder);
   assert.equal(assignDelivery(adminActor, '00350', 'staff-maria').message, COPY.chooseDelivery);
   assert.equal(assignDelivery(adminActor, '00350', 'staff-mark').ok, true);
   assert.equal(getAdminDb().orders[0].assigneeName, 'Mark Peralta');
+  assert.equal(setOrderStatus(adminActor, '00350', 'Awaiting Payment').ok, true);
+  assert.equal(setOrderStatus(adminActor, '00350', 'Paid').ok, true);
   assert.equal(setOrderStatus(adminActor, '00350', 'Preparing').ok, true);
   const statusAudit = getAdminDb().auditLog.find((entry) => entry.action === 'order.status');
   assert.equal(statusAudit?.metadata.accountName, 'Admin Account');
@@ -189,7 +191,7 @@ test('staff, menu, orders, and notifications', () => {
   const held = noticesFor('kitchen').length;
   assert.equal(saveRoleNotifications(adminActor, 'kitchen', { newOrder: false, menuUpdated: false }).message, COPY.notificationsSaved);
   assert.equal(getAdminDb().settings.kitchen.enabled, false);
-  setOrderStatus(adminActor, '00350', 'Pending');
+  setOrderStatus(adminActor, '00350', 'Cancelled');
   assert.equal(noticesFor('kitchen').length, held);
   const logged = getAdminDb().auditLog.filter((entry) => entry.action === 'notifications.update');
   assert.ok(logged.length > 0);

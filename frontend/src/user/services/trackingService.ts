@@ -353,7 +353,10 @@ export function listFilterStatuses() {
 function backfillHistory(order: Order) {
   if (!Array.isArray(order.statusHistory) || !order.statusHistory.length) {
     const at = order.placedAt || stamp();
-    order.statusHistory = [{ status: order.status || ORDER_STATUS.CONFIRMED, at }];
+    order.statusHistory = [{
+      status: order.status || ORDER_STATUS.FOR_DIETITIAN_REVIEW,
+      at,
+    }];
   }
   if (!order.lastUpdatedAt) {
     order.lastUpdatedAt = order.statusHistory[order.statusHistory.length - 1].at;

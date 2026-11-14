@@ -1,10 +1,5 @@
 -- User 5 module: meal recipient, dietitian review order flow, staff roles, shared transitions.
-
-alter type public.app_role add value if not exists 'dietitian_staff';
-
-alter type public.order_status add value if not exists 'for_dietitian_review';
-alter type public.order_status add value if not exists 'awaiting_payment';
-alter type public.order_status add value if not exists 'paid';
+-- Enum values live in 20261115115000_user5_enum_values.sql (separate transaction).
 
 alter table public.profiles
   add column if not exists account_for text not null default 'self'

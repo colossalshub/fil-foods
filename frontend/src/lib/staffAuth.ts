@@ -12,7 +12,11 @@ export function supabaseRoleForStaff(role: StaffRole): string {
   return STAFF_ROLE[role];
 }
 
-export async function signInStaffToSupabase(email: string, password: string) {
+export async function signInStaffToSupabase(
+  email: string,
+  password: string,
+  panelRole?: StaffRole,
+) {
   if (!isSupabaseConfigured) return { ok: true as const, skipped: true };
   const client = requireSupabase();
   const { data, error } = await client.auth.signInWithPassword({ email: email.trim(), password });
@@ -25,8 +29,22 @@ export async function signInStaffToSupabase(email: string, password: string) {
     .from('profiles')
     .select('role')
     .eq('id', userId)
-  .maybeSingle();
-  return { ok: true as const, userId, backendRole: appRole.data?.role as string | undefined };
+    .maybeSingle();
+  const backendRole = appRole.data?.role as string | undefined;
+  const expected = panelRole ? supabaseRoleForStaff(panelRole) : null;
+  if (
+    expected
+    && backendRole
+    && backendRole !== expected
+    && backendRole !== 'owner_admin'
+  ) {
+    await client.auth.signOut();
+    return {
+      ok: false as const,
+      message: `This account is not authorized for the ${panelRole} panel.`,
+    };
+  }
+  return { ok: true as const, userId, backendRole };
 }
 
 export async function signOutStaffFromSupabase() {

@@ -12,7 +12,7 @@ import {
   calculateTotals,
   formatPeso,
 } from '../../services/orderService';
-import { CHECKOUT_MSG, STANDARD_PLAN } from '../../data/checkoutCopy';
+import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
 import { ORDERS_COPY } from '../../data/messages';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { spacing } from '../../theme/theme';
@@ -54,9 +54,13 @@ export default function OrderSummaryScreen({ navigation }: {
 
   const scheduleLabel = formatScheduleSummary(checkout.scheduleDate, checkout.scheduleTime);
   const fulfillmentTypeLabel = checkout.fulfillmentType === 'pickup' ? 'Pickup' : 'Delivery';
+  const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === checkout.planId);
   const planLine = checkout.planId === 'standard'
     ? `${STANDARD_PLAN.label} · ${STANDARD_PLAN.perMealLabel}`
-    : CHECKOUT_MSG.plan;
+    : selectedPlan
+      ? `${selectedPlan.label} · ${selectedPlan.priceLabel}`
+      : '';
+  const showPlanLine = Boolean(planLine) && checkout.planId !== 'standard';
 
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
@@ -64,11 +68,13 @@ export default function OrderSummaryScreen({ navigation }: {
         <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.orderSummaryTitle}</Text>
         <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.orderSummaryLead}</Text>
 
-        <View style={checkoutFlow.card}>
-          <Text style={checkoutFlow.line}>
-            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
-            {planLine}
-          </Text>
+        <View style={checkoutFlow.mealList}>
+          {showPlanLine ? (
+            <Text style={checkoutFlow.line}>
+              <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
+              {planLine}
+            </Text>
+          ) : null}
           {sortedItems.map((row) => (
             <View key={row.meal.id} style={checkoutFlow.mealRow}>
               <View style={checkoutFlow.mealLeft}>
@@ -81,15 +87,13 @@ export default function OrderSummaryScreen({ navigation }: {
         </View>
 
         <View style={checkoutFlow.summaryFulfillment}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Ionicons
-              name={checkout.fulfillmentType === 'pickup' ? 'storefront-outline' : 'car-outline'}
-              size={20}
-              color="#1E4D38"
-            />
-            <Text style={checkoutFlow.fulfillmentTitle}>{ORDERS_COPY.fulfillmentHeading}</Text>
-          </View>
-          <Text style={checkoutFlow.fulfillmentTitle}>{fulfillmentTypeLabel}</Text>
+          <Ionicons
+            name={checkout.fulfillmentType === 'pickup' ? 'storefront-outline' : 'car-outline'}
+            size={22}
+            color="#1E4D38"
+          />
+          <Text style={checkoutFlow.fulfillmentKicker}>{ORDERS_COPY.fulfillmentHeading}</Text>
+          <Text style={checkoutFlow.fulfillmentTypeLine}>{fulfillmentTypeLabel}</Text>
           {checkout.fulfillmentType === 'delivery' ? (
             <Text style={checkoutFlow.fulfillmentBody}>{checkout.address}</Text>
           ) : null}
@@ -118,7 +122,7 @@ export default function OrderSummaryScreen({ navigation }: {
           accessibilityRole="button"
           accessibilityLabel={CHECKOUT_MSG.placeOrder}
           onPress={() => navigation.navigate('OrderConfirm')}
-          style={checkoutFlow.primary}
+          style={[checkoutFlow.primary, { marginTop: 0 }]}
         >
           <Text style={checkoutFlow.primaryLabel}>{CHECKOUT_MSG.placeOrder}</Text>
         </Pressable>

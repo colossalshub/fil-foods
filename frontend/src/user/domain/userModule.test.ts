@@ -120,11 +120,12 @@ test('delete account is blocked while an order is in progress', async () => {
   assert.ok(getDb().users.some((item) => item.id === user.id));
 });
 
-test('feedback rejects an empty comment and saves a signed-in comment', () => {
+test('feedback rejects an empty comment and saves a signed-in comment', async () => {
   resetStore();
   const user = getDb().users.find((item) => item.username === 'msantos')!;
-  assert.equal(submitFeedback(user.id, '   ').message, MSG.enterComment);
-  const saved = submitFeedback(user.id, 'More vegetable sides, please.');
+  const empty = await submitFeedback(user.id, '   ');
+  assert.equal(empty.message, MSG.enterComment);
+  const saved = await submitFeedback(user.id, 'More vegetable sides, please.');
   assert.equal(saved.ok, true);
   assert.equal(saved.message, MSG.commentSubmitted);
 });

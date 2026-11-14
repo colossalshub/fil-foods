@@ -1,4 +1,4 @@
-import type { AdminOrder, MenuItem, StaffRole } from '../admin/types';
+import type { AdminOrder, Customer, MenuItem, StaffRole } from '../admin/types';
 import {
   CLIENT_ORDER_STATUS,
   clientStatusFromDb,
@@ -7,6 +7,19 @@ import {
   type ClientOrderStatus,
 } from './orderStatus.js';
 import { ensureSession, isSupabaseConfigured, requireSupabase } from './supabaseClient.js';
+
+interface BackendProfileRow {
+  id: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface BackendHealthRow {
+  client_id: string;
+  item_type: string;
+  value: string;
+}
 
 interface BackendOrderRow {
   id: string;
@@ -72,6 +85,7 @@ export function mapBackendOrderToAdmin(row: BackendOrderRow): AdminOrder {
   const firstMeal = lines[0]?.name || '';
   return {
     id: row.id,
+    clientId: row.client_id || null,
     trackingNumber: row.tracking_number,
     customerName,
     status: clientStatusFromDb(row.status),
@@ -123,6 +137,50 @@ export async function fetchStaffOrdersFromBackend(): Promise<AdminOrder[]> {
     .setHeader('Authorization', headers.Authorization);
   if (error) throw error;
   return (data as BackendOrderRow[] || []).map(mapBackendOrderToAdmin);
+}
+
+export async function fetchStaffCustomersFromBackend(clientIds: string[]): Promise<Customer[]> {
+  if (!isSupabaseConfigured || !clientIds.length) return [];
+  const headers = await staffHeaders();
+  const uniqueIds = [...new Set(clientIds.filter(Boolean))];
+  const { data: profiles, error: profileError } = await requireSupabase()
+    .from('profiles')
+    .select('id, email, first_name, last_name')
+    .in('id', uniqueIds)
+    .setHeader('Authorization', headers.Authorization);
+  if (profileError) throw profileError;
+  const { data: health, error: healthError } = await requireSupabase()
+    .from('client_health_items')
+    .select('client_id, item_type, value')
+    .in('client_id', uniqueIds)
+    .setHeader('Authorization', headers.Authorization);
+  if (healthError) throw healthError;
+  const allergiesByClient = new Map<string, string[]>();
+  const nutritionByClient = new Map<string, { label: string; value: string }[]>();
+  (health as BackendHealthRow[] || []).forEach((row) => {
+    if (row.item_type === 'allergy') {
+      const list = allergiesByClient.get(row.client_id) || [];
+      list.push(row.value);
+      allergiesByClient.set(row.client_id, list);
+    }
+    if (row.item_type === 'restriction' || row.item_type === 'condition') {
+      const list = nutritionByClient.get(row.client_id) || [];
+      list.push({
+        label: row.item_type === 'condition' ? 'Condition' : 'Restriction',
+        value: row.value,
+      });
+      nutritionByClient.set(row.client_id, list);
+    }
+  });
+  return (profiles as BackendProfileRow[] || []).map((profile) => ({
+    id: profile.id,
+    name: [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || 'Customer',
+    email: profile.email || '',
+    allergies: allergiesByClient.get(profile.id) || [],
+    nutrition: nutritionByClient.get(profile.id) || [],
+    sodiumConflict: null,
+    history: [],
+  }));
 }
 
 export async function fetchStaffMenuFromBackend(): Promise<MenuItem[]> {

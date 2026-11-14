@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import AppPageShell from '../components/AppPageShell';
 import FormMessage from '../components/FormMessage';
@@ -15,6 +15,8 @@ import {
   refreshClientOrder,
   refreshBackendOrder,
 } from '../services/trackingService';
+import { CHECKOUT_MSG } from '../data/checkoutCopy';
+import { checkoutFlow } from '../styles/checkoutFlow';
 import { colors, font, spacing } from '../theme/theme';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
@@ -94,6 +96,7 @@ export default function OrderStatusScreen() {
   );
 
   const cancelled = order?.status === ORDER_STATUS.CANCELLED;
+  const canPay = order?.status === ORDER_STATUS.AWAITING_PAYMENT;
 
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
@@ -121,6 +124,16 @@ export default function OrderStatusScreen() {
               steps={order.progressSteps || []}
               cancelled={cancelled}
             />
+            {canPay ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={CHECKOUT_MSG.approvedTitle}
+                onPress={() => navigation.navigate('OrderPayment', { orderId: order.id })}
+                style={[checkoutFlow.primary, styles.payBtn]}
+              >
+                <Text style={checkoutFlow.primaryLabel}>{CHECKOUT_MSG.payAmount(order.totalLabel || '')}</Text>
+              </Pressable>
+            ) : null}
             <AppButton
               title={ORDERS_COPY.viewOrderDetails}
               onPress={() => navigation.navigate('OrderDetail', { orderId: order.id })}
@@ -141,4 +154,5 @@ const styles = StyleSheet.create({
   empty: { padding: spacing.xl, alignItems: 'center' },
   emptyText: { fontSize: font.body, color: colors.muted, textAlign: 'center' },
   detailsBtn: { marginTop: spacing.sm },
+  payBtn: { marginTop: spacing.md },
 });

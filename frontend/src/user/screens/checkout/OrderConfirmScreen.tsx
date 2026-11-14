@@ -7,8 +7,9 @@ import { useCheckout } from '../../context/CheckoutContext';
 import { getUser } from '../../services/authService';
 import { orderPartyLines, recipientDisplayName } from '../../domain/audience';
 import { calculateTotals, formatPeso } from '../../services/orderService';
-import { CHECKOUT_MSG, STANDARD_PLAN } from '../../data/checkoutCopy';
+import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
+import { spacing } from '../../theme/theme';
 import { formatScheduleSummary } from '../../components/scheduleValue';
 import { useMealProfile } from '../../hooks/useMealProfile';
 import { usePlaceOrder } from '../../hooks/usePlaceOrder';
@@ -36,8 +37,13 @@ export default function OrderConfirmScreen({ navigation }: {
     mealRecipientName: recipientName,
     mealRecipientAddress: dbUser?.mealRecipient?.deliveryAddress || user?.mealRecipient?.deliveryAddress || '',
   });
-  const customerLine = party.length === 1 ? party[0].value : party.map((p) => `${p.label}: ${p.value}`).join(' · ');
-  const planLabel = checkout.planId === 'standard' ? STANDARD_PLAN.label : checkout.planId;
+  const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === checkout.planId);
+  const planLabel = checkout.planId === 'standard'
+    ? STANDARD_PLAN.label
+    : selectedPlan?.label || checkout.planId;
+  const addressLine = checkout.fulfillmentType === 'delivery'
+    ? checkout.address
+    : 'Pickup at F.I.L Foods counter';
 
   const onConfirm = async () => {
     const result = await placeOrder();
@@ -56,18 +62,35 @@ export default function OrderConfirmScreen({ navigation }: {
   };
 
   return (
-    <AppPageShell edges={['top', 'bottom']} contentStyle={{ flex: 1 }}>
+    <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
         <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.confirmTitle}</Text>
         <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.confirmLead}</Text>
 
         <View style={checkoutFlow.card}>
-          <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.plan}: </Text>{planLabel}</Text>
-          <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.meals}: </Text>{`${items.length} meals`}</Text>
-          <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.deliveryAddress}: </Text>{checkout.fulfillmentType === 'delivery' ? checkout.address : 'Pickup'}</Text>
-          <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.schedule}: </Text>{scheduleLabel}</Text>
-          <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.customer}: </Text>{customerLine}</Text>
-          <Text style={checkoutFlow.total}>{`Total ${formatPeso(totals.total)}`}</Text>
+          <Text style={checkoutFlow.line}>
+            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
+            {planLabel}
+          </Text>
+          <Text style={checkoutFlow.line}>
+            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.meals}: `}</Text>
+            {`${items.length} meals`}
+          </Text>
+          <Text style={checkoutFlow.line}>
+            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.deliveryAddress}: `}</Text>
+            {addressLine}
+          </Text>
+          <Text style={checkoutFlow.line}>
+            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.schedule}: `}</Text>
+            {scheduleLabel}
+          </Text>
+          {party.map((line) => (
+            <Text key={line.label} style={checkoutFlow.line}>
+              <Text style={checkoutFlow.lineBold}>{`${line.label}: `}</Text>
+              {line.value}
+            </Text>
+          ))}
+          <Text style={checkoutFlow.amountDueRow}>{`${ORDERS_TOTAL_LABEL} ${formatPeso(totals.total)}`}</Text>
         </View>
 
         <View style={checkoutFlow.notice}>
@@ -88,21 +111,28 @@ export default function OrderConfirmScreen({ navigation }: {
           </Pressable>
         ) : null}
         {fieldError ? <Text style={checkoutFlow.error}>{fieldError}</Text> : null}
+      </ScrollView>
 
+      <View style={checkoutFlow.footer}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={CHECKOUT_MSG.confirmSend}
           onPress={onConfirm}
           disabled={placing}
-          style={[checkoutFlow.primary, placing && checkoutFlow.primaryDisabled]}
+          style={[checkoutFlow.primary, { marginTop: 0 }, placing && checkoutFlow.primaryDisabled]}
         >
           <Text style={checkoutFlow.primaryLabel}>{placing ? 'Sending…' : CHECKOUT_MSG.confirmSend}</Text>
         </Pressable>
-
-        <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={checkoutFlow.outline}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={[checkoutFlow.outline, { marginTop: spacing.sm }]}
+        >
           <Text style={checkoutFlow.outlineLabel}>{CHECKOUT_MSG.goBack}</Text>
         </Pressable>
-      </ScrollView>
+      </View>
     </AppPageShell>
   );
 }
+
+const ORDERS_TOTAL_LABEL = 'Total';

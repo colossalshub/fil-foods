@@ -44,8 +44,10 @@ export default function ScheduleSlotPicker({
         })}
       </View>
 
-      <Text style={checkoutFlow.sectionLabel}>Time (Monday to Saturday, 7:00 AM to 6:00 PM)</Text>
-      <View style={checkoutFlow.pillRow}>
+      <Text style={[checkoutFlow.sectionLabel, checkoutFlow.sectionLabelSpaced]}>
+        Time (Monday to Saturday, 7:00 AM to 6:00 PM)
+      </Text>
+      <View style={checkoutFlow.pillGrid}>
         {slots.map((slot) => {
           const active = sameClockHour(time, slot.time);
           return (
@@ -54,7 +56,11 @@ export default function ScheduleSlotPicker({
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               onPress={() => onChangeTime(slot.time)}
-              style={[checkoutFlow.pill, active && checkoutFlow.pillOn]}
+              style={[
+                checkoutFlow.pill,
+                checkoutFlow.pillGridItem,
+                active && checkoutFlow.pillOn,
+              ]}
             >
               <Text style={[checkoutFlow.pillText, active && checkoutFlow.pillTextOn]}>
                 {slot.label}

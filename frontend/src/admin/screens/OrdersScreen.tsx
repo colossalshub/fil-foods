@@ -122,7 +122,9 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
     );
   }
   const actor = { id: session.id, name: session.name, email: session.email, role: session.role };
-  const customer = data.customers.find((row) => row.name === order.customerName);
+  const customer = data.customers.find(
+    (row) => (order.clientId && row.id === order.clientId) || row.name === order.customerName,
+  );
   return (
     <PhoneFrame>
       <GreenHeader title={`#${order.id}`} onBack={() => navigation.goBack()} />

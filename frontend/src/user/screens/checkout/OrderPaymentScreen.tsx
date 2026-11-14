@@ -3,13 +3,14 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from '../../components/AppPageShell';
+import CheckoutOrderStatusCard from '../../components/CheckoutOrderStatusCard';
+import CheckoutRadio from '../../components/CheckoutRadio';
 import { useAuth } from '../../context/AuthContext';
 import { CHECKOUT_MSG } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { formatPeso } from '../../services/orderService';
 import {
   ORDER_STATUS,
-  paymentStatusLabel,
   payClientOrder,
   refreshBackendOrder,
   refreshClientOrder,
@@ -47,7 +48,9 @@ export default function OrderPaymentScreen({ route, navigation }: {
     load();
   }, [load]));
 
+  const awaitingReview = order?.status === ORDER_STATUS.FOR_DIETITIAN_REVIEW;
   const canPay = order?.status === ORDER_STATUS.AWAITING_PAYMENT;
+  const alreadyPaid = order?.status === ORDER_STATUS.PAID;
 
   const onPay = () => {
     if (!user?.id || !orderId || !canPay) {
@@ -66,56 +69,109 @@ export default function OrderPaymentScreen({ route, navigation }: {
     navigation.navigate('OrderPaymentSuccess', { order: result.order, method });
   };
 
+  if (awaitingReview) {
+    return (
+      <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
+        <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
+          <View style={[checkoutFlow.statusIcon, checkoutFlow.statusIconPending]}>
+            <Ionicons name="ellipsis-horizontal" size={32} color="#8A6A12" />
+          </View>
+          <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.sentTitle}</Text>
+          <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.sentLead}</Text>
+          {order ? (
+            <CheckoutOrderStatusCard
+              badge={ORDER_STATUS.FOR_DIETITIAN_REVIEW}
+              badgeTone="warn"
+              rows={[
+                { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+                { label: CHECKOUT_MSG.meals, value: `${order.items?.length || 0} meals` },
+                { label: CHECKOUT_MSG.total, value: formatPeso(order.total || 0) },
+              ]}
+            />
+          ) : null}
+          <View style={checkoutFlow.notice}>
+            <Text style={checkoutFlow.noticeText}>{CHECKOUT_MSG.sentNotice}</Text>
+          </View>
+        </ScrollView>
+        <View style={checkoutFlow.footer}>
+          <Pressable accessibilityRole="button" onPress={() => navigation.goBack()} style={[checkoutFlow.primary, { marginTop: 0 }]}>
+            <Text style={checkoutFlow.primaryLabel}>{CHECKOUT_MSG.goBack}</Text>
+          </Pressable>
+        </View>
+      </AppPageShell>
+    );
+  }
+
   return (
-    <AppPageShell edges={['top', 'bottom']} contentStyle={{ flex: 1 }}>
+    <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
         <View style={[checkoutFlow.statusIcon, checkoutFlow.statusIconOk]}>
           <Ionicons name="checkmark" size={36} color="#1E4D38" />
         </View>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.approvedTitle}</Text>
-        <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.approvedLead}</Text>
+        <Text style={checkoutFlow.title} accessibilityRole="header">
+          {alreadyPaid ? CHECKOUT_MSG.paidTitle : CHECKOUT_MSG.approvedTitle}
+        </Text>
+        <Text style={checkoutFlow.lead}>
+          {alreadyPaid ? CHECKOUT_MSG.paidLead : CHECKOUT_MSG.approvedLead}
+        </Text>
 
         {order ? (
-          <View style={checkoutFlow.card}>
-            <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.orderReference}: </Text>{order.trackingNumber}</Text>
-            <Text style={checkoutFlow.line}><Text style={checkoutFlow.lineBold}>{CHECKOUT_MSG.status}: </Text>{paymentStatusLabel(order.status)}</Text>
-            <View style={[checkoutFlow.badge, checkoutFlow.badgeOk]}>
-              <Text style={[checkoutFlow.badgeText, checkoutFlow.badgeTextOk]}>{paymentStatusLabel(order.status)}</Text>
-            </View>
-            <Text style={checkoutFlow.total}>{`${CHECKOUT_MSG.amountDue} ${formatPeso(order.total || 0)}`}</Text>
-          </View>
+          <>
+            <CheckoutOrderStatusCard
+              badge={alreadyPaid ? ORDER_STATUS.PAID : CHECKOUT_MSG.approvedBadge}
+              badgeTone="ok"
+              rows={[
+                { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+              ]}
+              footer={
+                !alreadyPaid ? (
+                  <Text style={checkoutFlow.amountDueRow}>
+                    {`${CHECKOUT_MSG.amountDue} ${formatPeso(order.total || 0)}`}
+                  </Text>
+                ) : undefined
+              }
+            />
+
+            {!alreadyPaid ? (
+              <>
+                <Text style={checkoutFlow.paymentSectionTitle}>{CHECKOUT_MSG.chooseHowToPay}</Text>
+                {METHODS.map((item) => {
+                  const active = method === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active, checked: active }}
+                      onPress={() => setMethod(item.id)}
+                      style={[checkoutFlow.payRow, active && checkoutFlow.payRowOn]}
+                    >
+                      <Text style={checkoutFlow.payLabel}>{item.label}</Text>
+                      <CheckoutRadio selected={active} />
+                    </Pressable>
+                  );
+                })}
+              </>
+            ) : null}
+          </>
         ) : null}
 
-        <Text style={[checkoutFlow.lineBold, { marginTop: 16 }]}>{CHECKOUT_MSG.paymentMethod}</Text>
-        {METHODS.map((item) => {
-          const active = method === item.id;
-          return (
-            <Pressable
-              key={item.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              onPress={() => setMethod(item.id)}
-              style={[checkoutFlow.payRow, active && checkoutFlow.payRowOn]}
-            >
-              <Text style={checkoutFlow.payLabel}>{item.label}</Text>
-              {active ? <Ionicons name="checkmark-circle" size={22} color="#1E4D38" /> : null}
-            </Pressable>
-          );
-        })}
-
         {error ? <Text style={checkoutFlow.error}>{error}</Text> : null}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={onPay}
-          disabled={!canPay}
-          style={[checkoutFlow.primary, !canPay && checkoutFlow.primaryDisabled]}
-        >
-          <Text style={checkoutFlow.primaryLabel}>
-            {CHECKOUT_MSG.payAmount(formatPeso(order?.total || 0))}
-          </Text>
-        </Pressable>
       </ScrollView>
+
+      {!alreadyPaid ? (
+        <View style={checkoutFlow.footer}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onPay}
+            disabled={!canPay}
+            style={[checkoutFlow.primary, { marginTop: 0 }, !canPay && checkoutFlow.primaryDisabled]}
+          >
+            <Text style={[checkoutFlow.primaryLabel, !canPay && checkoutFlow.primaryLabelDisabled]}>
+              {CHECKOUT_MSG.payAmount(formatPeso(order?.total || 0))}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </AppPageShell>
   );
 }

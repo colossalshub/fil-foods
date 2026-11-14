@@ -1,5 +1,6 @@
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import {
+  fetchStaffCustomersFromBackend,
   fetchStaffMenuFromBackend,
   fetchStaffOrdersFromBackend,
   transitionOrderOnBackend,
@@ -242,14 +243,14 @@ function build(): AdminDb {
         ],
         sodiumConflict: ['≤400 mg', '≤2.00 mg', '≤2g'],
         history: [
-          { name: 'Spring Salad', status: 'Delivered', price: 100 },
+          { name: 'Spring Salad', status: 'Completed', price: 100 },
           { name: 'Order #00347', status: 'Cancelled', price: 85 },
         ],
       },
-      { id: 'customer-juan', name: 'Juan Dela Cruz', email: 'juan.delacruz@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Fried Chicken', status: 'Pending', price: 120 }] },
+      { id: 'customer-juan', name: 'Juan Dela Cruz', email: 'juan.delacruz@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Fried Chicken', status: 'For Dietitian Review', price: 120 }] },
       { id: 'customer-maria', name: 'Maria Santos', email: 'maria.santos@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Garden Bowl', status: 'Preparing', price: 99 }] },
-      { id: 'customer-carlos', name: 'Carlos Reyes', email: 'carlos.reyes@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Salmon Teriyaki', status: 'Delivered', price: 180 }] },
-      { id: 'customer-mark', name: 'Mark Villanueva', email: 'mark.villanueva@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Grilled Bangus', status: 'Delivered', price: 140 }] },
+      { id: 'customer-carlos', name: 'Carlos Reyes', email: 'carlos.reyes@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Salmon Teriyaki', status: 'Completed', price: 180 }] },
+      { id: 'customer-mark', name: 'Mark Villanueva', email: 'mark.villanueva@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Grilled Bangus', status: 'Completed', price: 140 }] },
     ],
     notices: [
       { id: 'note-350', audience: 'admin', title: 'Order #00350 is pending', orderId: '00350', readBy: [], createdAt: '2026-10-29T20:45:00+08:00' },
@@ -512,6 +513,18 @@ export async function syncStaffDataFromBackend() {
     ]);
     if (orders.length) db.orders = orders;
     if (menu.length) db.menu = menu;
+    const clientIds = orders.map((order) => order.clientId).filter(Boolean) as string[];
+    if (clientIds.length) {
+      const remoteCustomers = await fetchStaffCustomersFromBackend(clientIds);
+      remoteCustomers.forEach((remote) => {
+        const idx = db.customers.findIndex((row) => row.id === remote.id || row.email === remote.email);
+        if (idx >= 0) {
+          db.customers[idx] = { ...db.customers[idx], ...remote, history: db.customers[idx].history };
+        } else {
+          db.customers.push(remote);
+        }
+      });
+    }
     backendSynced = true;
     touch();
     return { ok: true as const };
@@ -956,7 +969,12 @@ export function sendSupport(actor: Actor, message: string) {
 }
 
 export function activeOrders() {
-  return db.orders.filter((order) => order.status === 'Pending' || order.status === 'Preparing');
+  return db.orders.filter((order) =>
+    order.status === 'For Dietitian Review'
+    || order.status === 'Awaiting Payment'
+    || order.status === 'Paid'
+    || order.status === 'Preparing',
+  );
 }
 
 export { formatWhen };

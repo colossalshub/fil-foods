@@ -1,6 +1,52 @@
 import type { AuthTokenSession } from '../types.js';
 import { ensureSession, requireSupabase } from '../../lib/supabaseClient.js';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export interface PlaceOrderLineItem {
+  mealId?: string;
+  mealName?: string;
+  mealCategory?: string;
+  quantity: number;
+}
+
+interface BackendMealLookupRow {
+  id: string;
+  name: string;
+  category?: string;
+  client_meal_key?: string | null;
+}
+
+export function resolveBackendMealId(
+  item: PlaceOrderLineItem,
+  rows: BackendMealLookupRow[],
+): string | undefined {
+  const byKey = new Map<string, string>();
+  const byNameCategory = new Map<string, string>();
+  const byName = new Map<string, string>();
+  rows.forEach((row) => {
+    if (row.client_meal_key) byKey.set(row.client_meal_key, row.id);
+    const nameCategoryKey = `${row.name}\u0000${row.category || ''}`;
+    byNameCategory.set(nameCategoryKey, row.id);
+    if (!byName.has(row.name)) byName.set(row.name, row.id);
+  });
+
+  if (item.mealId && byKey.has(item.mealId)) {
+    return byKey.get(item.mealId);
+  }
+  if (item.mealName && item.mealCategory) {
+    const hit = byNameCategory.get(`${item.mealName}\u0000${item.mealCategory}`);
+    if (hit) return hit;
+  }
+  if (item.mealName && byName.has(item.mealName)) {
+    return byName.get(item.mealName);
+  }
+  if (item.mealId && UUID_RE.test(item.mealId)) {
+    return item.mealId;
+  }
+  return undefined;
+}
+
 export async function placeOrderWithBackend({
   authSession,
   clientRequestId,
@@ -16,7 +62,7 @@ export async function placeOrderWithBackend({
   schedule: string;
   address?: string | null;
   specialInstructions?: string | null;
-  items: Array<{ mealId?: string; mealName?: string; quantity: number }>;
+  items: PlaceOrderLineItem[];
 }) {
   const client = requireSupabase();
   const session = await ensureSession(authSession)
@@ -25,21 +71,42 @@ export async function placeOrderWithBackend({
     throw new Error('Your session has expired. Please log in again.');
   }
   const authorization = `Bearer ${session.access_token}`;
-  const mealNames = [...new Set(items.map(({ mealName }) => mealName).filter(Boolean))];
-  const { data: meals, error: mealsError } = await client
-    .from('meals')
-    .select('id, name')
-    .in('name', mealNames)
-    .setHeader('Authorization', authorization);
-  if (mealsError) throw mealsError;
+  const mealKeys = [...new Set(items.map(({ mealId }) => mealId).filter(Boolean))] as string[];
+  const mealNames = [...new Set(items.map(({ mealName }) => mealName).filter(Boolean))] as string[];
 
-  const idsByName = new Map((meals || []).map((meal) => [meal.name, meal.id]));
-  const backendItems = items.map(({ mealId, mealName, quantity }) => {
-    const backendMealId = idsByName.get(mealName) || mealId;
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(backendMealId)) {
-      throw new Error(`Meal "${mealName || mealId}" is not available in the backend catalog.`);
+  const selectFields = 'id, name, category, client_meal_key';
+  const mealRows = new Map<string, BackendMealLookupRow>();
+  const collect = (rows: BackendMealLookupRow[] | null) => {
+    (rows || []).forEach((row) => mealRows.set(row.id, row));
+  };
+  if (mealKeys.length) {
+    const { data, error } = await client
+      .from('meals')
+      .select(selectFields)
+      .eq('is_available', true)
+      .in('client_meal_key', mealKeys)
+      .setHeader('Authorization', authorization);
+    if (error) throw error;
+    collect(data as BackendMealLookupRow[]);
+  }
+  if (mealNames.length) {
+    const { data, error } = await client
+      .from('meals')
+      .select(selectFields)
+      .eq('is_available', true)
+      .in('name', mealNames)
+      .setHeader('Authorization', authorization);
+    if (error) throw error;
+    collect(data as BackendMealLookupRow[]);
+  }
+  const meals = [...mealRows.values()];
+
+  const backendItems = items.map((item) => {
+    const backendMealId = resolveBackendMealId(item, meals);
+    if (!backendMealId || !UUID_RE.test(backendMealId)) {
+      throw new Error(`Meal "${item.mealName || item.mealId}" is not available in the backend catalog.`);
     }
-    return { meal_id: backendMealId, quantity };
+    return { meal_id: backendMealId, quantity: item.quantity };
   });
 
   const { data, error } = await client.rpc('place_order', {

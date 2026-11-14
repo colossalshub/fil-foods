@@ -2,11 +2,13 @@
 
 The migration in [`migrations/20261030131000_initial_schema.sql`](./migrations/20261030131000_initial_schema.sql) creates the client-facing schema, role model, RLS policies, audit chain, order status validation, and atomic `place_order` RPC used by the User Module (USR-01–USR-50). Staff modules (ADM, DIT, KIT, DEL) in [`docs/specs/meal-service-modules.md`](../docs/specs/meal-service-modules.md) require additional schema work (Dietitian role, shared order workflow, staff auth). Recipient tables, Dietitian/payment workflow, feedback, and account deletion from the current spec are not fully covered by this migration. Story indexes: User [`docs/specs/user-module.md`](../docs/specs/user-module.md); staff [`docs/implementation-traceability-staff.md`](../docs/implementation-traceability-staff.md).
 
-Apply it with the Supabase CLI:
+Apply migrations with the Supabase CLI (use `--remote` for the linked cloud project):
 
 ```bash
-npx supabase db push
+npx supabase db push --remote
 ```
+
+**Enum safety:** `20261115115000_user5_enum_values.sql` must apply in its own migration before `20261115120000_user5_module_integration.sql` (Postgres cannot use new enum labels in the same transaction they were added).
 
 If a migration reports `function digest(text, unknown) does not exist`, make sure the
 migration uses `extensions.digest(...)`; Supabase installs `pgcrypto` functions in
@@ -47,9 +49,12 @@ complete Supabase profiles can sign in. New Google accounts are created with an 
 but the current onboarding screen still saves through the local sample store; finish Supabase-backed
 onboarding before relying on new-account sign-up in production.
 
-The client meal catalog is inserted by
-[`migrations/20261030150000_seed_client_meal_catalog.sql`](./migrations/20261030150000_seed_client_meal_catalog.sql).
-Run `supabase db push` after pulling this change before testing order placement.
+The client meal catalog is seeded by
+[`migrations/20261030150000_seed_client_meal_catalog.sql`](./migrations/20261030150000_seed_client_meal_catalog.sql)
+and synced to the current app menu (pastries, lunch/dinner plates, search fixtures) in
+[`migrations/20261115143000_sync_user5_menu_catalog.sql`](./migrations/20261115143000_sync_user5_menu_catalog.sql).
+Each row stores a `client_meal_key` that matches the frontend meal id used at checkout.
+Apply all migrations with `supabase db push` before testing order placement or staff menu views.
 
 Deploy the username login function separately:
 

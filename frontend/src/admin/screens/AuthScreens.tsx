@@ -131,7 +131,7 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
       setAuthError({ title: gate.title, detail: gate.detail });
       return;
     }
-    const backend = await signInStaffToSupabase(account.email, password);
+    const backend = await signInStaffToSupabase(account.email, password, role);
     await signIn(account, remember);
     if (backend.ok && !backend.skipped) {
       await syncStaffDataFromBackend();

@@ -146,7 +146,7 @@ These are not all criterion-level passes: stories remain Partial/Missing until e
 
 Checked against `frontend/.env` and the running Expo process on 2026-11-14. Values are not recorded here.
 
-- `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set. Expo loads them, Auth health returns 200, and the anon key can see `meals`, `profiles`, `orders`, and `notifications`. Those reads currently return no rows. `menu_items` and `staff` are not tables in this project.
+- `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set. Expo loads them, Auth health returns 200, and the anon key can see `meals`, `profiles`, `orders`, and `notifications`. Apply [`supabase/migrations/20261115143000_sync_user5_menu_catalog.sql`](../supabase/migrations/20261115143000_sync_user5_menu_catalog.sql) so `meals` includes the app menu (`client_meal_key` matches frontend meal ids). `menu_items` and `staff` are not tables in this project.
 - SMS and email providers are still not configured. Google OAuth is a Supabase Auth provider setting, not an app environment variable. The client secret must stay in the Supabase dashboard.
 - The in-app Admin console (`frontend/src/admin`) has Admin, Dietitian, Kitchen, and Delivery roles, but it keeps its own local order list. It does not read or update the user app's Supabase orders. Its statuses are Pending, Preparing, Delivered, and Cancelled. The database roles are `client`, `owner_admin`, `kitchen_staff`, and `delivery_staff`, with no Dietitian role.
 - The specification says Expo Router in project guidance while the current app uses React Navigation. This plan preserves the existing navigation until the migration is implemented deliberately; no mixed routing architecture should be introduced.

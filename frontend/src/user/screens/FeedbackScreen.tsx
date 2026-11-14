@@ -29,13 +29,13 @@ export default function FeedbackScreen({ navigation }: {
   const [fieldError, setFieldError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     setFieldError('');
     if (!user?.id || user.role === 'visitor') {
       setFieldError(MSG.guestGate);
       return;
     }
-    const result = submitFeedback(String(user.id), comment);
+    const result = await submitFeedback(String(user.id), comment);
     if (!result.ok) {
       setFieldError(result.message);
       return;

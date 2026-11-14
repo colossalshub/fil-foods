@@ -29,7 +29,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "node --experimental-strip-types --import ./test-register.mjs --test src/user/domain/registration.test.ts src/user/domain/userModule.test.ts src/user/domain/terms.test.ts src/lib/authSession.test.ts src/user/services/verificationService.test.ts src/user/services/sessionPolicy.test.ts src/user/services/authService.test.ts src/user/services/googleAuthService.test.ts src/user/services/profileService.test.ts src/user/services/orderService.test.ts src/user/services/planService.test.ts src/user/data/helpContent.test.ts src/user/data/terms.test.ts src/user/services/trackingService.test.ts src/user/services/biometricService.test.ts src/user/services/securityNutrition.test.ts src/admin/domain/adminRules.test.ts src/user/theme/theme.test.ts",
+    "test": "node --experimental-strip-types --import ./test-register.mjs --test src/user/domain/registration.test.ts src/user/domain/userModule.test.ts src/user/domain/terms.test.ts src/lib/authSession.test.ts src/user/services/verificationService.test.ts src/user/services/sessionPolicy.test.ts src/user/services/authService.test.ts src/user/services/googleAuthService.test.ts src/user/services/profileService.test.ts src/user/services/orderService.test.ts src/user/services/planService.test.ts src/user/data/helpContent.test.ts src/user/data/terms.test.ts src/user/services/trackingService.test.ts src/user/services/biometricService.test.ts src/user/services/securityNutrition.test.ts src/user/services/backendOrderService.test.ts src/admin/domain/adminRules.test.ts src/user/theme/theme.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
