@@ -47,19 +47,34 @@ export const GUIDE_STEPS: Array<{
     screenshotLabel: 'Screenshot reference: Meals list with search bar',
   },
   {
+    id: 'order',
+    title: 'Order: choose meals and fulfillment',
+    description: 'Open Order to choose one meal for each meal time, then delivery or pickup.',
+    screenshotLabel: 'Screenshot reference: Order screen',
+  },
+  {
     id: 'orders',
     title: 'Orders: current and previous orders',
     description: 'Open Orders to see active deliveries, order history, and status updates.',
+    screenshotLabel: 'Screenshot reference: Orders list',
+  },
+  {
+    id: 'tracking',
+    title: 'Tracking: follow an order',
+    description: 'Open an order to follow its status from review through delivery or pickup.',
+    screenshotLabel: 'Screenshot reference: Tracking screen',
   },
   {
     id: 'account',
     title: 'Account: profile and dietary information',
     description: 'Open Account to update contact details, allergies, dietary restrictions, and health information.',
+    screenshotLabel: 'Screenshot reference: Account screen',
   },
   {
     id: 'help',
     title: 'Help: guides and support',
     description: 'Open Help for step-by-step guides, frequently asked questions, and how to reach support.',
+    screenshotLabel: 'Screenshot reference: Help screen',
   },
 ];
 
@@ -141,13 +156,52 @@ export function allFaqItems() {
   return FAQ_GROUPS.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title })));
 }
 
+function normalizeFaqQuery(value: string) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function faqWords(value: string) {
+  return normalizeFaqQuery(value).split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+function faqDistance(a: string, b: string) {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const dist = Array.from({ length: rows }, () => new Array(cols).fill(0));
+  for (let i = 0; i < rows; i += 1) dist[i][0] = i;
+  for (let j = 0; j < cols; j += 1) dist[0][j] = j;
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dist[i][j] = Math.min(dist[i - 1][j] + 1, dist[i][j - 1] + 1, dist[i - 1][j - 1] + cost);
+    }
+  }
+  return dist[a.length][b.length];
+}
+
+function faqWordMatches(queryWord: string, text: string) {
+  const budget = queryWord.length >= 6 ? 2 : 1;
+  return faqWords(text).some((word) => {
+    if (word === queryWord) return true;
+    if (queryWord.length < 3) return false;
+    if (Math.abs(word.length - queryWord.length) > budget) return false;
+    return faqDistance(queryWord, word) <= budget;
+  });
+}
+
 export function searchFaq(query: string) {
-  const needle = String(query || '').trim().toLowerCase();
+  const needle = normalizeFaqQuery(query);
   const items = allFaqItems();
-  if (!needle) return items;
-  return items.filter(
-    (item) => item.question.toLowerCase().includes(needle) || item.answer.toLowerCase().includes(needle),
-  );
+  if (needle.length < 2) return items;
+  const queryWords = faqWords(needle);
+  const scored = items.map((item) => {
+    const haystack = `${item.question} ${item.answer}`;
+    const exact = normalizeFaqQuery(haystack).includes(needle);
+    const fuzzy = queryWords.every((word) => faqWordMatches(word, haystack));
+    return { item, exact, fuzzy };
+  }).filter((row) => row.exact || row.fuzzy);
+  scored.sort((a, b) => Number(b.exact) - Number(a.exact));
+  return scored.map((row) => row.item);
 }
 
 export function buildTelHref(phone: string) {

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import GoogleSignIn from '../../components/GoogleSignIn';
 import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
+import { consumeLoginNotice } from '../../navigation/loginNotice';
 import type { FieldMap } from '../../types';
 import { colors, font, spacing } from '../../theme/theme';
 
@@ -27,6 +29,11 @@ export default function LoginScreen({ navigation }: {
   const [errors, setErrors] = useState<FieldMap>({});
   const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    const notice = consumeLoginNotice();
+    if (notice) setFormError(notice);
+  }, []));
 
   const onLogin = async () => {
     const e: FieldMap = {};
@@ -169,7 +176,7 @@ const styles = StyleSheet.create({
   logo: { width: 96, height: 96 },
   brand: { color: '#10251C', fontSize: 28, lineHeight: 34, fontWeight: '800', textAlign: 'center', marginTop: -spacing.xs },
   loginTitle: { color: '#10251C', fontSize: 20, lineHeight: 24, fontWeight: '700', textAlign: 'center' },
-  tagline: { color: colors.deep, fontSize: 13, lineHeight: 18, fontWeight: '600', textAlign: 'center' },
+  tagline: { color: colors.deep, fontSize: font.body, lineHeight: 22, fontWeight: '600', textAlign: 'center' },
   illustration: { height: 96, alignItems: 'center', justifyContent: 'flex-end', marginTop: spacing.sm, marginBottom: spacing.lg },
   dome: { width: 128, height: 66, backgroundColor: colors.primaryDark, borderTopLeftRadius: 70, borderTopRightRadius: 70, zIndex: 1 },
   domeRim: { width: 148, height: 8, borderRadius: 8, backgroundColor: colors.deep, marginTop: -1, zIndex: 1 },

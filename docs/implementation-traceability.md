@@ -1,8 +1,8 @@
 # Meal Service Specification Traceability Plan
 
-Source of truth: [User Module Requirements (USR-01 through USR-50)](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md), transcribed from the supplied 61-page PDF on 2026-11-14.
+Source of truth: [User Module specification](./specs/user-module.md) ([canonical PDF](./specs/FIL_Foods_User_Module.pdf), [verbatim transcription](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md)). Current stories are **USR-01 through USR-50**.
 
-The supplied PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
+The User 5 PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
 
 ## Historical baseline audit
 
@@ -13,7 +13,7 @@ The following baseline was audited on 2026-10-30 against the previous 42-story s
 - Supabase migrations `20261030131000`, `20261030140000`, and `20261030142000` are applied to project `jmayfxgpxzgyilyvnbju`; the `login-by-username` Edge Function is deployed and responding.
 - Existing unit tests pass: 91/91.
 - `npm run lint` fails in [`frontend/src/components/VerificationFlow.js`](../frontend/src/components/VerificationFlow.js) because of a state update inside an effect, plus two unused variables.
-- Existing code includes plan/biometric/demo features that are not in USR-01–USR-42 and must not become dependencies of the client stories.
+- Existing code includes plan/biometric/demo features that are not in USR-01–USR-50 and must not become dependencies of the client stories.
 
 The tests at that time validated local service behavior, not production security, persistence, concurrency, provider delivery, or cross-client isolation.
 
@@ -93,18 +93,18 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-15 | Partial | Terms text and local acceptance timestamp exist; accepted version/consent are not consistently persisted through remote registration/profile flows. |
 | USR-16 | Partial | Search/filter UI uses a bundled static catalog; live Admin catalog, availability, and complete combined-filter integration are not wired. |
 | USR-17 | Partial | Meal details use bundled meal objects; live catalog/components, availability, and consistent requirement pricing are not guaranteed. |
-| USR-18 | Partial | Local cart validation exists and the order RPC recomputes prices; server-side meal-slot/quantity/day limits, customization, and complete order rules are missing. |
+| USR-18 | Partial | The cart allows one meal per Breakfast, Lunch, and Dinner, caps the day at three, prices a standard meal at ₱300, and stores vegetable, meat, and cooking-style choices. Dietitian approval of a customization is still a Dietitian action. |
 | USR-19 | Partial | Fulfillment/address/schedule collection and server validation exist; Admin-configured hours/fees and pickup operations details are not fully implemented. |
-| USR-20 | Partial | Idempotent order RPC exists; Dietitian review, payment state/provider, and paid-only Kitchen release workflow are absent. |
+| USR-20 | Partial | A new order is saved as For Dietitian Review and the summary shows ₱300 plus the weekly, monthly, and yearly plan prices. Dietitian approval, payment capture, and Kitchen release stay outside the client. |
 | USR-21 | Partial | Client-scoped backend order reads/RLS exist; staff fulfillment and payment workflow integration is missing. |
 | USR-22 | Partial | Backend order detail/history reads exist; complete payment/customization data and integration verification are missing. |
 | USR-23 | Partial | Status display/Realtime exist; review/payment states and authorized staff transition workflow are missing. |
 | USR-24 | Partial | Order/notification Realtime subscriptions exist; status-triggered durable notifications, reconnect/offline coverage, and push delivery are not established. |
 | USR-25 | Partial | Local alerts/read state exist; the screen is not wired to the remote notifications table and Admin announcements/push delivery are missing. |
 | USR-26 | Partial | Shared palette/body/touch foundations and Help controls exist; Help reachability on every screen, minimum text sizing everywhere, large-text layouts, and screen-reader checks need verification. |
-| USR-27 | Partial | FAQ groups/search/expand and basic tests exist; required typo tolerance, exact-match ranking, and short-query behavior are not implemented. |
+| USR-27 | Partial | FAQ search ignores case and extra spaces, ranks an exact match first, allows the specified typo budget, and leaves a one-character query unfiltered. |
 | USR-28 | Partial | First-use guide/reopen UI exists; guide references are incomplete and viewed state is device-local rather than a durable per-user record. |
-| USR-29 | Missing | No user feedback form, persistence/API, or Admin review queue. |
+| USR-29 | Partial | Signed-in Help has a comments field, rejects an empty comment, and stores the comment locally. Admin review of submitted feedback is still an Admin-module gap. |
 | USR-30 | Partial | Supabase OAuth flow and mock scenarios exist; real account type selection/persistence and deployed provider configuration are incomplete. |
 | USR-31 | Partial | Google profile completion UI/validation exists locally; remote completion/recipient persistence and ordering gate are missing. |
 | USR-32 | Partial | Username/password and username-login function exist; integrated remote reset and Google linking parity are missing. |
@@ -120,12 +120,12 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-42 | Partial | SQL hash-chain/audit functions exist and some auth/order events are recorded; profile/recipient/logout event coverage and deployed tamper tests are missing. |
 | USR-43 | Partial | Registration choice is local; screen now uses the specified descriptions, missing-choice message, and profile label. Google preselection/account persistence and Admin visibility remain missing remotely. |
 | USR-44 | Partial | Local family recipient fields/consent are validated and separate from user data; no remote recipient table/API or remote completion/order gate. |
-| USR-45 | Missing | No separate Edit meal recipient screen/save path, recipient-only update guarantee, or recipient-change history. |
-| USR-46 | Partial | Some local profile/order behavior uses recipient data; order summaries, warnings, and notifications do not consistently distinguish account user from meal recipient. |
-| USR-47 | Missing | No delete-account UI/service; reauthentication, in-progress order block, session revocation, retained-order anonymization, and deletion audit are absent. |
+| USR-45 | Partial | Family accounts have Edit meal recipient, required-field and contact checks, unsaved-back confirmation, and a history entry that leaves the account holder unchanged. Remote recipient persistence is still missing. |
+| USR-46 | Partial | Home, Account, order summary, allergen warnings, and family status alerts name the meal recipient. Staff-facing copies of those labels are not in this client. |
+| USR-47 | Partial | Account has Delete account with the quoted warning, wrong-password message, in-progress block, and local removal. Ending every device session, Admin anonymization, and cross-user denial remain server rules. |
 | USR-48 | Partial | Palette/contrast/body/touch tests exist; sub-16px text, max-font responsive layout, and complete screen-reader coverage remain. |
 | USR-49 | Partial | Static numbered terms, version/date, links, and content tests exist; offline load/retry state and blocking acceptance until text loads are absent. |
-| USR-50 | Partial | Local acceptance timestamp and required checkbox/message exist; remote versioned immutable event, deduplication, save-failure handling, and update/reaccept session gate are absent. |
+| USR-50 | Partial | A changed terms version blocks Home until the user accepts, and decline ends the session with the quoted message. The tamper-evident acceptance record is still a server audit rule. |
 
 These are not all criterion-level passes: stories remain Partial/Missing until each numbered criterion in the source PDF is mapped to a passing automated or documented manual test. The recommendation tests are local service tests; they do not prove the live Admin catalog, backend authorization, Dietitian decisions, or payment workflow.
 
@@ -146,4 +146,4 @@ These are not all criterion-level passes: stories remain Partial/Missing until e
 - SMS, email, Google OAuth, and Admin-configured settings providers are not present.
 - The specification requires Admin/Kitchen/Delivery behavior for authorization and status simulation, but no staff API exists.
 - The specification says Expo Router in project guidance while the current app uses React Navigation. This plan preserves the existing navigation until the migration is implemented deliberately; no mixed routing architecture should be introduced.
-- Existing plan/biometric/demo behavior is outside USR-01–USR-42. It will not be used to satisfy stories; removal or retention must be decided when the corresponding UI surfaces are refactored.
+- Existing plan/biometric/demo behavior is outside USR-01–USR-50. It will not be used to satisfy stories; removal or retention must be decided when the corresponding UI surfaces are refactored.

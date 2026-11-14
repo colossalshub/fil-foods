@@ -10,6 +10,7 @@ import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding, logout, normalizeContact } from '../../services/authService';
 import { ALLERGY_PRESETS } from '../../services/profileService';
+import { MSG } from '../../data/messages';
 import { MEALS } from '../../data/meals';
 import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
 import type { FieldMap, MealMatchProfile } from '../../types';
@@ -96,37 +97,40 @@ export default function CompleteProfileScreen() {
     const nextFields: FieldMap = {};
     if (currentStage === 'personal' || (currentStage === 'recipient' && needsAccountDetails)) {
       if (currentStage === 'recipient') {
-        if (!firstName.trim()) nextFields.firstName = 'Enter your first name.';
-        if (!lastName.trim()) nextFields.lastName = 'Enter your last name.';
-        if (!contactNumber.trim()) nextFields.contactNumber = 'Enter your contact number.';
-        if (!accepted && !user?.termsAcceptedAt) nextFields.terms = 'Accept the Terms and Conditions to continue.';
+        if (!firstName.trim()) nextFields.firstName = MSG.required;
+        if (!lastName.trim()) nextFields.lastName = MSG.required;
+        if (!contactNumber.trim()) nextFields.contactNumber = MSG.required;
+        if (!accepted && !user?.termsAcceptedAt) nextFields.terms = MSG.termsRequired;
       } else {
-        if (!firstName.trim()) nextFields.firstName = 'Enter your first name.';
-        if (!lastName.trim()) nextFields.lastName = 'Enter your last name.';
-        if (!contactNumber.trim()) nextFields.contactNumber = 'Enter your contact number.';
-        if (!address.trim()) nextFields.address = 'Enter your delivery address.';
-        if (!accepted && !user?.termsAcceptedAt) nextFields.terms = 'Accept the Terms and Conditions to continue.';
+        if (!firstName.trim()) nextFields.firstName = MSG.required;
+        if (!lastName.trim()) nextFields.lastName = MSG.required;
+        if (!contactNumber.trim()) nextFields.contactNumber = MSG.required;
+        if (!address.trim()) nextFields.address = MSG.required;
+        if (!accepted && !user?.termsAcceptedAt) nextFields.terms = MSG.termsRequired;
       }
       if (contactNumber.trim() && !/^\d{11}$/.test(normalizeContact(contactNumber))) {
-        nextFields.contactNumber = 'Please enter a valid contact number.';
+        nextFields.contactNumber = MSG.invalidContact;
       }
     }
     if (currentStage === 'recipient') {
       const actualRelationship = relationship === 'Other' ? relationshipOther.trim() : relationship.trim();
-      if (!recipientFirstName.trim()) nextFields.recipientFirstName = 'Enter the meal recipient’s first name.';
-      if (!recipientLastName.trim()) nextFields.recipientLastName = 'Enter the meal recipient’s last name.';
-      if (!actualRelationship) nextFields.relationship = 'Choose or enter the recipient’s relationship to you.';
-      if (!deliveryAddress.trim()) nextFields.deliveryAddress = 'Enter the meal delivery address.';
+      if (!recipientFirstName.trim() || !recipientLastName.trim() || !actualRelationship || !deliveryAddress.trim()) {
+        if (!recipientFirstName.trim()) nextFields.recipientFirstName = MSG.required;
+        if (!recipientLastName.trim()) nextFields.recipientLastName = MSG.required;
+        if (!actualRelationship) nextFields.relationship = MSG.required;
+        if (!deliveryAddress.trim()) nextFields.deliveryAddress = MSG.required;
+      }
       if (recipientContactNumber.trim() && !/^\d{11}$/.test(normalizeContact(recipientContactNumber))) {
-        nextFields.recipientContactNumber = 'Please enter a valid contact number.';
+        nextFields.recipientContactNumber = MSG.invalidContact;
       }
       if (!recipientConsent) {
         nextFields.recipientConsent = "Please confirm that you are allowed to manage this person's information.";
       }
     }
     setFields(nextFields);
-    setMessages([]);
-    if (Object.keys(nextFields).length) return;
+    const fieldMessages = [...new Set(Object.values(nextFields).filter((value): value is string => typeof value === 'string' && value.length > 0))];
+    setMessages(fieldMessages);
+    if (fieldMessages.length) return;
     setStep((current) => current + 1);
   };
 
@@ -170,7 +174,7 @@ export default function CompleteProfileScreen() {
     });
     setSaving(false);
     if (!result.ok || !result.user) {
-      setMessages(result.messages || ['Could not save your profile. Please try again.']);
+      setMessages(result.messages || [MSG.acceptanceSaveFailed]);
       setFields(result.fields || {});
       return;
     }

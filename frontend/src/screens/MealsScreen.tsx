@@ -10,6 +10,7 @@ import FilterModal from '../components/FilterModal';
 import AppButton from '../components/AppButton';
 import type { Meal } from '../types';
 import { MEALS, CUISINES } from '../data/meals';
+import { mealsForLabel, recipientDisplayName } from '../domain/audience';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import NutritionDayPanel from '../components/NutritionDayPanel';
@@ -81,7 +82,7 @@ export default function MealsScreen({ navigation }: {
           style={styles.reviewOrderBtn}
         />
       ) : null}
-      <Text style={styles.recTitle}>Recommended for you</Text>
+      <Text style={styles.recTitle}>{mealsForLabel(user?.accountFor, recipientDisplayName(user?.mealRecipient))}</Text>
       {profileLoading ? (
         <ActivityIndicator color={colors.primary} style={styles.recEmpty} />
       ) : recommendations.emptyProfile ? (
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: 6, fontSize: font.body, color: colors.text },
   filterBtn: { minWidth: control.minHeight, minHeight: control.minHeight, paddingHorizontal: 8, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.sm },
   filterLabel: { color: colors.white, fontSize: font.body, fontWeight: '700' },
-  badge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.danger, color: colors.white, fontSize: 10, textAlign: 'center', lineHeight: 16, overflow: 'hidden' },
+  badge: { position: 'absolute', top: -8, right: -8, minWidth: 22, height: 22, borderRadius: 11, backgroundColor: colors.danger, color: colors.white, fontSize: font.body, textAlign: 'center', lineHeight: 22, overflow: 'hidden' },
   chipScroll: { marginHorizontal: spacing.lg, marginTop: spacing.md, height: control.minHeight },
   chips: { alignItems: 'center', gap: 8, height: control.minHeight },
   chipsSpread: { flexGrow: 1, justifyContent: 'space-between' },

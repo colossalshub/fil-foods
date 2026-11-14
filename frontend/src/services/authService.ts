@@ -4,6 +4,7 @@ import type { FieldMap, GoogleProfile, OnboardingInput, RegistrationInput, Servi
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { registerAccount, toPublicUser, trim, isValidContact, isValidEmail } from '../domain/registration.js';
 import { MSG } from '../data/messages.js';
+import { TERMS_VERSION } from '../data/terms.js';
 import { formatTimestamp } from '../utils/time.js';
 import { verifyCode, sendCode } from './verificationService.js';
 import { clearPersistedSession } from './sessionPersistence.js';
@@ -13,6 +14,21 @@ import { isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { loginWithSupabase } from './supabaseAuthService.js';
 
 const wait = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
+
+let acceptanceSaveFails = false;
+
+export function __testFailNextAcceptanceSave() {
+  acceptanceSaveFails = true;
+}
+
+export function termsUpdateRequired(user: {
+  profileComplete?: boolean;
+  termsAcceptedAt?: string | null;
+  termsAcceptedVersion?: string | null;
+} | null | undefined) {
+  if (!user?.profileComplete || !user.termsAcceptedAt) return false;
+  return (user.termsAcceptedVersion || TERMS_VERSION) !== TERMS_VERSION;
+}
 
 const MAX_FAILED_ATTEMPTS = 5;
 const MAX_LOGIN_ATTEMPTS_PER_MINUTE = 10;
@@ -143,7 +159,16 @@ export function logout(userId: string) {
 }
 
 export async function register(data: RegistrationInput) {
-  return registerAccount(data, getDb(), { id: nextId('user'), now: stamp() });
+  if (acceptanceSaveFails) {
+    acceptanceSaveFails = false;
+    return { ok: false, messages: [MSG.acceptanceSaveFailed], fields: { terms: true } };
+  }
+  const result = registerAccount(data, getDb(), { id: nextId('user'), now: stamp() });
+  if (result.ok && result.user?.id) {
+    const stored = getUser(result.user.id);
+    if (stored) stored.termsAcceptedVersion = TERMS_VERSION;
+  }
+  return result;
 }
 
 export function getPublicUser(userId: string | null | undefined) {
@@ -257,6 +282,10 @@ export function completeOnboarding(userId: string, input: OnboardingInput): Serv
     fields.terms = MSG.termsRequired;
   }
   if (messages.length) return { ok: false, messages: [...new Set(messages)], fields };
+  if (acceptanceSaveFails) {
+    acceptanceSaveFails = false;
+    return { ok: false, messages: [MSG.acceptanceSaveFailed], fields: { terms: MSG.acceptanceSaveFailed } };
+  }
 
   Object.assign(user, personal);
   if (accountFor === 'self') {
@@ -270,6 +299,7 @@ export function completeOnboarding(userId: string, input: OnboardingInput): Serv
   }
   if (recipient) user.mealRecipient = recipient;
   if (!user.termsAcceptedAt) user.termsAcceptedAt = stamp();
+  if (!user.termsAcceptedVersion) user.termsAcceptedVersion = TERMS_VERSION;
   user.profileComplete = true;
   user.profileLastUpdated = stamp();
   appendAuditEvent(getDb(), {
@@ -415,6 +445,7 @@ export function completeProfile(userId: string, input: RegistrationInput): Servi
   if (!user.termsAcceptedAt) {
     user.termsAcceptedAt = stamp();
   }
+  if (!user.termsAcceptedVersion) user.termsAcceptedVersion = TERMS_VERSION;
   user.profileComplete = true;
 
   return { ok: true, user: toPublicUser(user) };
@@ -543,6 +574,68 @@ export function updatePassword({
   void clearPersistedSession();
 
   return { ok: true, message: MSG.passwordUpdated };
+}
+
+function ordersForUser(userId: string) {
+  const db = getDb() as { orders?: { userId?: string; status?: string; customerLabel?: string }[] };
+  if (!Array.isArray(db.orders)) db.orders = [];
+  return db.orders.filter((order) => order.userId === userId);
+}
+
+export function deletionBlockReason(userId: string) {
+  const open = ordersForUser(userId).some((order) => order.status !== 'Completed' && order.status !== 'Cancelled' && order.status !== 'Delivered');
+  return open ? MSG.orderInProgress : '';
+}
+
+export async function deleteAccount({
+  userId,
+  password,
+  googleConfirmed,
+}: {
+  userId: string;
+  password?: string;
+  googleConfirmed?: boolean;
+}): Promise<ServiceResult> {
+  const blocked = deletionBlockReason(userId);
+  if (blocked) return { ok: false, message: blocked };
+  const user = getUser(userId);
+  if (!user) return { ok: false, message: MSG.invalidCredentials };
+  if (isGoogleOnlyAccount(user)) {
+    if (!googleConfirmed) return { ok: false, needsGoogle: true, message: MSG.googleOnly };
+  } else if (!(await comparePassword(String(password ?? ''), user.passwordHash))) {
+    return { ok: false, message: MSG.deleteWrongPassword };
+  }
+  for (const order of ordersForUser(userId)) {
+    order.customerLabel = 'Deleted user';
+  }
+  getDb().users = getDb().users.filter((item) => item.id !== userId);
+  appendAuditEvent(getDb(), {
+    action: 'account.deleted',
+    userId,
+    targetId: userId,
+    metadata: { type: 'auth' },
+  });
+  return { ok: true, message: MSG.accountDeleted };
+}
+
+export function acceptUpdatedTerms(userId: string): ServiceResult {
+  const user = getUser(userId);
+  if (!user) return { ok: false, message: MSG.required };
+  if (acceptanceSaveFails) {
+    acceptanceSaveFails = false;
+    return { ok: false, message: MSG.acceptanceSaveFailed };
+  }
+  if (user.termsAcceptedVersion !== TERMS_VERSION) {
+    user.termsAcceptedAt = stamp();
+    user.termsAcceptedVersion = TERMS_VERSION;
+    appendAuditEvent(getDb(), {
+      action: 'terms.accepted',
+      userId,
+      targetId: userId,
+      metadata: { version: TERMS_VERSION },
+    });
+  }
+  return { ok: true, user: toPublicUser(user) };
 }
 
 // Re-export for tests that exercise the reset send path.

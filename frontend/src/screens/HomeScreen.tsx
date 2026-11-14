@@ -14,14 +14,18 @@ import { MEALS } from '../data/meals';
 import { MEAL_PHOTOS } from '../data/mealPhotos';
 import { ORDER_MSG, formatPhp, getRecommendedMeals } from '../services/orderService';
 import type { Meal } from '../types';
+import { mealsForLabel, recipientDisplayName } from '../domain/audience';
 import { colors, card, font, radius, spacing } from '../theme/theme';
 
-const STEPS = ['Confirmed', 'Preparing', 'Ready for Pick-up', 'Completed'];
+const STEPS = ['For Dietitian Review', 'Awaiting Payment', 'Paid', 'Preparing', 'Ready for Pick-up', 'Completed'];
 const GREEN = colors.primary;
 const GRAY = '#D9D9D9';
 
 const STATUS_TO_STEP: Record<string, string> = {
-  Confirmed: 'Confirmed',
+  'For Dietitian Review': 'For Dietitian Review',
+  'Awaiting Payment': 'Awaiting Payment',
+  Paid: 'Paid',
+  Confirmed: 'For Dietitian Review',
   Preparing: 'Preparing',
   'Ready for Pick-up': 'Ready for Pick-up',
   Completed: 'Completed',
@@ -276,7 +280,9 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
+          <Text style={styles.sectionTitle}>
+            {mealsForLabel(user?.accountFor, recipientDisplayName(user?.mealRecipient))}
+          </Text>
         </View>
         {profileLoading ? (
           <ActivityIndicator color={colors.primary} style={styles.recLoading} />
@@ -502,5 +508,5 @@ const progressStyles = StyleSheet.create({
   track: { flexDirection: 'row', alignItems: 'center', width: '100%', height: 10 },
   line: { flex: 1, height: 2 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  label: { fontSize: 10, marginTop: 4, textAlign: 'center' },
+  label: { fontSize: font.body, marginTop: 4, textAlign: 'center' },
 });

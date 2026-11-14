@@ -2,34 +2,41 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'filfoods.helpGuideSeen';
 
+function storageKey(userId?: string | null) {
+  return userId ? `${KEY}.${userId}` : KEY;
+}
+
 let testStore: Map<string, string> | null = null;
 
 export function __setTestStore(store: Map<string, string> | null) {
   testStore = store;
 }
 
-async function readRaw() {
-  if (testStore) return testStore.get(KEY) ?? null;
-  return AsyncStorage.getItem(KEY);
+async function readRaw(userId?: string | null) {
+  const key = storageKey(userId);
+  if (testStore) return testStore.get(key) ?? null;
+  return AsyncStorage.getItem(key);
 }
 
-export async function hasSeenHelpGuide() {
-  const raw = await readRaw();
+export async function hasSeenHelpGuide(userId?: string | null) {
+  const raw = await readRaw(userId);
   return raw === '1';
 }
 
-export async function markHelpGuideSeen() {
+export async function markHelpGuideSeen(userId?: string | null) {
+  const key = storageKey(userId);
   if (testStore) {
-    testStore.set(KEY, '1');
+    testStore.set(key, '1');
     return;
   }
-  await AsyncStorage.setItem(KEY, '1');
+  await AsyncStorage.setItem(key, '1');
 }
 
-export async function clearHelpGuideSeen() {
+export async function clearHelpGuideSeen(userId?: string | null) {
+  const key = storageKey(userId);
   if (testStore) {
-    testStore.delete(KEY);
+    testStore.delete(key);
     return;
   }
-  await AsyncStorage.removeItem(KEY);
+  await AsyncStorage.removeItem(key);
 }

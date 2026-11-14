@@ -110,6 +110,10 @@ export function resolveGoogleProfile(profile: GoogleProfile | null | undefined, 
     return { ok: false, status: 'link', message: MSG.linkPrompt, google: profile };
   }
 
+  if (accountFor !== 'self' && accountFor !== 'family') {
+    return { ok: false, status: 'needs_account_type', message: MSG.registrationTypeRequired, google: profile };
+  }
+
   const created = createGoogleUser(profile, accountFor);
   return { ok: true, user: recordLogin(created.id) };
 }

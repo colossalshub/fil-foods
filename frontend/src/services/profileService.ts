@@ -410,6 +410,53 @@ export function cancelPendingContactChange(userId: string) {
   if (user) user.pendingContactChange = null;
 }
 
+export function saveMealRecipient(userId: string, input: {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  suffix?: string;
+  relationship?: string;
+  contactNumber?: string;
+  deliveryAddress?: string;
+}): ServiceResult {
+  const user = getUser(userId);
+  if (!user || user.accountFor !== 'family' || !user.mealRecipient) {
+    return { ok: false, messages: [MSG.required] };
+  }
+  ensureProfileFields(user);
+  const firstName = trim(input.firstName);
+  const lastName = trim(input.lastName);
+  const relationship = trim(input.relationship);
+  const deliveryAddress = trim(input.deliveryAddress);
+  const contactNumber = normalizeContact(input.contactNumber);
+  if (!firstName || !lastName || !relationship || !deliveryAddress || !contactNumber) {
+    return { ok: false, messages: [MSG.required] };
+  }
+  if (!isValidContact(contactNumber)) return { ok: false, messages: [MSG.invalidContact] };
+  const previous = user.mealRecipient;
+  const previousSummary = [previous.firstName, previous.lastName, previous.deliveryAddress].filter(Boolean).join(', ');
+  user.mealRecipient = {
+    ...previous,
+    firstName,
+    middleName: trim(input.middleName),
+    lastName,
+    suffix: trim(input.suffix),
+    relationship,
+    contactNumber,
+    deliveryAddress,
+  };
+  const nextSummary = [firstName, lastName, deliveryAddress].filter(Boolean).join(', ');
+  appendHistory(user, {
+    section: 'recipient',
+    action: 'updated',
+    item: nextSummary,
+    previousValue: previousSummary,
+    newValue: nextSummary,
+  });
+  touchProfile(user);
+  return { ok: true, message: MSG.recipientUpdated };
+}
+
 export function saveHealthConditions(userId: string, conditions: string[] | null | undefined): ServiceResult {
   const user = getUser(userId);
   if (!user) return { ok: false, messages: [MSG.required] };

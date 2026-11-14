@@ -47,7 +47,7 @@ export default function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.inactive,
-        tabBarLabelStyle: { fontSize: 11, lineHeight: 16, flexShrink: 0 },
+        tabBarLabelStyle: { fontSize: 16, lineHeight: 20, flexShrink: 0 },
         tabBarItemStyle: { marginVertical: 0 },
         tabBarIconStyle: { width: 64, height: 32 },
         tabBarStyle: {

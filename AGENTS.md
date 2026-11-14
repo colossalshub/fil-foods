@@ -1,5 +1,11 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## User Module specification
+
+Client behavior follows **USR-01 through USR-50** in [`docs/specs/user-module.md`](docs/specs/user-module.md). Canonical PDF: [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf). Verbatim transcription: [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](.github/Meal_Service_User_Stories_AI_Agent_Handoff.md).
+
+That User 5 module supersedes the older USR-01–USR-42 handoff. Quoted labels and messages must be used as written. The account holder and the meal recipient are different people when the account is for a family member. Do not treat spreadsheet Passed / Failed / Total rows as features.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:

@@ -42,12 +42,19 @@ test('contact phone can be overridden for display and tel href', () => {
   }
 });
 
-test('app guide is never empty', () => {
+test('FAQ search tolerates a one-letter typo and keeps one-character queries unfiltered', () => {
+  const typo = searchFaq('pasword');
+  assert.ok(typo.some((item) => item.question.toLowerCase().includes('password')));
+  const exact = searchFaq('password');
+  assert.equal(exact[0].question.toLowerCase().includes('password'), true);
+  assert.equal(searchFaq('p').length, searchFaq('').length);
+  assert.equal(searchFaq('delivry').some((item) => item.question.toLowerCase().includes('deliver') || item.answer.toLowerCase().includes('deliver')), true);
+});
+
+test('app guide covers order, tracking, and help with screen labels', () => {
   assert.ok(GUIDE_STEPS.length > 0);
   assert.ok(GUIDE_STEPS.some((step) => step.title.includes('Menu: browse and search meals')));
-  assert.ok(
-    GUIDE_STEPS.some(
-      (step) => step.title.includes('Orders') || step.title.includes('Account'),
-    ),
-  );
+  assert.ok(GUIDE_STEPS.some((step) => step.id === 'order' && step.screenshotLabel));
+  assert.ok(GUIDE_STEPS.some((step) => step.id === 'tracking' && step.screenshotLabel));
+  assert.ok(GUIDE_STEPS.some((step) => step.id === 'help' && step.screenshotLabel));
 });

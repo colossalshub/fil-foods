@@ -9,9 +9,14 @@ import HelpButton from '../components/HelpButton';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useMealProfile } from '../hooks/useMealProfile';
+import { recipientDisplayName } from '../domain/audience';
 import {
+  COOKING_STYLES,
+  MEAT_PROTEINS,
   ORDER_MSG,
-  formatPhp,
+  STANDARD_MEAL_PRICE,
+  VEGETABLE_STYLES,
+  formatPeso,
   isMealAvailable,
   lineSubtotal,
   parseQuantityInput,
@@ -34,6 +39,10 @@ export default function MealDetailScreen({ route, navigation }: {
   const { addItem, items, updateQuantity, removeItem } = useCart();
   const [quantityText, setQuantityText] = useState('1');
   const [qtyError, setQtyError] = useState('');
+  const [vegetableStyle, setVegetableStyle] = useState('');
+  const [meatProtein, setMeatProtein] = useState('');
+  const [cookingStyle, setCookingStyle] = useState('');
+  const recipientName = user?.accountFor === 'family' ? recipientDisplayName(user.mealRecipient) : '';
 
   const { profile } = useMealProfile(user);
   const available = isMealAvailable(meal);
@@ -65,8 +74,21 @@ export default function MealDetailScreen({ route, navigation }: {
       return;
     }
     if (!available) return;
-    addItem(meal, result.value || 0);
-    Alert.alert('Added to order', `${meal.name} × ${result.value} is in your cart.`, [
+    if (result.value !== 1) {
+      setQtyError(ORDER_MSG.oneMealPerTime);
+      return;
+    }
+    const customization = {
+      vegetableStyle: vegetableStyle || undefined,
+      meatProtein: meatProtein || undefined,
+      cookingStyle: cookingStyle || undefined,
+    };
+    const error = addItem(meal, 1, customization);
+    if (error) {
+      setQtyError(error);
+      return;
+    }
+    Alert.alert('Added to order', `${meal.name} is in your cart.`, [
       { text: 'Keep browsing', style: 'cancel' },
       { text: 'View order', onPress: () => navigation.navigate('Checkout') },
     ]);
@@ -78,7 +100,11 @@ export default function MealDetailScreen({ route, navigation }: {
       setQtyError(result.message || '');
       return;
     }
-    updateQuantity(meal.id, result.value || 0);
+    if (result.value !== 1) {
+      setQtyError(ORDER_MSG.oneMealPerTime);
+      return;
+    }
+    updateQuantity(meal.id, 1);
     Alert.alert('Updated', 'Quantity saved in your cart.');
   };
 
@@ -111,14 +137,14 @@ export default function MealDetailScreen({ route, navigation }: {
           )}
         </View>
         <Text style={styles.category}>{meal.category}</Text>
-        <Text style={styles.meta}>{meal.cuisine} · {formatPhp(meal.price)}</Text>
+        <Text style={styles.meta}>{meal.cuisine} · {formatPeso(STANDARD_MEAL_PRICE)}</Text>
 
         {!available ? (
           <Text style={styles.unavailable}>{ORDER_MSG.mealUnavailable}</Text>
         ) : null}
 
         {allergens.map((a) => (
-          <Text key={a} style={styles.warn}>{ORDER_MSG.mealAllergen(a)}</Text>
+          <Text key={a} style={styles.warn}>{ORDER_MSG.mealAllergen(a, recipientName)}</Text>
         ))}
 
         <Text style={styles.section}>Ingredients</Text>
@@ -140,6 +166,31 @@ export default function MealDetailScreen({ route, navigation }: {
         <Text style={styles.section}>Portion</Text>
         <Text style={styles.body}>{meal.portion || '1 serving'}</Text>
 
+        <Text style={styles.section}>Vegetables</Text>
+        <View style={styles.choices}>
+          {VEGETABLE_STYLES.map((style) => (
+            <Pressable key={style} accessibilityRole="button" accessibilityLabel={style} onPress={() => setVegetableStyle(style)} style={[styles.choice, vegetableStyle === style && styles.choiceOn]}>
+              <Text style={styles.choiceText}>{style}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.section}>Meat</Text>
+        <View style={styles.choices}>
+          {MEAT_PROTEINS.map((protein) => (
+            <Pressable key={protein} accessibilityRole="button" accessibilityLabel={protein} onPress={() => setMeatProtein(protein)} style={[styles.choice, meatProtein === protein && styles.choiceOn]}>
+              <Text style={styles.choiceText}>{protein}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.section}>Cooking style</Text>
+        <View style={styles.choices}>
+          {COOKING_STYLES.map((style) => (
+            <Pressable key={style} accessibilityRole="button" accessibilityLabel={style} onPress={() => setCookingStyle(style)} style={[styles.choice, cookingStyle === style && styles.choiceOn]}>
+              <Text style={styles.choiceText}>{style}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Text style={styles.section}>Quantity</Text>
         <Text style={styles.label}>Whole servings</Text>
         <TextInput
@@ -152,7 +203,7 @@ export default function MealDetailScreen({ route, navigation }: {
         />
         {qtyError ? <Text style={styles.error}>{qtyError}</Text> : null}
         {previewTotal != null ? (
-          <Text style={styles.lineTotal}>Line total: {formatPhp(previewTotal)}</Text>
+          <Text style={styles.lineTotal}>Line total: {formatPeso(previewTotal)}</Text>
         ) : null}
 
         {cartRow ? (
@@ -179,6 +230,10 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 64 },
   category: { fontSize: font.body, fontWeight: '700', color: colors.text },
   meta: { fontSize: font.md, color: colors.muted, marginTop: 4 },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  choice: { minHeight: control.minHeight, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  choiceOn: { borderColor: colors.primary, backgroundColor: colors.soft },
+  choiceText: { fontSize: font.body, color: colors.text },
   unavailable: { marginTop: spacing.md, color: colors.danger, fontSize: font.body },
   warn: { marginTop: spacing.sm, color: colors.danger, fontSize: font.body },
   section: { marginTop: spacing.lg, fontSize: font.body, fontWeight: '700', color: colors.primary },

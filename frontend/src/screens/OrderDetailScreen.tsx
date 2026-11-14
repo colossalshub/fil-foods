@@ -13,6 +13,7 @@ import {
   refreshClientOrder,
   refreshBackendOrder,
 } from '../services/trackingService';
+import { orderPartyLines } from '../domain/audience';
 import { colors, card, font, spacing, touch } from '../theme/theme';
 import { formatTimestamp } from '../utils/time';
 import { isSupabaseConfigured } from '../lib/supabaseClient.js';
@@ -40,7 +41,11 @@ export default function OrderDetailScreen() {
     trackingNumber?: string;
     status?: string;
     statusMeta?: { label: string; colorKey: string };
-    items?: Array<{ name: string; quantity: number; lineTotalLabel?: string }>;
+    items?: Array<{ name: string; quantity: number; lineTotalLabel?: string; customizationLabel?: string }>;
+    accountFor?: 'self' | 'family';
+    orderedByName?: string;
+    mealRecipientName?: string;
+    mealRecipientAddress?: string;
     totalLabel?: string;
     deliveryFeeLabel?: string;
     fulfillment?: {
@@ -148,10 +153,18 @@ export default function OrderDetailScreen() {
             </View>
 
             <View style={styles.card}>
+              {orderPartyLines({
+                accountFor: order.accountFor,
+                orderedByName: order.orderedByName,
+                mealRecipientName: order.mealRecipientName,
+                mealRecipientAddress: order.mealRecipientAddress,
+              }).map((line) => (
+                <Line key={line.label} label={line.label} value={line.value} />
+              ))}
               <Text style={styles.sectionTitle} accessibilityRole="header">Meals</Text>
               {(order.items || []).map((row) => (
                 <View key={`${row.name}-${row.quantity}`} style={styles.mealRow}>
-                  <Text style={styles.body}>{row.name} ×{row.quantity}</Text>
+                  <Text style={styles.body}>{row.name} ×{row.quantity}{row.customizationLabel ? ` (${row.customizationLabel})` : ''}</Text>
                   <Text style={styles.body}>{row.lineTotalLabel}</Text>
                 </View>
               ))}

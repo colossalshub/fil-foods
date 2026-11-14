@@ -17,9 +17,9 @@ function errorMessage(error: unknown) {
     : MSG.googleConnection;
 }
 
-export async function continueWithGoogle({ accountFor = 'self' }: {
+export async function continueWithGoogle({ accountFor }: {
   accountFor?: AccountFor;
-}): Promise<{ ok: true; user: AuthUser } | { ok: false; message: string }> {
+} = {}): Promise<{ ok: true; user: AuthUser } | { ok: false; message: string; status?: string; user?: AuthUser }> {
   if (!isSupabaseConfigured) {
     return {
       ok: false,
@@ -73,12 +73,14 @@ export async function continueWithGoogle({ accountFor = 'self' }: {
       return { ok: false, message: MSG.inactive };
     }
 
-    return {
-      ok: true,
-      user: {
+    const storedPurpose = profile.account_for === 'family' || profile.account_for === 'self'
+      ? profile.account_for
+      : undefined;
+    const purpose = storedPurpose || accountFor;
+    const mapped = {
         id: profile.id,
         role: profile.role,
-        accountFor,
+        accountFor: purpose,
         firstName: profile.first_name,
         middleName: profile.middle_name || '',
         lastName: profile.last_name,
@@ -94,8 +96,11 @@ export async function continueWithGoogle({ accountFor = 'self' }: {
         accessToken: session.access_token,
         refreshToken: session.refresh_token,
         expiresAt: session.expires_at,
-      },
     };
+    if (!profile.profile_complete && !purpose) {
+      return { ok: false, status: 'needs_account_type', message: MSG.registrationTypeRequired, user: mapped };
+    }
+    return { ok: true, user: mapped };
   } catch (error) {
     return { ok: false, message: errorMessage(error) };
   }

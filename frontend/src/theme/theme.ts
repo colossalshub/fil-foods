@@ -22,7 +22,7 @@ export const colors = {
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 export const radius = { sm: 12, md: 16, lg: 20, xl: 28, pill: 999 };
-export const font = { xs: 11, sm: 12, md: 14, body: 16, lg: 18, xl: 22, title: 28 };
+export const font = { xs: 16, sm: 16, md: 16, body: 16, lg: 18, xl: 22, title: 28 };
 export const touch = { min: 48 };
 export const control = { minHeight: touch.min };
 

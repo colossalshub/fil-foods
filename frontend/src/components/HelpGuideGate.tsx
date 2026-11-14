@@ -14,7 +14,7 @@ export default function HelpGuideGate() {
   useEffect(() => {
     if (!eligible) return undefined;
     let active = true;
-    hasSeenHelpGuide().then((seen) => {
+    hasSeenHelpGuide(user?.id).then((seen) => {
       if (active && !seen) setOfferGuide(true);
     });
     return () => {
@@ -25,7 +25,7 @@ export default function HelpGuideGate() {
   const visible = eligible && offerGuide;
 
   const dismiss = async () => {
-    await markHelpGuideSeen();
+    await markHelpGuideSeen(user?.id);
     setOfferGuide(false);
   };
 

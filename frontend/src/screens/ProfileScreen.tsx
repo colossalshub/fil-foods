@@ -11,9 +11,12 @@ import AppInput from '../components/AppInput';
 import Chip from '../components/Chip';
 import FormMessage from '../components/FormMessage';
 import VerificationFlow from '../components/VerificationFlow';
+import HelpButton from '../components/HelpButton';
 import { PrivacyModal, TermsModal } from '../components/LegalModals';
 import { useAuth } from '../context/AuthContext';
-import { findTermsAcceptance, getPublicUser, getUser, logout } from '../services/authService';
+import { allergySectionTitle, dietSectionTitle, healthSectionTitle, recipientDisplayName } from '../domain/audience';
+import { setLoginNotice } from '../navigation/loginNotice';
+import { deleteAccount, deletionBlockReason, findTermsAcceptance, getPublicUser, getUser, isGoogleOnlyAccount, logout } from '../services/authService';
 import { MSG } from '../data/messages';
 import {
   ALLERGY_PRESETS,
@@ -31,6 +34,7 @@ import {
   saveGuardian,
   saveHealthConditions,
   saveMealPreferences,
+  saveMealRecipient,
   saveNutritionalPreference,
   savePersonalInfo,
 } from '../services/profileService';
@@ -79,7 +83,7 @@ function Section({ title, children, onEdit, editLabel = 'Edit' }: {
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitle} accessibilityRole="header">{title}</Text>
         {onEdit ? (
-          <Pressable accessibilityRole="button" onPress={onEdit} style={styles.editHit}>
+          <Pressable accessibilityRole="button" accessibilityLabel={editLabel} onPress={onEdit} style={styles.editHit}>
             <Text style={styles.editLink}>{editLabel}</Text>
           </Pressable>
         ) : null}
@@ -124,6 +128,16 @@ export default function ProfileScreen() {
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [recipientOpen, setRecipientOpen] = useState(false);
+  const [recipientDirty, setRecipientDirty] = useState(false);
+  const [recipientForm, setRecipientForm] = useState({
+    firstName: '', middleName: '', lastName: '', suffix: '', relationship: '', contactNumber: '', deliveryAddress: '',
+  });
+  const [recipientMessages, setRecipientMessages] = useState<string[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteMessage, setDeleteMessage] = useState('');
+  const [deleteReady, setDeleteReady] = useState(false);
   const [confirmRemoveGuardian, setConfirmRemoveGuardian] = useState(false);
   const [toast, setToast] = useState<string[]>([]);
 
@@ -524,6 +538,76 @@ export default function ProfileScreen() {
     signOut();
   };
 
+  const openRecipient = () => {
+    const recipient = profile?.mealRecipient;
+    setRecipientForm({
+      firstName: recipient?.firstName || '',
+      middleName: recipient?.middleName || '',
+      lastName: recipient?.lastName || '',
+      suffix: recipient?.suffix || '',
+      relationship: recipient?.relationship || '',
+      contactNumber: recipient?.contactNumber || '',
+      deliveryAddress: recipient?.deliveryAddress || '',
+    });
+    setRecipientDirty(false);
+    setRecipientMessages([]);
+    setRecipientOpen(true);
+  };
+
+  const closeRecipient = () => {
+    if (recipientDirty) {
+      Alert.alert('Discard unsaved changes?', undefined, [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => setRecipientOpen(false) },
+      ]);
+      return;
+    }
+    setRecipientOpen(false);
+  };
+
+  const onSaveRecipient = () => {
+    if (!user?.id) return;
+    const result = saveMealRecipient(String(user.id), recipientForm);
+    if (!result.ok) {
+      setRecipientMessages(result.messages || [MSG.required]);
+      return;
+    }
+    setRecipientDirty(false);
+    setRecipientOpen(false);
+    reload();
+    flash(result.message);
+  };
+
+  const openDelete = () => {
+    if (!user?.id) return;
+    const blocked = deletionBlockReason(String(user.id));
+    setDeletePassword('');
+    setDeleteReady(false);
+    setDeleteMessage(blocked);
+    setDeleteOpen(true);
+  };
+
+  const onDeleteYes = async () => {
+    if (!user?.id) return;
+    const stored = getUser(String(user.id));
+    const result = await deleteAccount({
+      userId: String(user.id),
+      password: deletePassword,
+      googleConfirmed: deleteReady || !isGoogleOnlyAccount(stored),
+    });
+    if (!result.ok) {
+      if (result.needsGoogle) {
+        setDeleteMessage('Sign in with Google again, then confirm.');
+        return;
+      }
+      setDeleteMessage(result.message || MSG.deleteWrongPassword);
+      return;
+    }
+    setDeleteOpen(false);
+    setLoginNotice(MSG.accountDeleted);
+    signOut();
+  };
+
   if (!profile) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
@@ -554,7 +638,11 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormMessage messages={toast} tone="ok" />
 
-        <Section title="Meal subscription">
+        <Section
+          title="Meal subscription"
+          onEdit={profile.accountFor === 'family' ? openRecipient : undefined}
+          editLabel="Edit meal recipient"
+        >
           <Text style={styles.body}>
             Registered for: {profile.accountFor === 'family' ? 'Family Member' : 'Myself'}
           </Text>
@@ -585,15 +673,15 @@ export default function ProfileScreen() {
           <Line label="Address" value={profile.address} />
         </Section>
 
-        <Section title="Health conditions" onEdit={openHealth}>
+        <Section title={healthSectionTitle(profile.accountFor, recipientDisplayName(profile.mealRecipient))} onEdit={openHealth}>
           <Text style={styles.body}>{profile.healthConditions.length ? profile.healthConditions.join(', ') : '—'}</Text>
         </Section>
 
-        <Section title="Dietary restrictions" onEdit={openDiet}>
+        <Section title={dietSectionTitle(profile.accountFor, recipientDisplayName(profile.mealRecipient))} onEdit={openDiet}>
           <Text style={styles.body}>{profile.dietaryRestrictions.length ? profile.dietaryRestrictions.join(', ') : '—'}</Text>
         </Section>
 
-        <Section title="Food allergies" onEdit={openAllergies}>
+        <Section title={allergySectionTitle(profile.accountFor, recipientDisplayName(profile.mealRecipient))} onEdit={openAllergies}>
           <Text style={styles.body}>{allergiesText}</Text>
         </Section>
 
@@ -658,6 +746,7 @@ export default function ProfileScreen() {
         <AppButton title="View Terms and Conditions" onPress={() => setShowTerms(true)} color={colors.action} />
         <AppButton title="View Privacy Policy" variant="outline" onPress={() => setShowPrivacy(true)} color={colors.primary} style={styles.linkBtn} />
 
+        <AppButton title="Delete account" variant="outline" onPress={openDelete} color={colors.danger} style={styles.logout} />
         <AppButton title="Log out" variant="outline" onPress={() => setConfirmLogout(true)} color={colors.primary} style={styles.logout} />
       </ScrollView>
 
@@ -667,7 +756,10 @@ export default function ProfileScreen() {
       <Modal visible={personalOpen} animationType="slide" onRequestClose={tryClosePersonal}>
         <SafeAreaView style={styles.modalScreen}>
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-            <Text style={styles.modalTitle} accessibilityRole="header">Edit personal information</Text>
+            <View style={styles.sectionHead}>
+              <Text style={styles.modalTitle} accessibilityRole="header">Edit personal information</Text>
+              <HelpButton />
+            </View>
             {personalStep === 'form' ? (
               <>
                 <FormMessage messages={personalMessages} />
@@ -890,6 +982,51 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
+      <Modal visible={recipientOpen} animationType="slide" onRequestClose={closeRecipient}>
+        <SafeAreaView style={styles.modalScreen}>
+          <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.sectionHead}>
+              <Text style={styles.modalTitle} accessibilityRole="header">Edit meal recipient</Text>
+              <HelpButton />
+            </View>
+            <FormMessage messages={recipientMessages} />
+            <AppInput label="First name" value={recipientForm.firstName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, firstName: value })); setRecipientDirty(true); }} />
+            <AppInput label="Middle name" value={recipientForm.middleName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, middleName: value })); setRecipientDirty(true); }} />
+            <AppInput label="Last name" value={recipientForm.lastName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, lastName: value })); setRecipientDirty(true); }} />
+            <AppInput label="Suffix" value={recipientForm.suffix} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, suffix: value })); setRecipientDirty(true); }} />
+            <AppInput label="Relationship" value={recipientForm.relationship} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, relationship: value })); setRecipientDirty(true); }} />
+            <AppInput label="Contact number" value={recipientForm.contactNumber} keyboardType="phone-pad" onChangeText={(value) => { setRecipientForm((form) => ({ ...form, contactNumber: value })); setRecipientDirty(true); }} />
+            <AppInput label="Delivery address" value={recipientForm.deliveryAddress} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, deliveryAddress: value })); setRecipientDirty(true); }} />
+            <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
+            <AppButton title="Back" variant="outline" onPress={closeRecipient} color={colors.primary} style={styles.modalCancel} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.confirmTitle} accessibilityRole="header">Delete account</Text>
+            {deleteMessage ? <FormMessage messages={deleteMessage} /> : null}
+            {profile?.accountFor === 'family' && profile.mealRecipient ? (
+              <Text style={styles.confirmBody}>Meal recipient: {recipientDisplayName(profile.mealRecipient)}</Text>
+            ) : null}
+            {deleteMessage === MSG.orderInProgress ? null : (
+              <>
+                <Text style={styles.confirmBody}>{MSG.deleteWarning}</Text>
+                {user?.id && isGoogleOnlyAccount(getUser(String(user.id))) && !deleteReady ? (
+                  <AppButton title="Sign in with Google again" onPress={() => setDeleteReady(true)} color={colors.primary} />
+                ) : (
+                  <AppInput label="Password" value={deletePassword} onChangeText={setDeletePassword} secure />
+                )}
+                <AppButton title="Yes" onPress={onDeleteYes} color={colors.danger} />
+              </>
+            )}
+            <AppButton title="No" variant="outline" onPress={() => setDeleteOpen(false)} color={colors.primary} style={styles.confirmNo} />
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={confirmLogout} transparent animationType="fade" onRequestClose={() => setConfirmLogout(false)}>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
@@ -915,7 +1052,10 @@ function EditListModal({ visible, title, children, onClose, onSave }: {
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.modalScreen}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.modalTitle} accessibilityRole="header">{title}</Text>
+          <View style={styles.sectionHead}>
+            <Text style={styles.modalTitle} accessibilityRole="header">{title}</Text>
+            <HelpButton />
+          </View>
           {children}
           <AppButton title="Save" onPress={onSave} color={colors.primary} />
           <AppButton title="Cancel" variant="outline" onPress={onClose} color={colors.primary} style={styles.modalCancel} />

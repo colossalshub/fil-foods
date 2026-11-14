@@ -233,14 +233,14 @@ test('calculateTotals applies active plan discount rate', () => {
   const meal = MEALS.find((m) => m.name === 'Chicken Tinola');
   const lines = [{ meal, quantity: 2 }];
   const plain = calculateTotals(lines, {});
-  assert.equal(plain.subtotal, 240);
+  assert.equal(plain.subtotal, 600);
   assert.equal(plain.discountAmount, 0);
-  assert.equal(plain.total, 240);
+  assert.equal(plain.total, 600);
 
   const discounted = calculateTotals(lines, { plan: { status: 'active', discountRate: 0.1 } });
   assert.equal(discounted.discountRate, 0.1);
-  assert.equal(discounted.discountAmount, 24);
-  assert.equal(discounted.total, 216);
+  assert.equal(discounted.discountAmount, 60);
+  assert.equal(discounted.total, 540);
 });
 
 test('confirmOrder is idempotent for the same cart and fulfillment', () => {
@@ -261,7 +261,7 @@ test('confirmOrder is idempotent for the same cart and fulfillment', () => {
   const first = confirmOrder('user-maria', payload);
   assert.equal(first.ok, true);
   assert.match(first.order.trackingNumber, /^TRK-2026-\d{4}$/);
-  assert.equal(first.order.status, 'Confirmed');
+  assert.equal(first.order.status, 'For Dietitian Review');
   assert.equal(first.message, ORDER_MSG.orderSuccess);
 
   const countAfter = getDb().orders.length;

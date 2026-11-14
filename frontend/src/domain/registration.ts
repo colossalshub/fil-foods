@@ -152,6 +152,7 @@ export function toPublicUser(user: User | null | undefined): PublicUser | null {
     verified: user.verified,
     profileComplete: user.profileComplete,
     termsAcceptedAt: user.termsAcceptedAt,
+    termsAcceptedVersion: user.termsAcceptedVersion || null,
     address: user.address,
     plan: user.plan
       ? {

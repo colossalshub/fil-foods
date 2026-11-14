@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { register } from '../../services/authService';
 import { MSG } from '../../data/messages';
+import { loadTerms } from '../../data/terms';
 import type { FieldMap } from '../../types';
 import { colors, font, spacing } from '../../theme/theme';
 
@@ -34,6 +35,7 @@ export default function CreateAccountScreen({ navigation }: {
   const [form, setForm] = useState(EMPTY);
   const [accountFor, setAccountFor] = useState<'self' | 'family' | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [termsReady, setTermsReady] = useState(() => loadTerms().ok);
   const [accepted, setAccepted] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -135,9 +137,18 @@ export default function CreateAccountScreen({ navigation }: {
                 <AppInput label="Username" value={form.username} onChangeText={set('username')} autoComplete="username" autoCapitalize="none" error={fields.username} fieldStyle={styles.input} />
                 <AppInput label="Password (at least 8 characters)" value={form.password} onChangeText={set('password')} secure autoComplete="password-new" textContentType="newPassword" error={fields.password} fieldStyle={styles.input} />
 
+                {termsReady ? null : (
+                  <>
+                    <Text style={styles.fieldError}>{MSG.termsLoadFailed}</Text>
+                    <AppButton title="Try again" variant="outline" onPress={() => setTermsReady(loadTerms().ok)} color={colors.primary} />
+                  </>
+                )}
                 <Checkbox
                   checked={accepted}
-                  onToggle={() => setAccepted((value) => !value)}
+                  onToggle={() => {
+                    if (!termsReady) return;
+                    setAccepted((value) => !value);
+                  }}
                   accessibilityLabel="I have read and agree to the Terms and Conditions"
                 >
                   I have read and agree to the Terms and Conditions
@@ -172,9 +183,9 @@ export default function CreateAccountScreen({ navigation }: {
                 </Pressable>
                 {fields.terms ? <Text style={styles.fieldError}>{fields.terms}</Text> : null}
 
-                <AppButton title="Sign Up" onPress={onRegister} loading={loading} color={colors.action} style={styles.action} />
+                <AppButton title="Sign Up" onPress={onRegister} loading={loading} disabled={!termsReady} color={colors.action} style={styles.action} />
                 <GoogleSignIn
-                  accountFor={accountFor || 'self'}
+                  accountFor={accountFor || undefined}
                   color={colors.primary}
                   style={styles.action}
                   onSuccess={(googleUser) => signIn(googleUser, { keepLoggedIn: false })}

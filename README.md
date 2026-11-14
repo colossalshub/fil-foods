@@ -13,8 +13,11 @@ Repository: https://github.com/colossalshub/fil-foods
 | `frontend/` | The Expo app (React Native and web) |
 | `supabase/` | Database schema, row-level security, audit chain, and the username login function |
 | `docs/` | Draft privacy policy, terms, security checklist, and the user-story traceability notes |
+| `docs/specs/` | Current User Module specification (USR-01–USR-50) |
 
 When `frontend/.env` is missing, the app runs on local sample data. The server schema is in `supabase/`.
+
+Client requirements are **USR-01 through USR-50** in [`docs/specs/user-module.md`](docs/specs/user-module.md) (PDF: [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf)). That module replaced the older 42-story user handoff. Implementation status is in [`docs/implementation-traceability.md`](docs/implementation-traceability.md).
 
 ## What the app already does
 

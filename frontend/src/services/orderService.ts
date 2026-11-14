@@ -1,6 +1,6 @@
 // Meal search, cart, scheduling, and order placement (CLT-16 through CLT-20, CLT-46).
 
-import type { CodedError, ConfirmOrderPayload, Meal, MealMatchProfile, Order, ScheduleInput, ServiceResult } from '../types';
+import type { CodedError, ConfirmOrderPayload, Meal, MealCustomization, MealMatchProfile, Order, ScheduleInput, ServiceResult } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { getUser } from './authService.js';
 import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } from './profileService.js';
@@ -10,7 +10,8 @@ export { solveNutritionPlan } from './nutritionService.js';
 export const ORDER_MSG = {
   noMeals: 'No meals found.',
   noSuggestions: 'No suggestions match your dietary information right now.',
-  mealAllergen: (allergen: string) => `This meal contains ${allergen}, which is listed in your profile.`,
+  mealAllergen: (allergen: string, recipientName?: string | null) =>
+    `This meal contains ${allergen}, which is listed in ${recipientName ? `${recipientName}'s profile` : 'your profile'}.`,
   mealUnavailable: 'This meal is no longer available.',
   quantityInvalid: 'Quantity must be greater than zero.',
   addressRequired: 'Please enter a delivery address.',
@@ -21,12 +22,38 @@ export const ORDER_MSG = {
     'The kitchen is closed at that time. Orders can be scheduled Monday to Saturday, 7:00 AM to 6:00 PM.',
   orderSuccess: 'Order placed successfully.',
   placingOrder: 'Placing your order...',
-  lineAllergen: (mealName: string, allergen: string) => `${mealName} contains ${allergen}, which is listed in your profile.`,
+  lineAllergen: (mealName: string, allergen: string, recipientName?: string | null) =>
+    `${mealName} contains ${allergen}, which is listed in ${recipientName ? `${recipientName}'s profile` : 'your profile'}.`,
   completeProfile: 'Add dietary information to get more relevant suggestions.',
   recommendationsDisclaimer:
     "Suggestions are not medical advice. Follow your doctor or dietitian's guidance.",
   chooseFulfillment: 'Choose delivery or pickup.',
+  oneMealPerTime: 'You can choose only one meal for that meal time.',
+  maxMealsPerDay: 'You can choose a maximum of three meals per day.',
 };
+
+export const STANDARD_MEAL_PRICE = 300;
+export const PLAN_PRICES = [
+  { id: 'weekly', label: 'Weekly', amount: 4999, priceLabel: '₱4,999' },
+  { id: 'monthly', label: 'Monthly', amount: 27899, priceLabel: '₱27,899' },
+  { id: 'yearly', label: 'Yearly', amount: 327999, priceLabel: '₱327,999' },
+];
+export const VEGETABLE_STYLES = ['Steamed', 'Stir-fried', 'Pinakbet'];
+export const MEAT_PROTEINS = ['Beef', 'Pork', 'Chicken', 'Fish'];
+export const COOKING_STYLES = ['Adobo', 'Tinola', 'Sinigang', 'Kaldereta', 'Pinoy Steak'];
+const MEAL_TIMES = ['Breakfast', 'Lunch', 'Dinner'];
+
+export function formatPeso(amount: number) {
+  return `₱${amount.toLocaleString('en-PH')}`;
+}
+
+export function customizationLabel(customization: MealCustomization | null | undefined) {
+  if (!customization) return '';
+  return [customization.vegetableStyle, customization.meatProtein, customization.cookingStyle]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(', ');
+}
 
 const INGREDIENT_ALLERGEN_HINTS: Record<string, string[]> = {
   Peanuts: ['peanut'],
@@ -268,7 +295,29 @@ function restrictionConflicts(meal: Meal, restriction: string) {
   }
   if (restriction === 'Low-sugar') return tags.has('High-sugar');
   if (restriction === 'Low-carb') return tags.has('High-carb');
-  return false;
+  return textMentions(meal, restriction);
+}
+
+function textMentions(meal: Meal, note: string) {
+  const words = String(note || '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 4);
+  if (!words.length) return false;
+  const blob = `${meal.name || ''} ${(meal.ingredients || []).join(' ')} ${(meal.dietaryTags || []).join(' ')}`.toLowerCase();
+  return words.some((word) => blob.includes(word));
+}
+
+const SODIUM_CONDITIONS = ['hypertension', 'high blood pressure (htn)', 'kidney disease', 'kidney problem'];
+const SUGAR_CONDITIONS = ['diabetes'];
+
+export function hasHealthConflict(meal: Meal, profile: MealMatchProfile | null | undefined) {
+  const conditions = profile?.healthConditions || [];
+  return conditions.some((condition) => {
+    const key = condition.toLowerCase();
+    if (SODIUM_CONDITIONS.includes(key) && restrictionConflicts(meal, 'Low-sodium')) return true;
+    if (SUGAR_CONDITIONS.includes(key) && ((meal.dietaryTags || []).includes('High-sugar') || (meal.diets || []).includes('High-sugar'))) {
+      return true;
+    }
+    return textMentions(meal, condition);
+  });
 }
 
 export function hasRestrictionConflict(meal: Meal, profile: MealMatchProfile | null | undefined) {
@@ -281,7 +330,8 @@ export function isRecommendationsProfileEmpty(profile: MealMatchProfile | null |
   if (!profile) return true;
   const prefs = profile.mealPreferences || {};
   return (
-    !(profile.dietaryRestrictions || []).length
+    !(profile.healthConditions || []).length
+    && !(profile.dietaryRestrictions || []).length
     && !(profile.allergies || []).length
     && nutritionIds(profile).length === 0
     && !(prefs.preferredCategories || []).length
@@ -330,6 +380,7 @@ export function getRecommendedMeals(meals: Meal[], profile: MealMatchProfile | n
       && profileAllergensInMeal(m, profile).length === 0
       && !hasDislikedIngredient(m, profile)
       && !hasRestrictionConflict(m, profile)
+      && !hasHealthConflict(m, profile)
       && rankMeal(m, profile) !== null,
   );
   const ranked = sortMealsForProfile(eligible, profile)
@@ -351,8 +402,42 @@ export function parseQuantityInput(raw: unknown): { ok: true; value: number } | 
   return { ok: true, value };
 }
 
-export function lineSubtotal(meal: Meal, quantity: number | string) {
-  return (meal.price || 0) * (quantity as number);
+export function lineSubtotal(_meal: Meal, quantity: number | string) {
+  return STANDARD_MEAL_PRICE * (quantity as number);
+}
+
+export function validateOrderSelection(items: Array<{ meal: Meal; quantity: number | string }>): ServiceResult {
+  if (!items.length) return { ok: false, message: 'Add at least one meal to your order.' };
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const row of items) {
+    const parsed = parseQuantityInput(row.quantity);
+    if (!parsed.ok) return parsed;
+    if (parsed.value !== 1) return { ok: false, message: ORDER_MSG.oneMealPerTime };
+    const slot = row.meal.category || '';
+    counts.set(slot, (counts.get(slot) || 0) + 1);
+    total += 1;
+  }
+  for (const [slot, count] of counts) {
+    if (MEAL_TIMES.includes(slot) && count > 1) return { ok: false, message: ORDER_MSG.oneMealPerTime };
+  }
+  if (total > 3) return { ok: false, message: ORDER_MSG.maxMealsPerDay };
+  return { ok: true };
+}
+
+export function customizationConflict(customization: MealCustomization | null | undefined, profile: MealMatchProfile | null | undefined) {
+  const meat = Boolean(customization?.meatProtein || customization?.cookingStyle);
+  const restrictions = profile?.dietaryRestrictions || [];
+  if (meat && restrictions.some((item) => item === 'Vegetarian' || item === 'Vegan')) {
+    return 'This customization does not match the recorded dietary restrictions.';
+  }
+  const label = customizationLabel(customization).toLowerCase();
+  if (!label) return '';
+  const allergens = (profile?.allergies || []).map((item) => item.name.toLowerCase());
+  if (allergens.some((name) => name && label.includes(name))) {
+    return 'This customization includes a recorded allergy.';
+  }
+  return '';
 }
 
 export function calculateTotals(lineItems: Array<{ meal: Meal; quantity: number | string }>, user: {
@@ -447,7 +532,11 @@ export function validateFulfillment({ type, address, scheduledAt, now }: {
   return { ok: true, scheduled: schedule.scheduled };
 }
 
-export function collectOrderAllergenWarnings(lineItems: Array<{ meal: Meal; quantity: number | string }>, profile: MealMatchProfile | null | undefined) {
+export function collectOrderAllergenWarnings(
+  lineItems: Array<{ meal: Meal; quantity: number | string; customization?: MealCustomization }>,
+  profile: MealMatchProfile | null | undefined,
+  recipientName?: string | null,
+) {
   const warnings = [];
   for (const row of lineItems) {
     const allergens = profileAllergensInMeal(row.meal, profile);
@@ -456,7 +545,16 @@ export function collectOrderAllergenWarnings(lineItems: Array<{ meal: Meal; quan
         mealId: row.meal.id,
         mealName: row.meal.name,
         allergen,
-        message: ORDER_MSG.lineAllergen(row.meal.name, allergen),
+        message: ORDER_MSG.lineAllergen(row.meal.name, allergen, recipientName),
+      });
+    }
+    const custom = customizationConflict(row.customization, profile);
+    if (custom) {
+      warnings.push({
+        mealId: row.meal.id,
+        mealName: row.meal.name,
+        allergen: custom,
+        message: custom,
       });
     }
   }
@@ -515,8 +613,9 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
 
   try {
     const lineItems = payload.items || [];
-    if (!lineItems.length) {
-      return { ok: false, messages: ['Add at least one meal to your order.'] };
+    const selection = validateOrderSelection(lineItems);
+    if (!selection.ok) {
+      return { ok: false, messages: [selection.message || ORDER_MSG.oneMealPerTime] };
     }
 
     for (const row of lineItems) {
@@ -550,7 +649,10 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       dietaryRestrictions: [...(dietaryRestrictions || [])],
       allergies: (allergies || []).map((item) => ({ name: item.name, note: item.note || '' })),
     };
-    const warnings = collectOrderAllergenWarnings(lineItems, profile);
+    const recipientName = user.accountFor === 'family'
+      ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
+      : '';
+    const warnings = collectOrderAllergenWarnings(lineItems, profile, recipientName);
     if (warnings.length && !payload.allergenAcknowledged) {
       return { ok: false, messages: warnings.map((w) => w.message), needsAcknowledgement: true };
     }
@@ -562,8 +664,14 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       userId,
       clientConfirmKey: key,
       trackingNumber: nextTrackingNumber(),
-      status: 'Confirmed',
-      statusHistory: [{ status: 'Confirmed', at: placedIso }],
+      status: 'For Dietitian Review',
+      statusHistory: [{ status: 'For Dietitian Review', at: placedIso }],
+      accountFor: user.accountFor || 'self',
+      orderedByName: [user.firstName, user.lastName].filter(Boolean).join(' '),
+      mealRecipientName: recipientName || [user.firstName, user.lastName].filter(Boolean).join(' '),
+      mealRecipientAddress: user.accountFor === 'family'
+        ? user.mealRecipient?.deliveryAddress || ''
+        : user.address || '',
       lastUpdatedAt: placedIso,
       items: lineItems.map((row) => {
         const parsed = parseQuantityInput(row.quantity);
@@ -572,8 +680,9 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
           mealId: row.meal.id,
           name: row.meal.name,
           quantity,
-          unitPrice: row.meal.price as number,
+          unitPrice: STANDARD_MEAL_PRICE,
           lineTotal: lineSubtotal(row.meal, quantity),
+          customizationLabel: customizationLabel(row.customization),
         };
       }),
       fulfillment: {

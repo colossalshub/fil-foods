@@ -11,12 +11,15 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getUser } from '../services/authService';
 import { useMealProfile } from '../hooks/useMealProfile';
+import { orderPartyLines, recipientDisplayName } from '../domain/audience';
 import {
   ORDER_MSG,
+  PLAN_PRICES,
+  STANDARD_MEAL_PRICE,
   calculateTotals,
   collectOrderAllergenWarnings,
   confirmOrder,
-  formatPhp,
+  formatPeso,
   lineSubtotal,
   parseQuantityInput,
   validateFulfillment,
@@ -76,13 +79,16 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
   const { profile } = useMealProfile(user);
 
   const lineItems = useMemo(
-    () => items.map((row) => ({ meal: row.meal, quantity: row.quantity })),
+    () => items.map((row) => ({ meal: row.meal, quantity: row.quantity, customization: row.customization })),
     [items],
   );
+  const recipientName = (dbUser?.accountFor || user?.accountFor) === 'family'
+    ? recipientDisplayName(dbUser?.mealRecipient || user?.mealRecipient)
+    : '';
 
   const warnings = useMemo(
-    () => (profile ? collectOrderAllergenWarnings(lineItems, profile) : []),
-    [lineItems, profile],
+    () => (profile ? collectOrderAllergenWarnings(lineItems, profile, recipientName) : []),
+    [lineItems, profile, recipientName],
   );
 
   const totals = useMemo(
@@ -96,7 +102,11 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
       Alert.alert('Quantity', parsed.message);
       return;
     }
-    updateQuantity(mealId, parsed.value || 0);
+    if (parsed.value !== 1) {
+      Alert.alert('Quantity', ORDER_MSG.oneMealPerTime);
+      return;
+    }
+    updateQuantity(mealId, parsed.value);
   };
 
   const onConfirm = async () => {
@@ -247,6 +257,22 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
           </View>
         ) : null}
 
+        <Text style={styles.section}>Order summary</Text>
+        {orderPartyLines({
+          accountFor: dbUser?.accountFor || user?.accountFor,
+          orderedByName: [dbUser?.firstName || user?.firstName, dbUser?.lastName || user?.lastName].filter(Boolean).join(' '),
+          mealRecipientName: (dbUser?.accountFor || user?.accountFor) === 'family'
+            ? recipientDisplayName(dbUser?.mealRecipient || user?.mealRecipient)
+            : '',
+          mealRecipientAddress: dbUser?.mealRecipient?.deliveryAddress || '',
+        }).map((line) => (
+          <Text key={line.label} style={styles.body}>{line.label}: {line.value}</Text>
+        ))}
+        <Text style={styles.body}>A standard meal costs {formatPeso(STANDARD_MEAL_PRICE)}.</Text>
+        {PLAN_PRICES.map((plan) => (
+          <Text key={plan.id} style={styles.body}>{plan.label}: {plan.priceLabel}</Text>
+        ))}
+
         <Text style={styles.section}>Meals</Text>
         {items.map((row) => (
           <View key={row.meal.id} style={styles.line}>
@@ -259,7 +285,8 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.lineName}>{row.meal.name}</Text>
-              <Text style={styles.lineMeta}>{formatPhp(row.meal.price)} each</Text>
+              <Text style={styles.lineMeta}>{formatPeso(STANDARD_MEAL_PRICE)} each</Text>
+              {row.customizationLabel ? <Text style={styles.lineMeta}>{row.customizationLabel}</Text> : null}
               <TextInput
                 style={styles.qtyInput}
                 value={String(row.quantity)}
@@ -272,7 +299,7 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
               </Pressable>
             </View>
             <View style={styles.lineRight}>
-              <Text style={styles.lineTotal}>{formatPhp(lineSubtotal(row.meal, row.quantity))}</Text>
+              <Text style={styles.lineTotal}>{formatPeso(lineSubtotal(row.meal, row.quantity))}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${row.meal.name}`} onPress={() => removeItem(row.meal.id)} style={styles.removeBtn}>
                 <Text style={styles.removeText}>Remove</Text>
               </Pressable>
@@ -335,14 +362,14 @@ export default function OrderScreen({ navigation }: { navigation: ParentNav }) {
         ) : null}
 
         <View style={styles.totals}>
-          <Text style={styles.body}>Subtotal: {formatPhp(totals.subtotal)}</Text>
+          <Text style={styles.body}>Subtotal: {formatPeso(totals.subtotal)}</Text>
           {totals.discountRate > 0 ? (
             <>
-              <Text style={styles.body}>Discount ({Math.round(totals.discountRate * 100)}%): -{formatPhp(totals.discountAmount)}</Text>
-              <Text style={styles.totalLine}>Total: {formatPhp(totals.total)}</Text>
+              <Text style={styles.body}>Discount ({Math.round(totals.discountRate * 100)}%): -{formatPeso(totals.discountAmount)}</Text>
+              <Text style={styles.totalLine}>Total: {formatPeso(totals.total)}</Text>
             </>
           ) : (
-            <Text style={styles.totalLine}>Total: {formatPhp(totals.total)}</Text>
+            <Text style={styles.totalLine}>Total: {formatPeso(totals.total)}</Text>
           )}
         </View>
 

@@ -117,6 +117,7 @@ export interface User {
   failedAttempts: number;
   googleSub?: string | null;
   termsAcceptedAt: string | null;
+  termsAcceptedVersion?: string | null;
   authEvents: AuthEvent[];
   sessionVersion: number;
   createdAt?: string;
@@ -152,6 +153,7 @@ export interface AuthUser {
   profileComplete?: boolean;
   inactive?: boolean;
   termsAcceptedAt?: string | null;
+  termsAcceptedVersion?: string | null;
   address?: string;
   plan?: PublicPlan | null;
   biometricUnlock?: { enabled: boolean };
@@ -178,6 +180,7 @@ export interface PublicUser {
   verified: boolean;
   profileComplete: boolean;
   termsAcceptedAt: string | null;
+  termsAcceptedVersion?: string | null;
   plan: PublicPlan | null;
   biometricUnlock: { enabled: boolean };
   role?: string;
@@ -259,12 +262,19 @@ export interface OrderFulfillment {
   instructions?: string | null;
 }
 
+export interface MealCustomization {
+  vegetableStyle?: string;
+  meatProtein?: string;
+  cookingStyle?: string;
+}
+
 export interface OrderItem {
   mealId?: string;
   name: string;
   quantity: number;
   unitPrice?: number;
   lineTotal?: number;
+  customizationLabel?: string;
 }
 
 export interface KitchenView {
@@ -290,6 +300,10 @@ export interface Order {
   placedAt?: string;
   kitchenView?: KitchenView;
   deliveryFee?: number;
+  orderedByName?: string;
+  mealRecipientName?: string;
+  mealRecipientAddress?: string;
+  accountFor?: AccountFor;
 }
 
 export interface AuditEvent {
@@ -423,6 +437,7 @@ export type FieldMap = Record<string, string | boolean>;
 
 export interface ServiceResult {
   ok: boolean;
+  needsGoogle?: boolean;
   message?: string;
   messages?: string[];
   fields?: FieldMap;
@@ -525,6 +540,7 @@ export type ScheduleInput = string | Date | null | undefined;
 export interface ConfirmOrderItem {
   meal: Meal;
   quantity: number | string;
+  customization?: MealCustomization;
 }
 
 export interface ConfirmFulfillment {

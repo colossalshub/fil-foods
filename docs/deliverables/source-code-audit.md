@@ -224,7 +224,7 @@ No Supabase test, policy test, or notebook was run.
 
 ## 5. Missing or incomplete functionality
 
-- No professor-issued algorithm checklist is in the repository. The README names fuzzy search and the nutrition solver. The user-story handoff (`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`) requires case-insensitive fuzzy matching and says exact matches rank above fuzzy matches. It does not name knapsack, linear programming, or a third required algorithm. Completeness against “every recommended algorithm” cannot be claimed until that original checklist is available.
+- No professor-issued algorithm checklist is in the repository. The README names fuzzy search and the nutrition solver. The current User Module (USR-01–USR-50 in `docs/specs/user-module.md`; verbatim transcription `.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`) requires case-insensitive fuzzy matching and says exact matches rank above fuzzy matches. It does not name knapsack, linear programming, or a third required algorithm. Completeness against “every recommended algorithm” cannot be claimed until that original checklist is available.
 - Fuzzy search has no tests for the distance boundary (distance 2 accepted, distance 3 rejected), duplicate names, an empty catalog, or a query that should match only through the prefix shortcut.
 - The nutrition tests do not cover a protein miss inside the ceilings, a missing slot, incomplete `fat` on the real 12-meal catalog, negative targets, or two combinations with the same score.
 - Personalized ranking and the daily solver are both present. The traceability matrix still marks Home recommendations as missing.

@@ -12,8 +12,9 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import NewPasswordScreen from '../screens/auth/NewPasswordScreen';
 import VerifyAccountScreen from '../screens/auth/VerifyAccountScreen';
 import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
+import TermsUpdateScreen from '../screens/auth/TermsUpdateScreen';
 import LinkGoogleScreen from '../screens/auth/LinkGoogleScreen';
-import { getUser, getPublicUser } from '../services/authService';
+import { getUser, getPublicUser, termsUpdateRequired } from '../services/authService';
 import { buildPersistedSession, evaluateSessionRestore, shouldEndSession, shouldPersistSession } from '../services/sessionPolicy';
 import { clearPersistedSession, persistSession, readPersistedSession } from '../services/sessionPersistence';
 import HelpScreen from '../screens/HelpScreen';
@@ -199,7 +200,11 @@ export default function RootNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user && user.role !== 'visitor' ? (
             user.profileComplete ? (
-              <Stack.Screen name="Main" component={MainTabs} />
+              termsUpdateRequired(user) ? (
+                <Stack.Screen name="TermsUpdate" component={TermsUpdateScreen} />
+              ) : (
+                <Stack.Screen name="Main" component={MainTabs} />
+              )
             ) : (
               <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
             )

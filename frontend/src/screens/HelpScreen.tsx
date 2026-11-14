@@ -7,6 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import AppInput from '../components/AppInput';
 import AppButton from '../components/AppButton';
 import AppGuidePanel from '../components/AppGuidePanel';
+import FormMessage from '../components/FormMessage';
+import { useAuth } from '../context/AuthContext';
+import { MSG } from '../data/messages';
+import { submitFeedback } from '../services/feedbackService';
 import {
   FAQ_GROUPS,
   FAQ_NO_MATCH,
@@ -61,7 +65,11 @@ export default function HelpScreen({ navigation, route }: {
   navigation: { goBack: () => void; setParams: (params: object) => void };
   route: { params?: { showGuide?: boolean } };
 }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
+  const [comment, setComment] = useState('');
+  const [commentMessage, setCommentMessage] = useState('');
+  const [commentTone, setCommentTone] = useState<'ok' | 'error'>('error');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localGuide, setLocalGuide] = useState(false);
   const [guideDismissed, setGuideDismissed] = useState(false);
@@ -70,7 +78,7 @@ export default function HelpScreen({ navigation, route }: {
   const guideOpen = !guideDismissed && (navWantsGuide || localGuide);
 
   const results = useMemo(() => searchFaq(query), [query]);
-  const searching = query.trim().length > 0;
+  const searching = query.trim().length >= 2;
 
   const filteredGroups = useMemo(() => {
     if (!searching) return FAQ_GROUPS;
@@ -162,6 +170,31 @@ export default function HelpScreen({ navigation, route }: {
             onToggle={setExpandedId}
           />
         ))}
+
+        <SectionHeading>Comments and suggestions</SectionHeading>
+        <AppInput
+          label="Comments and suggestions"
+          value={comment}
+          onChangeText={setComment}
+          accessibilityLabel="Comments and suggestions"
+          multiline
+        />
+        <FormMessage messages={commentMessage} tone={commentTone} />
+        <AppButton
+          title="Submit"
+          color={colors.primary}
+          onPress={() => {
+            if (!user?.id || user.role === 'visitor') {
+              setCommentTone('error');
+              setCommentMessage(MSG.guestGate);
+              return;
+            }
+            const result = submitFeedback(String(user.id), comment);
+            setCommentTone(result.ok ? 'ok' : 'error');
+            setCommentMessage(result.message);
+            if (result.ok) setComment('');
+          }}
+        />
 
         <SectionHeading>Contact</SectionHeading>
         <View style={styles.card}>

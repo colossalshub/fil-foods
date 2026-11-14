@@ -50,6 +50,19 @@ export const MSG = {
   allergyWarning: (allergen: string) => `This meal contains ${allergen}, which is listed in your profile.`,
   noExactCombo: 'No exact match is available. Here is the closest option.',
   notMedicalAdvice: "Suggestions are not medical advice. Follow your doctor or dietitian's guidance.",
+  recipientUpdated: 'Meal recipient updated successfully.',
+  deleteWarning: 'Delete your account? This will permanently remove your profile and your health, dietary and allergy information. This cannot be undone.',
+  deleteWrongPassword: 'Incorrect password. Your account was not deleted.',
+  accountDeleted: 'Your account has been deleted.',
+  orderInProgress: 'You have an order in progress. Please wait until it is delivered or cancelled before deleting your account.',
+  enterComment: 'Please enter a comment.',
+  commentSubmitted: 'Your comment has been submitted.',
+  termsLoadFailed: 'The Terms and Conditions could not be loaded. Please try again.',
+  termsUpdated: 'We updated our Terms and Conditions. Please review and accept to continue.',
+  termsDeclined: 'You need to accept the updated Terms and Conditions to keep using F.I.L. Foods.',
+  acceptanceSaveFailed: 'We could not save your acceptance. Please try again.',
+  oneMealPerTime: 'You can choose only one meal for that meal time.',
+  maxMealsPerDay: 'You can choose a maximum of three meals per day.',
 };
 
 export const waitForCode = (seconds: number) =>

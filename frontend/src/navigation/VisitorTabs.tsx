@@ -54,7 +54,7 @@ export default function VisitorTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.inactive,
-        tabBarLabelStyle: { fontSize: 12, lineHeight: 16, flexShrink: 0 },
+        tabBarLabelStyle: { fontSize: 16, lineHeight: 20, flexShrink: 0 },
         tabBarStyle: {
           backgroundColor: colors.white,
           borderTopWidth: 0,

@@ -3,6 +3,7 @@
 import type { Announcement, AppNotification, Order, OrderItem } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { formatPhp } from './orderService.js';
+import { getUser } from './authService.js';
 import { formatTimestamp } from '../utils/time.js';
 import {
   getClientOrderById,
@@ -20,6 +21,9 @@ export const TRACKING_MSG = {
 };
 
 export const ORDER_STATUS = {
+  FOR_DIETITIAN_REVIEW: 'For Dietitian Review',
+  AWAITING_PAYMENT: 'Awaiting Payment',
+  PAID: 'Paid',
   CONFIRMED: 'Confirmed',
   PREPARING: 'Preparing',
   READY_PICKUP: 'Ready for Pick-up',
@@ -39,6 +43,9 @@ const ALL_FILTER_STATUSES = [
 ];
 
 const STATUS_META: Record<string, { label: string; colorKey: string }> = {
+  [ORDER_STATUS.FOR_DIETITIAN_REVIEW]: { label: 'For Dietitian Review', colorKey: 'warning' },
+  [ORDER_STATUS.AWAITING_PAYMENT]: { label: 'Awaiting Payment', colorKey: 'warning' },
+  [ORDER_STATUS.PAID]: { label: 'Paid', colorKey: 'action' },
   [ORDER_STATUS.CONFIRMED]: { label: 'Confirmed', colorKey: 'muted' },
   [ORDER_STATUS.PREPARING]: { label: 'Preparing', colorKey: 'warning' },
   [ORDER_STATUS.READY_PICKUP]: { label: 'Ready for Pick-up', colorKey: 'action' },
@@ -269,7 +276,12 @@ function toDetail(order: Order) {
       quantity: row.quantity,
       lineTotal: row.lineTotal,
       lineTotalLabel: formatPhp(row.lineTotal),
+      customizationLabel: row.customizationLabel || '',
     })),
+    accountFor: order.accountFor,
+    orderedByName: order.orderedByName || '',
+    mealRecipientName: order.mealRecipientName || '',
+    mealRecipientAddress: order.mealRecipientAddress || '',
     total: order.total,
     totalLabel: formatPhp(order.total),
     deliveryFee: order.deliveryFee || 0,
@@ -407,11 +419,19 @@ export function recordStatusChange(order: Order, newStatus: string, at?: string)
   order.lastUpdatedAt = when;
   backfillHistory(order);
   order.statusHistory.push({ status: newStatus, at: when });
+  const user = getUser(order.userId);
+  const recipientName = order.mealRecipientName
+    || (user?.accountFor === 'family'
+      ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
+      : '');
+  const message = user?.accountFor === 'family' && recipientName
+    ? `Order ${order.trackingNumber} for ${recipientName} is now ${newStatus}.`
+    : TRACKING_MSG.statusUpdate(order.trackingNumber, newStatus);
   pushNotification(order.userId, {
     type: 'status',
     orderId: order.id,
     trackingNumber: order.trackingNumber,
-    message: TRACKING_MSG.statusUpdate(order.trackingNumber, newStatus),
+    message,
     status: newStatus,
   });
   return { changed: true, order };

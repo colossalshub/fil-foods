@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, Text, View, StyleSheet, type ScrollViewInstance } from 'react-native';
 import InfoModal, { modalText } from './InfoModal';
 import AppButton from './AppButton';
 import { PRIVACY_TEXT, HELP_TEXT } from '../data/legal';
-import { TERMS_LAST_UPDATED, TERMS_SECTIONS, TERMS_VERSION } from '../data/terms';
+import { MSG } from '../data/messages';
+import { loadTerms } from '../data/terms';
 import { colors, font, spacing } from '../theme/theme';
 
 export function HelpModal({ visible, onClose }: { visible?: boolean; onClose?: () => void }) {
@@ -33,6 +34,8 @@ export function TermsModal({ visible, onClose, onAccept, acceptedAt }: {
 }) {
   const contentScrollRef = useRef<ScrollViewInstance>(null);
   const sectionOffsets = useRef<Record<number, number>>({});
+  const [loaded, setLoaded] = useState(() => loadTerms());
+  const sections = loaded.ok ? loaded.sections : [];
 
   return (
     <InfoModal
@@ -40,13 +43,19 @@ export function TermsModal({ visible, onClose, onAccept, acceptedAt }: {
       title="Terms and Conditions"
       onClose={onClose}
       contentScrollRef={contentScrollRef}
-      footer={onAccept
-        ? <AppButton title="I Agree" onPress={onAccept} color={colors.action} />
-        : <AppButton title="Close" onPress={onClose} variant="outline" color={colors.primary} />}
+      footer={loaded.ok
+        ? (onAccept
+          ? <AppButton title="I Agree" onPress={onAccept} color={colors.action} />
+          : <AppButton title="Close" onPress={onClose} variant="outline" color={colors.primary} />)
+        : <AppButton title="Try again" onPress={() => setLoaded(loadTerms())} color={colors.primary} />}
     >
-      <Text style={modalText}>Version {TERMS_VERSION} · Last updated {TERMS_LAST_UPDATED}</Text>
+      {loaded.ok ? (
+        <Text style={modalText}>Version {loaded.version} · Last updated {loaded.lastUpdated}</Text>
+      ) : (
+        <Text style={modalText}>{loaded.message || MSG.termsLoadFailed}</Text>
+      )}
       <View style={styles.sectionLinks}>
-        {TERMS_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <Pressable
             key={section.number}
             accessibilityRole="button"
@@ -61,7 +70,7 @@ export function TermsModal({ visible, onClose, onAccept, acceptedAt }: {
           </Pressable>
         ))}
       </View>
-      {TERMS_SECTIONS.map((section) => (
+      {sections.map((section) => (
         <View
           key={section.number}
           onLayout={(event) => {

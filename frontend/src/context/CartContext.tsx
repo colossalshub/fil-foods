@@ -1,14 +1,17 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Meal } from '../types';
+import type { Meal, MealCustomization } from '../types';
+import { customizationLabel, validateOrderSelection } from '../services/orderService';
 
 interface CartItem {
   meal: Meal;
   quantity: number;
+  customization?: MealCustomization;
+  customizationLabel?: string;
 }
 
 interface CartValue {
   items: CartItem[];
-  addItem: (meal: Meal, quantity: number) => void;
+  addItem: (meal: Meal, quantity: number, customization?: MealCustomization) => string;
   updateQuantity: (mealId: string, quantity: number) => void;
   removeItem: (mealId: string) => void;
   clearCart: () => void;
@@ -17,7 +20,7 @@ interface CartValue {
 
 const CartContext = createContext<CartValue>({
   items: [],
-  addItem: () => {},
+  addItem: () => '',
   updateQuantity: () => {},
   removeItem: () => {},
   clearCart: () => {},
@@ -27,16 +30,25 @@ const CartContext = createContext<CartValue>({
 export function CartProvider({ children }: { children?: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = useCallback((meal: Meal, quantity: number) => {
+  const addItem = useCallback((meal: Meal, quantity: number, customization?: MealCustomization) => {
+    let error = '';
     setItems((prev) => {
-      const idx = prev.findIndex((row) => row.meal.id === meal.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + quantity };
-        return next;
+      const next = prev.filter((row) => row.meal.id !== meal.id);
+      next.push({
+        meal,
+        quantity,
+        customization,
+        customizationLabel: customizationLabel(customization),
+      });
+      const check = validateOrderSelection(next);
+      if (!check.ok) {
+        error = check.message || '';
+        return prev;
       }
-      return [...prev, { meal, quantity }];
+      error = '';
+      return next;
     });
+    return error;
   }, []);
 
   const updateQuantity = useCallback((mealId: string, quantity: number) => {

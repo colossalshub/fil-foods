@@ -1,7 +1,27 @@
 import { contactInfo } from './helpContent.js';
 
+import { MSG } from './messages.js';
+
 export const TERMS_VERSION = '1.0';
 export const TERMS_LAST_UPDATED = '2026-11-12';
+
+let forceLoadFailure = false;
+
+export function __testSetTermsLoadFailure(value: boolean) {
+  forceLoadFailure = value;
+}
+
+export function loadTerms() {
+  if (forceLoadFailure) {
+    return { ok: false as const, message: MSG.termsLoadFailed };
+  }
+  return {
+    ok: true as const,
+    sections: TERMS_SECTIONS,
+    version: TERMS_VERSION,
+    lastUpdated: TERMS_LAST_UPDATED,
+  };
+}
 
 export const TERMS_SECTIONS = [
   {
