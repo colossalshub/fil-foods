@@ -13,6 +13,7 @@ import {
   subscribeToClientOrders,
 } from './backendOrderService.js';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
+import { bestWordMatch, normalizeText, osaDistance, substringMatch, textWords } from '../../lib/algorithms/stringMatch.js';
 
 export const TRACKING_MSG = {
   noOrders: 'You have no orders yet.',
@@ -485,6 +486,54 @@ export function getClientOrder(userId: string, orderId: string) {
     return { ok: false, message: TRACKING_MSG.orderNotFound };
   }
   return { ok: true, order: toDetail(order) };
+}
+
+export interface SearchableClientOrder {
+  trackingNumber?: string;
+  meals?: string;
+  status?: string;
+  fulfillmentMethod?: string;
+}
+
+function compactCode(value: unknown) {
+  return normalizeText(value).replace(/[\s#-]+/g, '');
+}
+
+/**
+ * Orders list search (Orders tab). Three tiers, best first; the list order is
+ * kept inside each tier:
+ *   0. tracking number contains the query ("0001", "trk-2026", "TRK20260001")
+ *   1. meal names, status or Pickup/Delivery contain the query ("adobo")
+ *   2. every typed word is within the typo budget of a word in those fields,
+ *      using OSA distance ("chikcen adbo" finds "Chicken Adobo")
+ * Tracking numbers are never spelling-corrected: a query with a digit, or a
+ * single character, only uses tier 0, as before.
+ */
+export function searchClientOrders<T extends SearchableClientOrder>(orders: T[], query: string | null | undefined) {
+  const needle = normalizeText(query);
+  if (!needle) return [...orders];
+  const compactNeedle = compactCode(needle);
+  const trackingOnly = needle.length < 2 || /\d/.test(needle);
+  const queryWords = textWords(needle);
+  const ranked: { order: T; tier: number }[] = [];
+  for (const order of orders) {
+    const tracking = String(order.trackingNumber || '');
+    if (substringMatch(tracking, needle) || (compactNeedle && compactCode(tracking).includes(compactNeedle))) {
+      ranked.push({ order, tier: 0 });
+      continue;
+    }
+    if (trackingOnly) continue;
+    const text = [order.meals, order.status, order.fulfillmentMethod].filter(Boolean).join(' ');
+    if (substringMatch(text, needle)) {
+      ranked.push({ order, tier: 1 });
+      continue;
+    }
+    const words = textWords(text);
+    if (queryWords.length && queryWords.every((word) => bestWordMatch(word, words, { distance: osaDistance }))) {
+      ranked.push({ order, tier: 2 });
+    }
+  }
+  return ranked.sort((left, right) => left.tier - right.tier).map((row) => row.order);
 }
 
 export function searchOrderByTracking(userId: string, trackingNumber: string | null | undefined) {

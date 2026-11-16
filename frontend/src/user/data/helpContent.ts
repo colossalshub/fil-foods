@@ -1,3 +1,5 @@
+import { fuzzyWordMatch, osaDistance, substringMatch, typoBudget } from '../../lib/algorithms/stringMatch.js';
+
 interface FaqItem {
   id: string;
   question: string;
@@ -166,31 +168,23 @@ function faqWords(value: string) {
   return normalizeFaqQuery(value).split(/[^a-z0-9]+/).filter(Boolean);
 }
 
-function faqDistance(a: string, b: string) {
-  const rows = a.length + 1;
-  const cols = b.length + 1;
-  const dist = Array.from({ length: rows }, () => new Array(cols).fill(0));
-  for (let i = 0; i < rows; i += 1) dist[i][0] = i;
-  for (let j = 0; j < cols; j += 1) dist[0][j] = j;
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dist[i][j] = Math.min(dist[i - 1][j] + 1, dist[i][j - 1] + 1, dist[i - 1][j - 1] + cost);
-    }
-  }
-  return dist[a.length][b.length];
-}
-
+/**
+ * USR-27: a typed word matches a word in the question or answer exactly, or
+ * within the spec typo budget (1 edit for 3-5 letters, 2 for 6+), using OSA so
+ * a swapped pair of letters counts as one mistake. Words under 3 letters must
+ * match exactly.
+ */
 function faqWordMatches(queryWord: string, text: string) {
-  const budget = queryWord.length >= 6 ? 2 : 1;
   return faqWords(text).some((word) => {
-    if (word === queryWord) return true;
-    if (queryWord.length < 3) return false;
-    if (Math.abs(word.length - queryWord.length) > budget) return false;
-    return faqDistance(queryWord, word) <= budget;
+    const kind = fuzzyWordMatch(queryWord, word, { distance: osaDistance, budget: typoBudget, partial: 'none' });
+    return kind !== null;
   });
 }
 
+/**
+ * Two tiers: the whole query as a substring of the question + answer first
+ * (exact), then every word matching by OSA (spelling-corrected).
+ */
 export function searchFaq(query: string) {
   const needle = normalizeFaqQuery(query);
   const items = allFaqItems();
@@ -198,7 +192,7 @@ export function searchFaq(query: string) {
   const queryWords = faqWords(needle);
   const scored = items.map((item) => {
     const haystack = `${item.question} ${item.answer}`;
-    const exact = normalizeFaqQuery(haystack).includes(needle);
+    const exact = substringMatch(haystack, needle);
     const fuzzy = queryWords.every((word) => faqWordMatches(word, haystack));
     return { item, exact, fuzzy };
   }).filter((row) => row.exact || row.fuzzy);

@@ -20,6 +20,7 @@ import {
   listClientOrders,
   listFilterStatuses,
   refreshOrdersForUser,
+  searchClientOrders,
   searchOrderByTracking,
   refreshBackendOrdersForUser,
   subscribeToBackendOrderChanges,
@@ -195,14 +196,13 @@ export default function TrackingScreen() {
   };
 
   const visibleOrders = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return orders.filter((order) => {
+    const filtered = orders.filter((order) => {
       if (statusFilter && order.status !== statusFilter) return false;
       if (dateFrom && order.date && order.date < dateFrom) return false;
       if (dateTo && order.date && order.date > dateTo) return false;
-      if (query && !String(order.trackingNumber || '').toLowerCase().includes(query)) return false;
       return true;
     });
+    return searchClientOrders(filtered, searchQuery);
   }, [orders, statusFilter, dateFrom, dateTo, searchQuery]);
 
   const { activeOrders, pastOrders } = useMemo(() => {
@@ -236,7 +236,8 @@ export default function TrackingScreen() {
           return;
         }
       }
-      setSearchError(TRACKING_MSG.orderNotFound);
+      // Close matches (meal names, small typos) are already listed below.
+      setSearchError(visibleOrders.length ? '' : TRACKING_MSG.orderNotFound);
       return;
     }
     setSearchError('');
@@ -269,7 +270,7 @@ export default function TrackingScreen() {
         {filtersOpen ? (
           <>
             <View style={styles.section}>
-              <Text style={styles.label} accessibilityRole="text">Search by tracking number</Text>
+              <Text style={styles.label} accessibilityRole="text">Search by tracking number or meal</Text>
               <View style={styles.searchRow}>
                 <TextInput
                   style={styles.input}
@@ -278,7 +279,7 @@ export default function TrackingScreen() {
                   placeholder="TRK-2026-0001"
                   placeholderTextColor={colors.inactive}
                   autoCapitalize="characters"
-                  accessibilityLabel="Tracking number search"
+                  accessibilityLabel="Search orders by tracking number or meal"
                 />
                 <Pressable
                   accessibilityRole="button"

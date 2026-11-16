@@ -2,6 +2,7 @@
 
 import type { CodedError, ConfirmOrderPayload, Meal, MealCustomization, MealMatchProfile, Order, ScheduleInput, ServiceResult } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
+import { fuzzyWordMatch, levenshtein, osaDistance } from '../../lib/algorithms/stringMatch.js';
 import { getUser } from './authService.js';
 import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } from './profileService.js';
 import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
@@ -79,41 +80,24 @@ export function formatPhp(amount: unknown) {
   return `PHP ${n.toFixed(2)}`;
 }
 
-export function levenshtein(a: string, b: string) {
-  const s = a.toLowerCase();
-  const t = b.toLowerCase();
-  if (s === t) return 0;
-  const rows = s.length + 1;
-  const cols = t.length + 1;
-  const dist = Array.from({ length: rows }, () => new Array(cols).fill(0));
-  for (let i = 0; i < rows; i += 1) dist[i][0] = i;
-  for (let j = 0; j < cols; j += 1) dist[0][j] = j;
-  for (let i = 1; i < rows; i += 1) {
-    for (let j = 1; j < cols; j += 1) {
-      const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-      dist[i][j] = Math.min(
-        dist[i - 1][j] + 1,
-        dist[i][j - 1] + 1,
-        dist[i - 1][j - 1] + cost,
-      );
-    }
-  }
-  return dist[s.length][t.length];
-}
+/** Kept as the comparison baseline; meal search itself uses OSA (see stringMatch.ts). */
+export { levenshtein, osaDistance };
 
+/** Meal names allow one typo for short words and two for 5+ letters. */
 function maxEditDistance(word: string) {
   return word.length >= 5 ? 2 : 1;
 }
 
+/**
+ * One typed word against one meal-name word: exact, prefix either way, or an
+ * OSA typo within maxEditDistance (so "chikcen" finds "Chicken").
+ */
 function wordMatches(queryWord: string, nameWord: string) {
-  const q = queryWord.toLowerCase();
-  const n = nameWord.toLowerCase();
-  if (!q || !n) return false;
-  if (q === n) return true;
-  if (n.startsWith(q) || q.startsWith(n)) return true;
-  const dist = levenshtein(q, n);
-  if (dist > maxEditDistance(q)) return false;
-  return Math.abs(n.length - q.length) <= maxEditDistance(q);
+  return fuzzyWordMatch(queryWord.toLowerCase(), nameWord.toLowerCase(), {
+    distance: osaDistance,
+    budget: maxEditDistance,
+    partial: 'prefix',
+  }) !== null;
 }
 
 function mealNameWords(name: string) {
@@ -131,7 +115,7 @@ function mealMatchScore(mealName: string, query: string) {
     let best = Infinity;
     for (const nw of nameWords) {
       if (wordMatches(qw, nw)) {
-        best = Math.min(best, levenshtein(qw, nw));
+        best = Math.min(best, osaDistance(qw.toLowerCase(), nw.toLowerCase()));
       }
     }
     if (best === Infinity) return null;
@@ -142,7 +126,7 @@ function mealMatchScore(mealName: string, query: string) {
 
 function compactNameDistance(mealName: string, query: string) {
   const compact = mealName.toLowerCase().replace(/[\s\-/]+/g, '');
-  return levenshtein(query.trim().toLowerCase(), compact);
+  return osaDistance(query.trim().toLowerCase(), compact);
 }
 
 function catalogText(meal: Meal) {
