@@ -177,7 +177,7 @@ test('kitchen staff can read health details on an order and a client cannot', ()
     { code: 'FORBIDDEN' },
   );
   const staffView = getKitchenOrderView({ id: 'staff-1', roleMask: ROLES.STAFF }, placed.order.id);
-  assert.ok(staffView.healthConditions.includes('Hypertension'));
+  assert.ok(staffView.healthConditions.includes('Hypertension (HTN)'));
   assert.equal(staffView.allergies[0].name, 'Peanuts');
 });
 

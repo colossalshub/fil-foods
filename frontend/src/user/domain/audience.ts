@@ -45,3 +45,15 @@ export function orderPartyLines(input: {
   const who = input.orderedByName || input.mealRecipientName || '';
   return [{ label: 'Ordered by and for', value: who }];
 }
+
+/**
+ * Name used in allergy and dietary warnings (USR-46 no. 5): the meal recipient's
+ * name for a Family Member account, or null for "your profile" (For Myself).
+ */
+export function warningRecipientName(user: {
+  accountFor?: AccountFor;
+  mealRecipient?: { firstName?: string; lastName?: string } | null;
+} | null | undefined) {
+  if (user?.accountFor !== 'family') return null;
+  return recipientDisplayName(user.mealRecipient) || null;
+}

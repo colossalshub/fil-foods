@@ -28,6 +28,8 @@ interface CartValue {
   ) => string;
   updateQuantity: (mealId: string, quantity: number) => void;
   removeItem: (mealId: string) => void;
+  /** Clears the meal chosen for one meal time (every meal time is optional). */
+  removeSlot: (daySlot: DaySlot) => void;
   clearCart: () => void;
   itemCount: number;
 }
@@ -37,6 +39,7 @@ const CartContext = createContext<CartValue>({
   addItem: () => '',
   updateQuantity: () => {},
   removeItem: () => {},
+  removeSlot: () => {},
   clearCart: () => {},
   itemCount: 0,
 });
@@ -86,6 +89,10 @@ export function CartProvider({ children }: { children?: ReactNode }) {
     setItems((prev) => prev.filter((row) => row.meal.id !== mealId));
   }, []);
 
+  const removeSlot = useCallback((daySlot: DaySlot) => {
+    setItems((prev) => prev.filter((row) => row.daySlot !== daySlot));
+  }, []);
+
   const clearCart = useCallback(() => setItems([]), []);
 
   const itemCount = useMemo(
@@ -95,9 +102,9 @@ export function CartProvider({ children }: { children?: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      items, addItem, updateQuantity, removeItem, clearCart, itemCount,
+      items, addItem, updateQuantity, removeItem, removeSlot, clearCart, itemCount,
     }),
-    [items, addItem, updateQuantity, removeItem, clearCart, itemCount],
+    [items, addItem, updateQuantity, removeItem, removeSlot, clearCart, itemCount],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

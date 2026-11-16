@@ -17,9 +17,10 @@ export default function MainTabs() {
   const insets = useSafeAreaInsets();
   const [initialRoute] = useState(() => {
     const pending = consumePendingDestination();
+    // USR-02 no. 4, USR-30, USR-31: a successful sign-in opens the meal menu.
     return pending === 'Orders' || pending === 'Account' || pending === 'Meals' || pending === 'Home'
       ? pending
-      : 'Home';
+      : 'Meals';
   });
 
   return (

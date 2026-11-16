@@ -33,7 +33,7 @@ function sampleUsers(): User[] {
       sessionVersion: 1,
       createdAt: accepted,
       address: '12 Mabini St., Quezon City',
-      healthConditions: ['Hypertension'],
+      healthConditions: ['Hypertension (HTN)'],
       dietaryRestrictions: ['Low-sodium'],
       allergies: [{ name: 'Peanuts', note: 'Skin rash and swelling' }],
       mealPreferences: { preferredCategories: [], dislikedIngredients: [] },

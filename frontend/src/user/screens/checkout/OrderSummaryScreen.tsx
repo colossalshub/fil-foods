@@ -80,6 +80,9 @@ export default function OrderSummaryScreen({ navigation }: {
               <View style={checkoutFlow.mealLeft}>
                 <Text style={checkoutFlow.mealSlot}>{row.meal.category || 'Meal'}</Text>
                 <Text style={checkoutFlow.mealName}>{row.meal.name}</Text>
+                {row.customizationLabel ? (
+                  <Text style={checkoutFlow.mealSlot}>{row.customizationLabel}</Text>
+                ) : null}
               </View>
               <Text style={checkoutFlow.mealPrice}>{formatPeso(row.meal.price || STANDARD_MEAL_PRICE)}</Text>
             </View>
@@ -100,7 +103,8 @@ export default function OrderSummaryScreen({ navigation }: {
           <Text style={checkoutFlow.fulfillmentBody}>{scheduleLabel}</Text>
         </View>
 
-        {party.length > 1 ? (
+        {/* USR-46 C: "Ordered by" + "Meal recipient", or "Ordered by and for" (For Myself). */}
+        {party.length ? (
           <View style={{ marginTop: spacing.lg }}>
             {party.map((line) => (
               <Text key={line.label} style={checkoutFlow.line}>

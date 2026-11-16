@@ -58,10 +58,10 @@ export function customizationLabel(customization: MealCustomization | null | und
 
 const INGREDIENT_ALLERGEN_HINTS: Record<string, string[]> = {
   Peanuts: ['peanut'],
-  Shellfish: ['shellfish', 'shrimp', 'hipon'],
+  Shellfish: ['shellfish', 'shrimp', 'hipon', 'bagoong'],
   Dairy: ['dairy', 'milk', 'cheese'],
   Milk: ['dairy', 'milk', 'cheese'],
-  Gluten: ['gluten', 'wheat', 'wrap', 'oats'],
+  Gluten: ['gluten', 'wheat', 'flour', 'wrap', 'oats'],
   Egg: ['egg'],
   Eggs: ['egg'],
   Soy: ['soy'],

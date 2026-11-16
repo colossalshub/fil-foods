@@ -116,7 +116,7 @@ test('allergenConflict detects peanut meals for a peanut allergy profile', () =>
 test('change history appends and cannot be deleted via profileService', () => {
   resetStore();
   const before = getChangeHistory(MARIA_ID).length;
-  saveHealthConditions(MARIA_ID, ['Hypertension', 'Diabetes']);
+  saveHealthConditions(MARIA_ID, ['Hypertension (HTN)', 'Diabetes']);
   const after = getChangeHistory(MARIA_ID);
   assert.ok(after.length > before);
   assert.ok(after.some((entry) => entry.item === 'Diabetes'));
@@ -154,7 +154,7 @@ test('nutrition goals can be combined and filter the menu', () => {
 
 test('profile changes are on the hash chain and another client cannot read them', () => {
   resetStore();
-  saveHealthConditions(MARIA_ID, ['Hypertension', 'Diabetes']);
+  saveHealthConditions(MARIA_ID, ['Hypertension (HTN)', 'Diabetes']);
   assert.equal(isAuditChainIntact(), true);
   assert.equal(verifyAuditChain(getDb().auditLog), true);
   const entry = getChangeHistory(MARIA_ID).find((row) => row.item === 'Diabetes');
@@ -170,7 +170,7 @@ test('seeded msantos profile includes story fields', () => {
   resetStore();
   const profile = getProfile(MARIA_ID);
   assert.equal(profile.address, '12 Mabini St., Quezon City');
-  assert.deepEqual(profile.healthConditions, ['Hypertension']);
+  assert.deepEqual(profile.healthConditions, ['Hypertension (HTN)']);
   assert.deepEqual(profile.dietaryRestrictions, ['Low-sodium']);
   assert.equal(profile.allergies[0].name, 'Peanuts');
   assert.equal(profile.guardian.name, 'Jose Santos');

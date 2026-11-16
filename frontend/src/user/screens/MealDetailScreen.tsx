@@ -17,7 +17,7 @@ import {
   parseQuantityInput,
   profileAllergensInMeal,
 } from '../services/orderService';
-import { mealInitials } from '../data/menuCatalog';
+import { MENU_CATALOG, mealInitials } from '../data/menuCatalog';
 import type { Meal } from '../types';
 import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
@@ -91,7 +91,16 @@ export default function MealDetailScreen({ route, navigation }: {
       setQtyError(result.message || '');
       return;
     }
-    const error = addItem(meal, 1);
+    // Menu items go into the same one-per-meal-time order as Build Today's Meals (USR-18).
+    const menuItem = MENU_CATALOG.find((item) => (item.mealId || item.id) === meal.id);
+    if (menuItem && menuItem.slot !== 'Breakfast') {
+      // Lunch and Dinner choices are customized first (vegetable style, or meat and cooking style).
+      navigation.navigate('BuildMealCustomize', { todayMealId: menuItem.id, slot: menuItem.slot });
+      return;
+    }
+    const error = menuItem
+      ? addItem(meal, 1, undefined, { daySlot: menuItem.slot, todayMealId: menuItem.id })
+      : addItem(meal, 1);
     if (error) {
       setQtyError(error);
       return;

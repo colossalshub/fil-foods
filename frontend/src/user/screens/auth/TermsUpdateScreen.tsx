@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { MSG } from '../../data/messages';
 import { TERMS_LAST_UPDATED, TERMS_VERSION } from '../../data/terms';
 import { acceptUpdatedTerms, logout } from '../../services/authService';
+import { setPendingDestination } from '../../navigation/pendingDestination';
 import { setLoginNotice } from '../../navigation/loginNotice';
 import { colors, font, spacing, fonts } from '../../theme/theme';
 
@@ -29,6 +30,8 @@ export default function TermsUpdateScreen() {
       setMessage(result.message || MSG.acceptanceSaveFailed);
       return;
     }
+    // USR-50 H: after accepting the new version, continue to the Home screen.
+    setPendingDestination('Home');
     signIn(result.user, { keepLoggedIn: true });
   };
 

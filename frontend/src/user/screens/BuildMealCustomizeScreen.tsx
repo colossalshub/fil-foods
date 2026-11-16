@@ -4,16 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
 import { DAY_SLOTS, todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
-import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
+import { MENU_CATALOG, customizedMenuMeal, resolveMenuMeal } from '../data/menuCatalog';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useMealProfile } from '../hooks/useMealProfile';
-import { recipientDisplayName } from '../domain/audience';
+import { warningRecipientName } from '../domain/audience';
 import {
   COOKING_STYLES,
   MEAT_PROTEINS,
   ORDER_MSG,
   VEGETABLE_STYLES,
+  customizationConflict,
   profileAllergensInMeal,
 } from '../services/orderService';
 import { colors, font, radius, spacing, fonts } from '../theme/theme';
@@ -94,11 +95,28 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
     );
   }
 
-  const displayName = `${meatProtein} ${cookingStyle} · ${vegetableStyle} vegetables`;
-  const calories = todayMeal.calories + (meatProtein === 'Pork' ? 290 : meatProtein === 'Fish' ? 25 : 0);
+  // USR-18: a Lunch or Dinner choice is either vegetables (steamed, stir-fried or
+  // Pinakbet) or meat (Beef, Pork, Chicken or Fish) with a Filipino cooking style.
+  const isVegetableChoice = todayMeal.group === 'Vegetable choices';
+  const chosenItem = MENU_CATALOG.find((item) => item.slot === slot && item.name === (isVegetableChoice ? vegetableStyle : meatProtein)
+    && item.section === (isVegetableChoice ? 'Vegetable choices' : 'Meat choices'));
+  const displayName = isVegetableChoice
+    ? (vegetableStyle === 'Pinakbet' ? 'Pinakbet' : `${vegetableStyle} vegetables`)
+    : `${meatProtein} ${cookingStyle}`;
+  const calories = chosenItem?.calories ?? todayMeal.calories;
+  const protein = chosenItem?.protein ?? todayMeal.protein;
   const highCalorie = calories >= 600;
-  const allergens = profile ? profileAllergensInMeal(catalogMeal, profile) : [];
-  const dietitianNote = DIETITIAN_NOTES[cookingStyle] || DIETITIAN_NOTES[vegetableStyle];
+  const baseItem = chosenItem || MENU_CATALOG.find((item) => item.id === todayMeal.id);
+  const plate = baseItem
+    ? customizedMenuMeal(baseItem, isVegetableChoice ? { vegetableStyle } : { meatProtein })
+    : catalogMeal;
+  const customization = isVegetableChoice
+    ? { vegetableStyle }
+    : { meatProtein, cookingStyle };
+  const recipientName = warningRecipientName(user);
+  const allergens = profile ? profileAllergensInMeal(plate, profile) : [];
+  const restrictionConflict = profile ? customizationConflict(customization, profile) : '';
+  const dietitianNote = isVegetableChoice ? DIETITIAN_NOTES[vegetableStyle] : DIETITIAN_NOTES[cookingStyle];
   // Point the user at the next meal time that still needs a meal, or to the review once all three are set.
   const filledSlots = new Set(items.map((row) => row.daySlot).filter(Boolean));
   const remaining = DAY_SLOTS.filter((item) => item !== slot && !filledSlots.has(item));
@@ -106,24 +124,14 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const nextLabel = upcoming ? `Next · Choose ${upcoming} →` : 'Save · Review today\'s meals';
 
   const onSave = () => {
-    const veg = VEGETABLE_STYLES.includes(vegetableStyle as typeof VEGETABLE_STYLES[number])
-      ? vegetableStyle
-      : 'Pinakbet';
-    const meat = MEAT_PROTEINS.includes(meatProtein as typeof MEAT_PROTEINS[number])
-      ? meatProtein
-      : 'Chicken';
-    const cook = COOKING_STYLES.includes(cookingStyle as typeof COOKING_STYLES[number])
-      ? cookingStyle
-      : 'Sinigang';
+    const targetItem = chosenItem || MENU_CATALOG.find((item) => item.id === todayMeal.id);
+    const mealForCart = targetItem ? resolveMenuMeal(targetItem) : catalogMeal;
+    const cartMeal = { ...mealForCart, name: displayName, allergens: plate.allergens, ingredients: plate.ingredients };
     const error = addItem(
-      catalogMeal,
+      cartMeal,
       1,
-      {
-        vegetableStyle: veg,
-        meatProtein: meat,
-        cookingStyle: cook,
-      },
-      { daySlot: slot, todayMealId: todayMeal.id },
+      customization,
+      { daySlot: slot, todayMealId: targetItem?.id || todayMeal.id },
     );
     if (error) {
       Alert.alert('Could not add meal', error);
@@ -145,25 +153,32 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
           backAccessibilityLabel="Go back"
           onBack={() => navigation.goBack()}
         />
-        <ChoiceRow title="Vegetables" options={[...VEGETABLE_STYLES]} value={vegetableStyle} onChange={setVegetableStyle} />
-        <ChoiceRow title="Meat Option" options={[...MEAT_PROTEINS]} value={meatProtein} onChange={setMeatProtein} />
-        <ChoiceRow title="Pinoy Cooking Style" options={[...COOKING_STYLES]} value={cookingStyle} onChange={setCookingStyle} />
+        {isVegetableChoice ? (
+          <ChoiceRow title="Vegetables" options={[...VEGETABLE_STYLES]} value={vegetableStyle} onChange={setVegetableStyle} />
+        ) : (
+          <>
+            <ChoiceRow title="Meat Option" options={[...MEAT_PROTEINS]} value={meatProtein} onChange={setMeatProtein} />
+            <ChoiceRow title="Pinoy Cooking Style" options={[...COOKING_STYLES]} value={cookingStyle} onChange={setCookingStyle} />
+          </>
+        )}
+        <Text style={styles.availabilityNote}>Subject to availability and Dietitian approval.</Text>
 
         <View style={[styles.summaryCard, allergens.length > 0 && styles.summaryWarn]}>
           <Text style={styles.summaryLabel}>{`Your ${slot}`}</Text>
           <Text style={styles.summaryName}>{displayName}</Text>
           <Text style={styles.summaryMeta}>
-            {calories} Kcal · {todayMeal.protein}g protein · ₱{todayMeal.price}
+            {calories} Kcal · {protein}g protein · ₱{todayMeal.price}
           </Text>
           {allergens.length ? (
             <Text style={styles.conflict}>Allergy conflict</Text>
           ) : null}
+          {restrictionConflict ? <Text style={styles.conflict}>{restrictionConflict}</Text> : null}
         </View>
 
         {highCalorie ? (
           <View style={styles.alertBox}>
             <Text style={styles.alertTitle}>{`${calories} Kcal – Review recommended`}</Text>
-            <Text style={styles.alertBody}>This combination is higher in calories than your usual lunch.</Text>
+            <Text style={styles.alertBody}>{`This combination is higher in calories than your usual ${slot.toLowerCase()}.`}</Text>
           </View>
         ) : null}
 
@@ -174,10 +189,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
               <Text style={styles.allergyTitle}>Allergy check</Text>
               {allergens.map((item) => (
                 <Text key={item} style={styles.allergyText}>
-                  {ORDER_MSG.mealAllergen(
-                    item,
-                    user?.accountFor === 'family' ? recipientDisplayName(user?.mealRecipient) : null,
-                  )}
+                  {ORDER_MSG.mealAllergen(item, recipientName)}
                 </Text>
               ))}
             </View>
@@ -203,6 +215,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   choiceSection: { marginBottom: spacing.lg },
+  availabilityNote: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, marginBottom: spacing.md },
   choiceTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading, marginBottom: spacing.sm },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choicePill: {

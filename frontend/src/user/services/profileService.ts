@@ -14,12 +14,13 @@ import {
   appendAuditEvent, assertClientOwns, requireRole, ROLES, verifyAuditChain,
 } from './securityService.js';
 
+/** USR-09 condition options; the free-text "Other / Doctor-provided restriction" is separate. */
 export const HEALTH_CONDITIONS = [
+  'Hypertension (HTN)',
   'Diabetes',
-  'Hypertension',
-  'Kidney disease',
-  'Heart disease',
-  'Other',
+  'Gout',
+  'Kidney Problem',
+  'Low-Cholesterol Diet',
 ];
 
 export const DIETARY_RESTRICTIONS = [

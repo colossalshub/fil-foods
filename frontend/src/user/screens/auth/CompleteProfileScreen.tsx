@@ -1,3 +1,4 @@
+import { PROFILE_HEALTH_OPTIONS } from '../../constants/profileFormOptions';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import AuthLayout from '../../components/AuthLayout';
@@ -16,7 +17,7 @@ import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
 import type { FieldMap, MealMatchProfile } from '../../types';
 import { colors, font, spacing, card, fonts } from '../../theme/theme';
 
-const HEALTH_OPTIONS = ['High blood pressure (HTN)', 'Diabetes', 'Gout', 'Kidney Problem', 'Low-Cholesterol Diet'];
+const HEALTH_OPTIONS = PROFILE_HEALTH_OPTIONS;
 const DIET_OPTIONS = ['Low-sodium', 'Low-sugar', 'Low-cholesterol diet', 'Soft food texture'];
 const RELATIONSHIPS = ['Child', 'Parent', 'Spouse', 'Sibling', 'Grandparent', 'Other'];
 
@@ -371,7 +372,7 @@ export default function CompleteProfileScreen() {
               />
             ))}
           </View>
-          <AppInput label="Other / doctor-provided restriction (optional)" value={dietaryOther} onChangeText={setDietaryOther} autoCapitalize="sentences" />
+          <AppInput label="Other / Doctor-provided restriction" value={dietaryOther} onChangeText={setDietaryOther} autoCapitalize="sentences" />
           <AppInput label="Reaction or notes (optional)" value={allergyNote} onChangeText={setAllergyNote} multiline />
           <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
         </>

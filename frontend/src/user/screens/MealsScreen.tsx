@@ -2,28 +2,47 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
+import AppInput from '../components/AppInput';
+import Checkbox from '../components/Checkbox';
 import {
   MENU_SLOT_SUBTITLE,
-  menuSectionsForSlot,
+  allMenuMeals,
   resolveMenuMeal,
   type MenuCatalogItem,
   type MenuSlot,
 } from '../data/menuCatalog';
-import { formatPeso } from '../services/orderService';
+import { useAuth } from '../context/AuthContext';
+import { useMealProfile } from '../hooks/useMealProfile';
+import { mealsForLabel, recipientDisplayName, warningRecipientName } from '../domain/audience';
+import {
+  ORDER_MSG,
+  formatPeso,
+  fuzzySearchMeals,
+  profileAllergensInMeal,
+} from '../services/orderService';
+import {
+  mealMatchesNutritionalPreferences,
+  nutritionIdsFromProfile,
+  sortMealsForProfile,
+} from '../services/profileService';
+import type { Meal } from '../types';
 import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 const MENU_SLOTS: MenuSlot[] = ['Breakfast', 'Lunch', 'Dinner'];
 
-function MenuRow({ item, showPrice, onPress }: {
+/** USR-26 / USR-13: label of the menu filter that applies the saved nutritional preferences. */
+const NUTRITION_GOALS_LABEL = 'Use my nutrition goals';
+
+function MenuRow({ item, warnings, onPress }: {
   item: MenuCatalogItem;
-  showPrice: boolean;
+  warnings: string[];
   onPress: () => void;
 }) {
   const available = item.available;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.name}${available ? ', available' : ', not available'}`}
+      accessibilityLabel={`${item.name}, ${formatPeso(item.price ?? 300)}${available ? ', available' : ', not available'}${warnings.length ? `, ${warnings.join(' ')}` : ''}`}
       onPress={onPress}
       style={styles.row}
     >
@@ -36,23 +55,73 @@ function MenuRow({ item, showPrice, onPress }: {
             {available ? 'Available' : 'Not available'}
           </Text>
         </View>
+        {warnings.map((text) => (
+          <Text key={text} style={styles.warning}>{text}</Text>
+        ))}
       </View>
-      {showPrice && item.price != null ? (
+      {item.price != null ? (
         <Text style={styles.rowPrice}>{formatPeso(item.price)}</Text>
       ) : null}
     </Pressable>
   );
 }
 
+type Row = { item: MenuCatalogItem; meal: Meal };
+
+function groupBySection(rows: Row[]) {
+  const sections = new Map<string, Row[]>();
+  for (const row of rows) {
+    const key = row.item.section;
+    sections.set(key, [...(sections.get(key) || []), row]);
+  }
+  return [...sections.entries()].map(([title, items]) => ({ title: title.toUpperCase(), items }));
+}
+
+/**
+ * Menu (USR-16, USR-12, USR-13, USR-17, USR-46): browse by meal time, search all
+ * meals (OSA fuzzy search, USR-28 "Menu: browse and search meals"), filter with
+ * the saved nutritional preferences, and rank by the meal recipient's
+ * preferences with allergen meals listed last and warned.
+ */
 export default function MealsScreen({ navigation }: {
   navigation: {
     navigate: (name: string, params?: object) => void;
     goBack: () => void;
   };
 }) {
+  const { user } = useAuth();
+  const { profile } = useMealProfile(user);
   const [slot, setSlot] = useState<MenuSlot>('Breakfast');
-  const sections = useMemo(() => menuSectionsForSlot(slot), [slot]);
-  const showPrice = slot === 'Breakfast';
+  const [query, setQuery] = useState('');
+  const [useGoals, setUseGoals] = useState(false);
+  const recipientName = warningRecipientName(user);
+  const hasGoals = nutritionIdsFromProfile(profile).length > 0;
+  const searching = query.trim().length > 0;
+
+  const rows = useMemo(() => {
+    let list = allMenuMeals();
+    if (!searching) list = list.filter((row) => row.item.slot === slot);
+    if (useGoals && hasGoals) {
+      list = list.filter((row) => mealMatchesNutritionalPreferences(row.meal, profile));
+    }
+    const byMealId = new Map(list.map((row) => [row.meal.id, row]));
+    let meals = list.map((row) => row.meal);
+    if (searching) meals = fuzzySearchMeals(meals, query);
+    // Search keeps its relevance order; browsing ranks by the recipient's profile (USR-12).
+    else if (profile) meals = sortMealsForProfile(meals, profile);
+    return meals.map((meal) => byMealId.get(meal.id)).filter((row): row is Row => Boolean(row));
+  }, [slot, query, searching, useGoals, hasGoals, profile]);
+
+  const warningsFor = (meal: Meal) => (profile
+    ? profileAllergensInMeal(meal, profile).map((allergen) => ORDER_MSG.mealAllergen(allergen, recipientName))
+    : []);
+
+  const groups = useMemo(() => {
+    if (!searching) return groupBySection(rows);
+    return MENU_SLOTS
+      .map((time) => ({ title: time.toUpperCase(), items: rows.filter((row) => row.item.slot === time) }))
+      .filter((group) => group.items.length > 0);
+  }, [rows, searching]);
 
   const openItem = (item: MenuCatalogItem) => {
     navigation.navigate('MealDetail', {
@@ -61,41 +130,81 @@ export default function MealsScreen({ navigation }: {
     });
   };
 
+  const forWhom = mealsForLabel(user?.accountFor, recipientDisplayName(user?.mealRecipient));
+
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <BackHeader
           title="Menu"
-          subtitle={MENU_SLOT_SUBTITLE[slot]}
+          subtitle={searching ? 'Search results from every meal time' : MENU_SLOT_SUBTITLE[slot]}
           backLabel="Today's meals"
           backAccessibilityLabel="Back to today's meals"
           onBack={() => navigation.goBack()}
         />
 
-        <View style={styles.slots}>
-          {MENU_SLOTS.map((item) => {
-            const active = item === slot;
-            return (
-              <Pressable
-                key={item}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => setSlot(item)}
-                style={[styles.slot, active ? styles.slotOn : styles.slotOff]}
-              >
-                <Text style={[styles.slotLabel, active && styles.slotLabelOn]}>{item}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <AppInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search meals"
+          accessibilityLabel="Search meals"
+          leadingIcon="search"
+          autoCorrect={false}
+          returnKeyType="search"
+          style={styles.search}
+        />
 
-        {sections.map((section) => (
+        {hasGoals ? (
+          <Checkbox checked={useGoals} onToggle={() => setUseGoals((on) => !on)}>
+            {NUTRITION_GOALS_LABEL}
+          </Checkbox>
+        ) : (
+          <Text style={styles.hint}>Save nutritional preferences in Account to filter the menu with them.</Text>
+        )}
+
+        {!searching ? (
+          <View style={styles.slots}>
+            {MENU_SLOTS.map((item) => {
+              const active = item === slot;
+              return (
+                <Pressable
+                  key={item}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  onPress={() => setSlot(item)}
+                  style={[styles.slot, active ? styles.slotOn : styles.slotOff]}
+                >
+                  <Text style={[styles.slotLabel, active && styles.slotLabelOn]}>{item}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
+        {profile && !searching ? (
+          <Text style={styles.hint}>{`${forWhom}: best matches first. Meals with a listed allergen are last.`}</Text>
+        ) : null}
+        {useGoals && hasGoals ? <Text style={styles.hint}>Only matching meals are shown.</Text> : null}
+
+        {groups.length === 0 ? (
+          <Text style={styles.empty} accessibilityLiveRegion="polite">{ORDER_MSG.noMeals}</Text>
+        ) : null}
+
+        {groups.map((section) => (
           <View key={section.title} style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.sectionCard}>
-              {section.items.map((item, index) => (
-                <View key={item.id}>
-                  <MenuRow item={item} showPrice={showPrice} onPress={() => openItem(item)} />
+              {section.items.map((row, index) => (
+                <View key={row.item.id}>
+                  <MenuRow
+                    item={row.item}
+                    warnings={warningsFor(row.meal)}
+                    onPress={() => openItem(row.item)}
+                  />
                   {index < section.items.length - 1 ? <View style={styles.divider} /> : null}
                 </View>
               ))}
@@ -110,7 +219,11 @@ export default function MealsScreen({ navigation }: {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
-  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.md },
+  search: { marginTop: spacing.lg, marginBottom: spacing.sm },
+  hint: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, marginBottom: spacing.sm },
+  empty: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 22, color: colors.text, marginTop: spacing.lg, textAlign: 'center' },
+  warning: { fontFamily: fonts.semibold, marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.danger },
+  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.md },
   slot: {
     minHeight: 40,
     paddingHorizontal: spacing.lg,

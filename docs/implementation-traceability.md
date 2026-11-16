@@ -44,7 +44,7 @@ Status values in this historical table: **Partial** means a local prototype exis
 | USR-15 Terms and consent | Terms modal and acceptance timestamp | Store versioned terms acceptance plus explicit health-data consent; show from Account/Profile | Version/timestamp/consent tests | Partial |
 | USR-16 Meal browse/search/filter | `MealsScreen`, local fuzzy search and filters | Catalog API, exact `No meals found.`, AND semantics for category/restriction/allergen-free/nutrition, available-only loading | Search threshold/ranking and combined-filter tests | Partial |
 | USR-17 Meal details | `MealDetailScreen`, local nutrition/allergen display | Catalog details from API, nested components and unavailable server state, exact warning text | Full ingredient/component conflict and unavailable tests | Partial |
-| USR-18 Quantity | `CartContext`, quantity parser and running line totals | Remove non-spec plan discounts, server-side quantity/price validation, read-only computed totals | Quantity edge cases and tamper-resistant total tests | Partial |
+| USR-18 Meal selection (one per meal time) | `CartContext`, quantity parser and running line totals | Remove non-spec plan discounts, server-side quantity/price validation, read-only computed totals | Quantity edge cases and tamper-resistant total tests | Partial |
 | USR-19 Fulfillment/schedule | `OrderScreen`, hard-coded 24-hour/Monday-Saturday rules, delivery-fee summary row | Admin settings API, timezone-safe Asia/Manila validation, delivery fee/address persistence, date-time picker UX | Boundary timezone, lead-time, kitchen-hour, pickup/delivery tests | Partial |
 | USR-20 Summary/confirm | Local fallback plus Supabase-backed checkout path using stable request UUID and deployed hardened `place_order` RPC | Run authenticated concurrent retry, rollback, and server allergen integration tests | Concurrent retry/rollback/idempotency and server allergen recheck tests | Partial / Integration tests pending |
 | USR-21 Orders list | `TrackingScreen`, local filtering/sorting | Persisted client-scoped query, exact empty state, status/date filters | API/RLS/filter ordering tests | Partial |
@@ -79,25 +79,25 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | Story | Status | Current evidence and outstanding acceptance gaps |
 |---|---|---|
 | USR-01 | Partial | Local registration validates and hashes passwords and supports self/family onboarding; remote signup, separate recipient persistence, verified flow ordering, and remote terms acceptance are not wired end to end. |
-| USR-02 | Partial | Local lockout plus username-login Edge Function exist; fixed device key, deployment/secrets, verified-account enforcement, and backend integration/rate-limit tests remain gaps. |
+| USR-02 | Partial | A successful sign-in now opens the meal menu (Meal tab) per criterion 4; a pending destination still wins. Local lockout plus username-login Edge Function exist; fixed device key, deployment/secrets, verified-account enforcement, and backend integration/rate-limit tests remain gaps. |
 | USR-03 | Partial | Client session persistence/inactivity policy exists; remote password-reset revocation and cross-device/session expiry guarantees are unverified. |
 | USR-04 | Partial | Local reset lookup/code simulator exists; no SMS/email delivery provider or deployed reset request service. |
 | USR-05 | Partial | Local reset grant/hash flow exists; no remote password update or all-session revocation guarantee. |
 | USR-06 | Partial | Logout confirmation/local audit exist; durable remote logout audit and backend session revocation are unverified. |
 | USR-07 | Partial | Profile UI and remote profile reads exist; family recipient data is not modeled as a separate remote person and privacy/data-scope behavior is unverified. |
 | USR-08 | Partial | Local profile edits/verification and remote profile update exist; remote contact changes are not verify-before-save and durable history is missing. |
-| USR-09 | Partial | Health data has local/remote persistence, but the selectable condition list differs between screens/services and specified Dietitian access is not available under self-only RLS. |
+| USR-09 | Partial | One condition list everywhere: Hypertension (HTN), Diabetes, Gout, Kidney Problem, Low-Cholesterol Diet, plus "Other / Doctor-provided restriction". Specified Dietitian access is not available under self-only RLS. |
 | USR-10 | Partial | Dietary restrictions persist locally/remotely; staff access and recipient-scoped remote storage are missing. |
 | USR-11 | Partial | Client allergen checks and a server order-RPC conflict check exist; nested/live catalog recommendation safety and staff scope are not comprehensively verified. |
 | USR-12 | Partial | Preference storage and local ranking exist; remote recipient separation and complete ranking behavior are unverified. |
-| USR-13 | Partial | Local filters and remote preference booleans exist; target persistence and complete remote filtering are missing. |
+| USR-13 | Partial | The Menu has a "Use my nutrition goals" checkbox that filters with the saved nutritional preferences. Remote target persistence and server-side filtering are still missing. |
 | USR-14 | Partial | Local guardian management and remote guardian storage exist; family recipient relationship and required Admin access are not modeled by RLS. |
 | USR-15 | Partial | Terms text and local acceptance timestamp exist; accepted version/consent are not consistently persisted through remote registration/profile flows. |
-| USR-16 | Partial | Search/filter UI uses a bundled static catalog; live Admin catalog, availability, and complete combined-filter integration are not wired. |
-| USR-17 | Partial | Meal details use bundled meal objects; live catalog/components, availability, and consistent requirement pricing are not guaranteed. |
-| USR-18 | Partial | The cart allows one meal per Breakfast, Lunch, and Dinner, caps the day at three, prices a standard meal at ₱300, and stores vegetable, meat, and cooking-style choices. Dietitian approval of a customization is still a Dietitian action. |
+| USR-16 | Partial | Menu shows Breakfast (pastries and breads), Lunch and Dinner (meat: Beef, Pork, Chicken, Fish; or vegetable choices) with ₱300 on every item, "Search meals" (OSA fuzzy search across meal times), profile ranking, per-meal allergen warnings and "No meals found.". The catalog is still bundled, not the live Admin catalog. |
+| USR-17 | Partial | Meal details price every item at ₱300 and adding a Lunch/Dinner item opens its customization. Live catalog/components and server availability are not wired. |
+| USR-18 | Partial | One meal per meal time, three at most per day, and partial days are allowed: checkout works with one, two or three meals in any order, a chosen meal can be removed, and the tabs jump between meal times. Customization asks for a vegetable style or a meat option with a Pinoy cooking style, notes "Subject to availability and Dietitian approval.", and checks the whole plate's allergens. Dietitian approval is still a Dietitian action. |
 | USR-19 | Partial | Fulfillment/address/schedule collection and server validation exist; Admin-configured hours/fees and pickup operations details are not fully implemented. |
-| USR-20 | Partial | A new order is saved as For Dietitian Review and the summary shows ₱300 plus the weekly, monthly, and yearly plan prices. Dietitian approval, payment capture, and Kitchen release stay outside the client. |
+| USR-20 | Partial | The summary lists each meal's meal time, customization, delivery or pickup, schedule, "Ordered by"/"Meal recipient" or "Ordered by and for", and a ₱300-per-meal total. A new order is saved as For Dietitian Review. How plan prices relate to the day total is unresolved (see inconsistencies). |
 | USR-21 | Partial | Client-scoped backend order reads/RLS exist; staff fulfillment and payment workflow integration is missing. |
 | USR-22 | Partial | Backend order detail/history reads exist; complete payment/customization data and integration verification are missing. |
 | USR-23 | Partial | Status display/Realtime exist; review/payment states and authorized staff transition workflow are missing. |
@@ -123,11 +123,11 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-43 | Partial | Registration choice is local; screen now uses the specified descriptions, missing-choice message, and profile label. Google preselection/account persistence and Admin visibility remain missing remotely. |
 | USR-44 | Partial | Local family recipient fields/consent are validated and separate from user data; no remote recipient table/API or remote completion/order gate. |
 | USR-45 | Partial | Family accounts have Edit meal recipient, required-field and contact checks, unsaved-back confirmation, and a history entry that leaves the account holder unchanged. Remote recipient persistence is still missing. |
-| USR-46 | Partial | Home, Account, order summary, allergen warnings, and family status alerts name the meal recipient. Staff-facing copies of those labels are not in this client. |
+| USR-46 | Partial | Home, Account, order summary (now also for For Myself accounts: "Ordered by and for"), per-meal allergen warnings on Build Today's Meals and the Menu, and family status alerts name the meal recipient. Staff-facing copies of those labels are not in this client. |
 | USR-47 | Partial | Account has Delete account with the quoted warning, wrong-password message, in-progress block, and local removal. Ending every device session, Admin anonymization, and cross-user denial remain server rules. |
 | USR-48 | Partial | The spec palette is unchanged and is now used through theme tokens instead of per-screen hex values. Text uses the design guide's Poppins family, loaded with `expo-font`, plus shared `type` presets for page title, subtitle, section, card, body, label and button. All client text is 16px or larger except tab-bar labels (13px under icons) and the "Suitable for you" badge (14px). Large-font layout and full screen-reader coverage still need device verification. |
 | USR-49 | Partial | Static numbered terms, version/date, links, and content tests exist; offline load/retry state and blocking acceptance until text loads are absent. |
-| USR-50 | Partial | A changed terms version blocks Home until the user accepts, and decline ends the session with the quoted message. The tamper-evident acceptance record is still a server audit rule. |
+| USR-50 | Partial | A changed terms version blocks the app until the user accepts; accepting continues to the Home screen, and decline ends the session with the quoted message. The tamper-evident acceptance record is still a server audit rule. |
 
 These are not all criterion-level passes: stories remain Partial/Missing until each numbered criterion in the source PDF is mapped to a passing automated or documented manual test. The recommendation tests are local service tests; they do not prove the live Admin catalog, backend authorization, Dietitian decisions, or payment workflow.
 
@@ -147,6 +147,45 @@ This pass compared every USR frame in the designer's Figma page with the running
 | USR-40, USR-41, USR-48 | No Figma frames. | Built in the same visual language. No new screens were needed. |
 
 Design decisions where the app's UX was kept over the Figma: the floating icon tab bar; the sticky primary action on Build Today's Meals; descriptive subtitles on the sign-up choice (spec text); 16px minimum text where the Figma uses 13–14px captions (USR-48); and the existing filter/search panel on My Orders.
+
+## 2026-11-17 user-module accuracy pass
+
+Changes made to follow USR-01–USR-50 more closely:
+
+| Story | Change |
+| --- | --- |
+| USR-02, USR-30, USR-31 | Signing in opens the meal menu (Meal tab) instead of Home. |
+| USR-50 | Accepting updated terms continues to the Home screen. |
+| USR-09 | The three different condition lists are now one list matching the spec, with "Hypertension (HTN)". |
+| USR-13, USR-26 | "Use my nutrition goals" filter on the Menu. |
+| USR-16 | Price on every menu item, profile ranking, per-meal allergen warnings, Fish allergen on the Fish choice. |
+| USR-17 | Adding a Lunch/Dinner item from its details opens the customization step. |
+| USR-18 | Checkout with 1–2 meals, Remove on a chosen meal, "Next · Choose …" jump, customization is vegetable *or* meat + cooking style, whole-plate allergen check, "Subject to availability and Dietitian approval." note. |
+| USR-20 | Summary shows customizations; the party lines show for every account type. |
+| USR-28, USR-37 | "Search meals" on the Meal tab opens the Menu with OSA fuzzy search. |
+| USR-46 | Recipient-named allergen warnings on each meal card. |
+
+Not added: the "Suggest a day of meals" solver panel. No story asks for calorie/protein/fat targets or a suggested day; USR-13 only asks for nutritional preferences that filter the menu. `solveNutritionPlan` stays in the code and docs but is not mounted.
+
+### Inconsistencies in the source documents (for the group to decide)
+
+1. **Landing after login.** USR-02 no. 4 "redirect the user to the meal menu" vs USR-28 "When the Home screen opens" (first-login guide) and USR-50 H "continue to the Home screen". Implemented: menu after login, Home after accepting new terms; the guide is a global overlay so it shows either way.
+2. **When family details are asked.** USR-01 C asks for the meal recipient right after the account is created; USR-43 B / USR-44 no. 1 say after the account is verified.
+3. **Button label.** USR-01 "Sign Up" vs USR-15/USR-50 "Register".
+4. **Order status names.** USR-23 lists For Dietitian Review, Awaiting Payment, Paid, Preparing, Ready for Pickup, Out for Delivery, Completed, Cancelled; USR-47 uses "Pending … Ready for pickup, Out for delivery" and "delivered"; Figma USR 21 shows "Delivered". The staff/DB side also uses "Ready for Delivery" and "Confirmed".
+5. **Quantity.** USR-26 help sample "2. Set quantity" vs USR-18 one meal per meal time (there is no quantity). Kept the sample text.
+6. **Meal data.** USR-16 lists meat choices (Beef, Pork, Chicken, Fish) and vegetable choices; USR-12/USR-46 samples use named dishes (Chicken Tinola, Grilled Bangus, Ampalaya Stir-fry, "Chicken Satay" vs "Chicken Satay with Peanut Sauce"). Figma USR 16 vegetables are Pinakbet, Chopsuey, Sautéed Green Beans, Steamed Pechay; USR-18 says steamed, stir-fried, Pinakbet; Figma USR 2 says "Pakbet"; Figma breads add "Pan de Coco".
+7. **Customization shape.** USR-18 B "vegetables or meat" vs Figma "Build Your Lunch" combining Vegetables + Meat + Cooking Style. Implemented the spec (one or the other).
+8. **Prices.** ₱300 standard (USR-17/20/49) vs Figma USR 37 F2, 26 F3, 46 F3 (₱180, ₱170, ₱150, ₱165; total ₱350).
+9. **Plans vs day orders.** USR-20 offers Weekly ₱4,999 / Monthly ₱27,899 / Yearly ₱327,999 for "meals for the day or a meal plan", but USR-18 caps an order at 3 meals per day and nothing says how a plan changes the total. The app keeps the ₱300-per-meal total and records the chosen plan.
+10. **Nutrition filter.** USR-26 label "Use my nutrition goals" vs Figma USR 26 F3 filters "No peanuts / No shellfish / Low sodium".
+11. **HTN label.** USR-09 criterion "HTN", scenario "Hypertension (HTN)", USR-07 sample "Hypertension". Implemented "Hypertension (HTN)".
+12. **Figma messages not in the spec.** USR 2 F5 "Account locked." (spec: "Your account is locked. Please reset your password or contact support."); USR 5 F6 "Your verification could not be confirmed. Please request a new code."; USR 4 F4 "Reset code requested." and "Resend" (spec: "Resend code"); USR 17 F2 "This meal is currently unavailable. Please choose another meal."; USR 18 F5 shrimp-paste message; USR 20 F5 payment methods (GCash, Maya, card). The app uses the spec wording.
+13. **Sample ids.** USR-49 "Order #00350" vs user tracking ids "TRK-2026-…".
+14. **Allergen meals.** USR-46 D warns when adding a meal with a listed allergen; the app's meal details block adding it (stricter, kept).
+15. **Missing Figma frames.** No frames for USR 40, 41, 48.
+16. **Cross-module.** The Admin console keeps its own local orders and statuses; there is no Dietitian database role; the spec mentions Expo Router but the app uses React Navigation.
+
 
 ## Dependency-aware implementation batches
 

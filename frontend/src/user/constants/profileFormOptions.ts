@@ -1,6 +1,6 @@
 /** Account profile edit presets aligned with onboarding and user stories. */
 export const PROFILE_HEALTH_OPTIONS = [
-  'High blood pressure (HTN)',
+  'Hypertension (HTN)',
   'Diabetes',
   'Gout',
   'Kidney Problem',

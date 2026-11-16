@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { useMealProfile } from '../hooks/useMealProfile';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useCart } from '../context/CartContext';
+import { warningRecipientName } from '../domain/audience';
+import { ORDER_MSG, profileAllergensInMeal } from '../services/orderService';
 import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 const BADGE = {
@@ -25,33 +27,51 @@ const BADGE = {
   fresh: { background: colors.mintStrong, text: '#2F6A45' },
 };
 
-function MealChoice({ meal, selected, onPress }: {
+function MealChoice({ meal, selected, warnings, onPress, onRemove }: {
   meal: TodayMeal;
   selected: boolean;
+  warnings: string[];
   onPress: () => void;
+  onRemove: () => void;
 }) {
   const badge = BADGE[meal.badge];
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${meal.name}, ${meal.calories} Kcal, ${meal.price} pesos`}
-      onPress={onPress}
-      style={[styles.card, selected && styles.cardSelected]}
-    >
-      <View style={[styles.badge, { backgroundColor: badge.background }]}>
-        <Text style={[styles.badgeText, { color: badge.text }]}>{meal.badgeLabel}</Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.mealName}>{meal.name}</Text>
-        <Text style={styles.mealMeta}>{meal.calories} Kcal · ₱{meal.price}</Text>
-        <Text style={styles.available}>Available</Text>
-        <Text style={styles.note}>{meal.note}</Text>
-      </View>
-      <View style={[styles.radio, selected && styles.radioOn]}>
-        {selected ? <Ionicons name="checkmark" size={18} color={colors.white} /> : null}
-      </View>
-    </Pressable>
+    <View style={[styles.card, selected && styles.cardSelected, warnings.length > 0 && styles.cardWarn]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        accessibilityLabel={`${meal.name}, ${meal.calories} Kcal, ${meal.price} pesos${warnings.length ? `, ${warnings.join(' ')}` : ''}`}
+        onPress={onPress}
+        style={styles.cardPress}
+      >
+        <View style={[styles.badge, { backgroundColor: badge.background }]}>
+          <Text style={[styles.badgeText, { color: badge.text }]}>{meal.badgeLabel}</Text>
+        </View>
+        <View style={styles.cardBody}>
+          <Text style={styles.mealName}>{meal.name}</Text>
+          <Text style={styles.mealMeta}>{meal.calories} Kcal · ₱{meal.price}</Text>
+          <Text style={styles.available}>Available</Text>
+          <Text style={styles.note}>{meal.note}</Text>
+          {warnings.map((text) => (
+            <Text key={text} style={styles.warning}>{text}</Text>
+          ))}
+        </View>
+        <View style={[styles.radio, selected && styles.radioOn]}>
+          {selected ? <Ionicons name="checkmark" size={18} color={colors.white} /> : null}
+        </View>
+      </Pressable>
+      {selected ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Remove ${meal.name} from ${meal.slot}`}
+          onPress={onRemove}
+          hitSlop={8}
+          style={styles.removeBtn}
+        >
+          <Text style={styles.removeLabel}>Remove</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -64,7 +84,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
 }) {
   const route = useRoute() as { params?: { advanceFromSlot?: DaySlot } };
   const { user } = useAuth();
-  const { items, addItem } = useCart();
+  const { items, addItem, removeSlot } = useCart();
   const { profile } = useMealProfile(user);
   const [slot, setSlot] = useState<DaySlot>('Breakfast');
 
@@ -112,11 +132,26 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     [chosen],
   );
   const calories = chosenMeals.reduce((sum, meal) => sum + meal.calories, 0);
-  const upcoming = nextSlot(slot);
   const allChosen = chosenCount === DAY_SLOTS.length;
-  const allergyNote = (profile?.allergies || []).length
-    ? `Check ingredients against your ${(profile?.allergies || []).map((item) => (typeof item === 'string' ? item : item.name)).join(' + ')} allergies before submitting.`
-  : 'Check ingredients against your allergies before submitting.';
+  // Every meal time is optional (USR-18): suggest the next empty one without forcing it.
+  const pendingSlots = DAY_SLOTS.filter((item) => !chosen[item]);
+  const preferredNext = nextSlot(slot);
+  const suggestedSlot = pendingSlots.filter((item) => item !== slot).includes(preferredNext)
+    ? preferredNext
+    : pendingSlots.find((item) => item !== slot);
+  const recipientName = warningRecipientName(user);
+  const allergyNames = (profile?.allergies || []).map((item) => (typeof item === 'string' ? item : item.name));
+  const allergyOwner = recipientName ? `${recipientName}'s` : 'your';
+  const allergyNote = allergyNames.length
+    ? `Check ingredients against ${allergyOwner} ${allergyNames.join(' + ')} allergies before submitting.`
+    : `Check ingredients against ${allergyOwner} allergies before submitting.`;
+
+  const warningsFor = (meal: TodayMeal) => {
+    const catalogItem = MENU_CATALOG.find((item) => item.id === meal.id);
+    if (!catalogItem || !profile) return [];
+    return profileAllergensInMeal(resolveMenuMeal(catalogItem), profile)
+      .map((allergen) => ORDER_MSG.mealAllergen(allergen, recipientName));
+  };
 
   const selectMeal = (meal: TodayMeal) => {
     if (meal.customizable) {
@@ -133,22 +168,13 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     }
   };
 
+  // One, two or three meals can go to checkout; nothing has to be chosen in order.
+  const canCheckout = chosenCount > 0;
+  const primaryLabel = canCheckout ? 'Continue to Checkout' : `Choose a ${slot.toLowerCase()} meal`;
   const onPrimaryAction = () => {
-    if (allChosen) {
-      navigation.navigate('ChoosePlan');
-      return;
-    }
-    if (!chosen[slot]) {
-      return;
-    }
-    setSlot(upcoming);
+    if (canCheckout) navigation.navigate('ChoosePlan');
   };
-
-  const primaryLabel = allChosen
-    ? 'Continue to Checkout'
-    : chosen[slot]
-      ? `Next · Choose ${upcoming} →`
-      : `Choose a ${slot.toLowerCase()} meal`;
+  const showNextSlot = canCheckout && !allChosen && Boolean(suggestedSlot) && Boolean(chosen[slot]);
 
   return (
     <AppPageShell edges={['top']}>
@@ -157,6 +183,18 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           title="Build Today's Meals"
           subtitle="Choose each meal. Your dietitian checks it against your profile."
         />
+
+        {/* USR-37: the Meal tab opens the meal catalog and its search tools. */}
+        <Pressable
+          accessibilityRole="search"
+          accessibilityLabel="Search meals"
+          accessibilityHint="Opens the menu with search"
+          onPress={() => navigation.navigate('MealBrowse')}
+          style={styles.searchEntry}
+        >
+          <Ionicons name="search" size={22} color={colors.primary} />
+          <Text style={styles.searchEntryText}>Search meals</Text>
+        </Pressable>
 
         <View style={styles.slots}>
           {DAY_SLOTS.map((item) => {
@@ -192,7 +230,9 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           ))}
         </View>
 
-        <Text style={styles.rule}>One meal per meal time. Maximum 3 meals per day.</Text>
+        <Text style={styles.rule}>
+          One meal per meal time. Maximum 3 meals per day. You can order one, two or all three meal times.
+        </Text>
 
         {mealGroups.map(({ title, meals }) => (
           <View key={title}>
@@ -202,7 +242,9 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                 key={meal.id}
                 meal={meal}
                 selected={chosen[slot] === meal.id}
+                warnings={warningsFor(meal)}
                 onPress={() => selectMeal(meal)}
+                onRemove={() => removeSlot(meal.slot)}
               />
             ))}
           </View>
@@ -227,13 +269,23 @@ export default function BuildTodaysMealsScreen({ navigation }: {
       </ScrollView>
       {/* Sticky action so the next step is always visible, however long the meal list is. */}
       <View style={styles.footer}>
+        {showNextSlot && suggestedSlot ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Next, choose ${suggestedSlot}`}
+            onPress={() => setSlot(suggestedSlot)}
+            style={styles.secondaryBtn}
+          >
+            <Text style={styles.secondaryLabel}>{`Next · Choose ${suggestedSlot} →`}</Text>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={primaryLabel}
-          accessibilityState={{ disabled: !chosen[slot] && !allChosen }}
+          accessibilityLabel={canCheckout ? `Continue to Checkout with ${chosenCount} of 3 meals` : primaryLabel}
+          accessibilityState={{ disabled: !canCheckout }}
           onPress={onPrimaryAction}
-          style={[styles.next, styles.footerButton, (!chosen[slot] && !allChosen) && styles.nextDisabled]}
-          disabled={!chosen[slot] && !allChosen}
+          style={[styles.next, styles.footerButton, !canCheckout && styles.nextDisabled]}
+          disabled={!canCheckout}
         >
           <Text style={styles.nextLabel}>{primaryLabel}</Text>
         </Pressable>
@@ -252,6 +304,19 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
   },
   footerButton: { marginTop: 0 },
+  searchEntry: {
+    marginTop: spacing.lg,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  searchEntryText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   slots: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   slot: {
@@ -277,9 +342,6 @@ const styles = StyleSheet.create({
   group: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.lg, lineHeight: 24, color: colors.heading },
   rule: { fontFamily: fonts.regular, marginTop: 4, marginBottom: spacing.md, fontSize: font.body, lineHeight: 22, color: colors.muted },
   card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
     backgroundColor: colors.white,
     borderRadius: 18,
     borderWidth: 1,
@@ -288,6 +350,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardSelected: { borderColor: colors.primary, borderWidth: 2 },
+  cardWarn: { borderColor: colors.danger },
+  cardPress: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flex: 1 },
+  warning: { fontFamily: fonts.semibold, marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.danger },
+  removeBtn: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  removeLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.danger },
+  secondaryBtn: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    backgroundColor: colors.white,
+  },
+  secondaryLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
   badge: {
     width: 48,
     height: 48,

@@ -207,6 +207,7 @@ const LUNCH_MEAT = choiceItems('Lunch', 'Meat choices', [
     protein: 28,
     description: 'Fish lunch plate with Filipino cooking style and vegetable side.',
     ingredients: ['Fish', 'Tomato', 'Vegetables'],
+    allergens: ['Fish'],
   },
 ]);
 
@@ -310,6 +311,13 @@ export function mealInitials(name: string, override?: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
+/** Categories used by meal preferences (USR-12): the meat name, "Vegetables", or "Pastries and breads". */
+function menuMealCategories(item: MenuCatalogItem) {
+  if (item.section === 'Meat choices') return [item.name, 'Meat'];
+  if (item.section === 'Vegetable choices') return ['Vegetables'];
+  return ['Pastries and breads'];
+}
+
 export function resolveMenuMeal(item: MenuCatalogItem): Meal {
   return {
     id: item.mealId || item.id,
@@ -324,10 +332,39 @@ export function resolveMenuMeal(item: MenuCatalogItem): Meal {
     diets: [],
     allergens: item.allergens ?? [],
     ingredients: item.ingredients ?? [],
-    mealCategories: [],
+    mealCategories: menuMealCategories(item),
     dietaryTags: [],
     portion: '1 serving',
     available: item.available,
     description: item.description,
   } as Meal & { description?: string };
+}
+
+export function menuItemById(id: string) {
+  return MENU_CATALOG.find((item) => item.id === id);
+}
+
+/** Every available menu item as a Meal, for search and ranking. */
+export function allMenuMeals() {
+  return MENU_CATALOG.filter((item) => item.available).map((item) => ({ item, meal: resolveMenuMeal(item) }));
+}
+
+/**
+ * A Lunch or Dinner plate after customization (USR-18): the chosen vegetable
+ * style and meat option add their ingredients and allergens, so the allergy
+ * check covers the whole plate, not just the item that was tapped.
+ */
+export function customizedMenuMeal(base: MenuCatalogItem, choice: { vegetableStyle?: string; meatProtein?: string }) {
+  const parts = MENU_CATALOG.filter((item) => item.slot === base.slot && (
+    (item.section === 'Vegetable choices' && item.name === choice.vegetableStyle)
+    || (item.section === 'Meat choices' && item.name === choice.meatProtein)
+  ));
+  const meal = resolveMenuMeal(base);
+  const allergens = new Set(meal.allergens || []);
+  const ingredients = new Set(meal.ingredients || []);
+  for (const part of parts) {
+    (part.allergens || []).forEach((tag) => allergens.add(tag));
+    (part.ingredients || []).forEach((name) => ingredients.add(name));
+  }
+  return { ...meal, allergens: [...allergens], ingredients: [...ingredients] } as Meal;
 }
