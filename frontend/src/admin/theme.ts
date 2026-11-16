@@ -18,7 +18,7 @@ export interface Palette {
 }
 
 export const lightPalette: Palette = {
-  page: '#F3F6EF',
+  page: '#F4F7F0',
   card: '#FFFFFF',
   text: '#1C2B22',
   muted: '#6E7A72',
@@ -27,7 +27,7 @@ export const lightPalette: Palette = {
   greenDeep: '#0E542C',
   primary: '#1C773A',
   mint: '#E5F6E8',
-  header: '#146B38',
+  header: '#0E542C',
   danger: '#D76566',
   input: '#FFFFFF',
   positive: '#1C773A',

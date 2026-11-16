@@ -1,12 +1,10 @@
 import { type ComponentType } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AdminTabBar } from './components/AdminTabBar.js';
 import { PhoneFrame } from './components.js';
 import { AdminProvider, useAdmin } from './context.js';
-import { tabBarStyle } from './nav.js';
 import {
   CheckEmailScreen,
   ForgotPasswordScreen,
@@ -38,22 +36,6 @@ const Tab = createBottomTabNavigator();
 function screen(component: ComponentType<never>) {
   return component as unknown as ComponentType<object>;
 }
-
-const ICONS = {
-  Dashboard: 'home-outline',
-  Orders: 'cart-outline',
-  Menu: 'list-outline',
-  Staff: 'people-outline',
-  Settings: 'settings-outline',
-} as const;
-
-const ACTIVE = {
-  Dashboard: 'home',
-  Orders: 'cart',
-  Menu: 'list',
-  Staff: 'people',
-  Settings: 'settings',
-} as const;
 
 function DashboardStack() {
   return (
@@ -105,33 +87,15 @@ function SettingsStack() {
 }
 
 function AdminTabs() {
-  const insets = useSafeAreaInsets();
-  const { colors, t } = useAdmin();
-  const labels: Record<string, string> = {
-    Dashboard: t('dashboard'),
-    Orders: t('orders'),
-    Menu: t('menu'),
-    Staff: t('staff'),
-    Settings: t('settings'),
-  };
+  const { colors } = useAdmin();
   return (
     <PhoneFrame>
       <Tab.Navigator
-        screenOptions={({ route }) => ({
+        tabBar={(props) => <AdminTabBar {...props} />}
+        screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.green,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: tabBarStyle(insets, colors),
-          tabBarLabel: labels[route.name],
           sceneStyle: { backgroundColor: colors.page },
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? ACTIVE[route.name as keyof typeof ACTIVE] : ICONS[route.name as keyof typeof ICONS]}
-              size={size}
-              color={color}
-            />
-          ),
-        })}
+        }}
       >
         <Tab.Screen name="Dashboard" component={DashboardStack} />
         <Tab.Screen name="Orders" component={OrdersStack} />

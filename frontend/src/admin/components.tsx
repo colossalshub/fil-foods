@@ -307,7 +307,7 @@ export function AdminListStatusBadge({ status }: { status: OrderStatus }) {
 const styles = StyleSheet.create({
   outer: { flex: 1, backgroundColor: '#1E2A22', alignItems: 'center' },
   inner: { flex: 1, width: '100%', maxWidth: 430 },
-  banner: { marginHorizontal: 16, marginTop: 12, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  banner: { marginTop: 4, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14 },
   bannerText: { color: '#FFFFFF', fontWeight: '700', textAlign: 'center', fontSize: 15 },
   button: { minHeight: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
   buttonText: { fontSize: 16, fontWeight: '700' },
@@ -335,5 +335,5 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: 'center', color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 8 },
-  badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  badge: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, minHeight: 26, justifyContent: 'center' },
 });
