@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { allMenuMeals, customizedMenuMeal, menuItemById } from './menuCatalog.js';
+import { addCartLine } from '../context/cartRules.js';
 import {
   ORDER_MSG,
   calculateTotals,
+  checkoutTotal,
   fuzzySearchMeals,
   validateOrderSelection,
 } from '../services/orderService.js';
@@ -62,4 +64,28 @@ test('USR-28 / USR-37: meal search tolerates a typo across all meal times', () =
   const results = fuzzySearchMeals(meals, 'pandesl');
   assert.ok(results.length > 0);
   assert.ok(results.every((meal) => /pandesal/i.test(meal.name)));
+});
+
+test('USR-20 A: checkout defaults to Standard meal; choosing a plan uses the plan price', () => {
+  const rows = [
+    { meal: mealFor('menu-traditional-pandesal'), quantity: 1 },
+    { meal: mealFor('menu-lunch-chicken'), quantity: 1 },
+  ];
+  const standard = checkoutTotal(rows, 'standard', {});
+  assert.equal(standard.total, 600);
+  assert.equal(standard.planId, 'standard');
+  assert.equal(checkoutTotal(rows, undefined, {}).total, 600, 'no plan means Standard meal');
+  assert.equal(checkoutTotal(rows, 'weekly', {}).total, 4999);
+  assert.equal(checkoutTotal(rows, 'monthly', {}).total, 27899);
+  assert.equal(checkoutTotal(rows, 'yearly', {}).total, 327999);
+});
+
+test('USR-18: a refused meal returns its message in the same call', () => {
+  const first = addCartLine([], mealFor('menu-lunch-chicken'), 1, undefined, { daySlot: 'Lunch' });
+  assert.equal(first.error, '');
+  const second = addCartLine(first.items, mealFor('menu-lunch-beef'), 1);
+  assert.equal(second.error, ORDER_MSG.oneMealPerTime);
+  assert.equal(second.items, first.items, 'cart is unchanged');
+  const replaced = addCartLine(first.items, mealFor('menu-lunch-beef'), 1, undefined, { daySlot: 'Lunch' });
+  assert.equal(replaced.error, '', 'choosing again for the same meal time replaces the choice');
 });

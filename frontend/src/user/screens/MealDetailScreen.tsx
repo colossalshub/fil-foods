@@ -107,7 +107,7 @@ export default function MealDetailScreen({ route, navigation }: {
     }
     Alert.alert(MEAL_DETAIL_COPY.addedToOrderTitle, MEAL_DETAIL_COPY.addedToOrderBody(meal.name), [
       { text: MEAL_DETAIL_COPY.keepBrowsing, style: 'cancel' },
-      { text: MEAL_DETAIL_COPY.viewOrder, onPress: () => navigation.navigate('ChoosePlan') },
+      { text: MEAL_DETAIL_COPY.viewOrder, onPress: () => navigation.navigate('MealsList') },
     ]);
   };
 

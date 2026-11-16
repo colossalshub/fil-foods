@@ -437,6 +437,30 @@ export function calculateTotals(lineItems: Array<{ meal: Meal; quantity: number 
   return { subtotal, discountRate, discountAmount, total };
 }
 
+/**
+ * USR-20 A: the total is based on the selected meals (Standard meal, ₱300 each)
+ * or on the selected plan. Standard is the default; a plan replaces the meal total
+ * with the plan price. How a plan relates to day orders is still an open question
+ * for the group (see docs/implementation-traceability.md).
+ */
+export function checkoutTotal(
+  lineItems: { meal: Meal; quantity: number | string }[],
+  planId: string | null | undefined,
+  user?: Parameters<typeof calculateTotals>[1],
+) {
+  const meals = calculateTotals(lineItems, user);
+  const plan = PLAN_PRICES.find((row) => row.id === planId) || null;
+  if (!plan) return { ...meals, planId: 'standard', planAmount: null as number | null };
+  return {
+    subtotal: plan.amount,
+    discountRate: 0,
+    discountAmount: 0,
+    total: plan.amount,
+    planId: plan.id,
+    planAmount: plan.amount as number | null,
+  };
+}
+
 const KITCHEN = {
   openHour: 7,
   closeHour: 18,
@@ -641,7 +665,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       return { ok: false, messages: warnings.map((w) => w.message), needsAcknowledgement: true };
     }
 
-    const totals = calculateTotals(lineItems, user);
+    const totals = checkoutTotal(lineItems, payload.planId, user);
     const placedIso = payload.now ? parseScheduleDate(payload.now)?.toISOString() || stamp() : stamp();
     const order = {
       id: nextId('order'),
@@ -679,6 +703,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       discountRate: totals.discountRate,
       discountAmount: totals.discountAmount,
       total: totals.total,
+      planId: totals.planId,
       placedAt: placedIso,
       kitchenView,
     };

@@ -25,9 +25,8 @@ export const FULFILLMENT_COPY = {
 } as const;
 
 export const CHECKOUT_MSG = {
-  choosePlanTitle: 'Choose a plan',
-  choosePlanLead: 'Pick the plan that fits how you eat.',
-  choosePlan: 'Choose plan',
+  planChoiceHeading: 'Plan (optional)',
+  planChoiceLead: 'Standard meal is selected. You can choose a plan instead.',
   orderSummaryTitle: 'Order Summary',
   orderSummaryLead: 'Review your meals and how you will receive them.',
   summaryContinue: 'Continue',

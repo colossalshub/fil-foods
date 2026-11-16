@@ -172,7 +172,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   const canCheckout = chosenCount > 0;
   const primaryLabel = canCheckout ? 'Continue to Checkout' : `Choose a ${slot.toLowerCase()} meal`;
   const onPrimaryAction = () => {
-    if (canCheckout) navigation.navigate('ChoosePlan');
+    if (canCheckout) navigation.navigate('FulfillmentChoice');
   };
   const showNextSlot = canCheckout && !allChosen && Boolean(suggestedSlot) && Boolean(chosen[slot]);
 

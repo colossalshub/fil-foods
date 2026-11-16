@@ -10,10 +10,10 @@ import { getUser } from '../../services/authService';
 import { orderPartyLines, recipientDisplayName } from '../../domain/audience';
 import {
   STANDARD_MEAL_PRICE,
-  calculateTotals,
+  checkoutTotal,
   formatPeso,
 } from '../../services/orderService';
-import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
+import { CHECKOUT_MSG, CHECKOUT_PLANS } from '../../data/checkoutCopy';
 import { ORDERS_COPY } from '../../data/messages';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { spacing } from '../../theme/theme';
@@ -37,7 +37,7 @@ export default function OrderSummaryScreen({ navigation }: {
   }, [items.length, navigation, checkout.fulfillmentType, checkout.scheduleDate, checkout.scheduleTime]);
 
   const lineItems = items.map((row) => ({ meal: row.meal, quantity: row.quantity, customization: row.customization }));
-  const totals = calculateTotals(lineItems, dbUser || user || {});
+  const totals = checkoutTotal(lineItems, checkout.planId, dbUser || user || {});
   const sortedItems = [...items].sort((a, b) => {
     const ai = MEAL_ORDER.indexOf(a.meal.category || '');
     const bi = MEAL_ORDER.indexOf(b.meal.category || '');
@@ -55,26 +55,12 @@ export default function OrderSummaryScreen({ navigation }: {
 
   const scheduleLabel = formatScheduleSummary(checkout.scheduleDate, checkout.scheduleTime);
   const fulfillmentTypeLabel = checkout.fulfillmentType === 'pickup' ? 'Pickup' : 'Delivery';
-  const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === checkout.planId);
-  const planLine = checkout.planId === 'standard'
-    ? `${STANDARD_PLAN.label} · ${STANDARD_PLAN.perMealLabel}`
-    : selectedPlan
-      ? `${selectedPlan.label} · ${selectedPlan.priceLabel}`
-      : '';
-  const showPlanLine = Boolean(planLine) && checkout.planId !== 'standard';
-
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
         <BackHeader title={CHECKOUT_MSG.orderSummaryTitle} subtitle={CHECKOUT_MSG.orderSummaryLead} onBack={() => navigation.goBack()} />
 
         <View style={checkoutFlow.mealList}>
-          {showPlanLine ? (
-            <Text style={checkoutFlow.line}>
-              <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
-              {planLine}
-            </Text>
-          ) : null}
           {sortedItems.map((row) => (
             <View key={row.meal.id} style={checkoutFlow.mealRow}>
               <View style={checkoutFlow.mealLeft}>
@@ -114,6 +100,34 @@ export default function OrderSummaryScreen({ navigation }: {
             ))}
           </View>
         ) : null}
+
+        {/* USR-20 A: total from the selected meals (Standard meal) or a selected plan. */}
+        <Text style={checkoutFlow.sectionHeading}>{CHECKOUT_MSG.planChoiceHeading}</Text>
+        <Text style={checkoutFlow.optionCardBody}>{CHECKOUT_MSG.planChoiceLead}</Text>
+        <View accessibilityRole="radiogroup" style={[checkoutFlow.optionList, { marginTop: spacing.md }]}>
+          {CHECKOUT_PLANS.map((plan) => {
+            const on = checkout.planId === plan.id;
+            const price = plan.perMealLabel || plan.priceLabel;
+            return (
+              <Pressable
+                key={plan.id}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={`${plan.label}, ${price}`}
+                onPress={() => checkout.setPlanId(plan.id)}
+                style={[checkoutFlow.optionCard, on && checkoutFlow.optionCardOn]}
+              >
+                <View style={checkoutFlow.optionCardRow}>
+                  <View style={[checkoutFlow.radio, on && checkoutFlow.radioOn]}>
+                    {on ? <View style={checkoutFlow.radioDot} /> : null}
+                  </View>
+                  <Text style={[checkoutFlow.optionCardTitle, { flex: 1 }]}>{plan.label}</Text>
+                  <Text style={checkoutFlow.optionCardTitle}>{price}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <View style={checkoutFlow.summaryTotalRow}>
           <Text style={checkoutFlow.summaryTotalLabel}>{ORDERS_COPY.total}</Text>

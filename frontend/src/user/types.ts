@@ -298,6 +298,7 @@ export interface Order {
   discountRate?: number;
   discountAmount?: number;
   total?: number;
+  planId?: string;
   placedAt?: string;
   kitchenView?: KitchenView;
   deliveryFee?: number;
@@ -557,4 +558,6 @@ export interface ConfirmOrderPayload {
   now?: ScheduleInput;
   allergenAcknowledged?: boolean;
   clientRequestId?: string | null;
+  /** 'standard' (default) or a plan id from PLAN_PRICES (USR-20). */
+  planId?: string | null;
 }

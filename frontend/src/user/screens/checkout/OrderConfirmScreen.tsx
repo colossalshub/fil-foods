@@ -7,7 +7,7 @@ import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
 import { getUser } from '../../services/authService';
 import { orderPartyLines, recipientDisplayName } from '../../domain/audience';
-import { calculateTotals, formatPeso } from '../../services/orderService';
+import { checkoutTotal, formatPeso } from '../../services/orderService';
 import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { spacing } from '../../theme/theme';
@@ -31,7 +31,7 @@ export default function OrderConfirmScreen({ navigation }: {
   const { warnings, fieldError, placing, placeOrder } = usePlaceOrder(user, session, profile, recipientName);
 
   const lineItems = items.map((row) => ({ meal: row.meal, quantity: row.quantity, customization: row.customization }));
-  const totals = calculateTotals(lineItems, dbUser || user || {});
+  const totals = checkoutTotal(lineItems, checkout.planId, dbUser || user || {});
   const scheduleLabel = formatScheduleSummary(checkout.scheduleDate, checkout.scheduleTime);
   const party = orderPartyLines({
     accountFor: dbUser?.accountFor || user?.accountFor,
@@ -41,8 +41,10 @@ export default function OrderConfirmScreen({ navigation }: {
   });
   const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === checkout.planId);
   const planLabel = checkout.planId === 'standard'
-    ? STANDARD_PLAN.label
-    : selectedPlan?.label || checkout.planId;
+    ? `${STANDARD_PLAN.label} · ${STANDARD_PLAN.perMealLabel}`
+    : selectedPlan
+      ? `${selectedPlan.label} · ${selectedPlan.priceLabel}`
+      : checkout.planId;
   const addressLine = checkout.fulfillmentType === 'delivery'
     ? checkout.address
     : 'Pickup at F.I.L Foods counter';

@@ -142,6 +142,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           now: new Date(),
           clientRequestId: attemptRef.current.id || '',
           allergenAcknowledged: checkout.allergenAck || warnings.length === 0,
+          planId: checkout.planId,
         }) as NonNullable<typeof result>;
         if (result?.ok && checkout.planId !== 'standard') {
           confirmChoosePlan(user.id, checkout.planId as 'weekly' | 'monthly' | 'yearly');

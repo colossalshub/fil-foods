@@ -1,22 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode,
+} from 'react';
 import type { DaySlot } from '../data/todayMenu';
 import type { Meal, MealCustomization } from '../types';
-import { customizationLabel, validateOrderSelection } from '../services/orderService';
+import { addCartLine } from './cartRules';
 
-export interface CartItem {
-  meal: Meal;
-  quantity: number;
-  customization?: MealCustomization;
-  customizationLabel?: string;
-  /** Build-today flow: which meal time this line belongs to. */
-  daySlot?: DaySlot;
-  todayMealId?: string;
-}
+import type { AddCartItemOptions, CartItem } from './cartRules';
 
-export interface AddCartItemOptions {
-  daySlot?: DaySlot;
-  todayMealId?: string;
-}
+export type { AddCartItemOptions, CartItem } from './cartRules';
 
 interface CartValue {
   items: CartItem[];
@@ -45,7 +36,14 @@ const CartContext = createContext<CartValue>({
 });
 
 export function CartProvider({ children }: { children?: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItemsState] = useState<CartItem[]>([]);
+  // The latest cart, updated synchronously, so addItem can return a refusal
+  // (one meal per meal time, three per day) in the same call that caused it.
+  const itemsRef = useRef<CartItem[]>([]);
+  const setItems = useCallback((update: (prev: CartItem[]) => CartItem[]) => {
+    itemsRef.current = update(itemsRef.current);
+    setItemsState(itemsRef.current);
+  }, []);
 
   const addItem = useCallback((
     meal: Meal,
@@ -53,47 +51,25 @@ export function CartProvider({ children }: { children?: ReactNode }) {
     customization?: MealCustomization,
     options?: AddCartItemOptions,
   ) => {
-    let error = '';
-    const mealForCart = options?.daySlot ? { ...meal, category: options.daySlot } : meal;
-    setItems((prev) => {
-      let next = [...prev];
-      if (options?.daySlot) {
-        next = next.filter((row) => row.daySlot !== options.daySlot);
-      } else {
-        next = next.filter((row) => row.meal.id !== mealForCart.id);
-      }
-      next.push({
-        meal: mealForCart,
-        quantity,
-        customization,
-        customizationLabel: customizationLabel(customization),
-        daySlot: options?.daySlot,
-        todayMealId: options?.todayMealId,
-      });
-      const check = validateOrderSelection(next);
-      if (!check.ok) {
-        error = check.message || '';
-        return prev;
-      }
-      error = '';
-      return next;
-    });
-    return error;
-  }, []);
+    const result = addCartLine(itemsRef.current, meal, quantity, customization, options);
+    if (result.error) return result.error;
+    setItems(() => result.items);
+    return '';
+  }, [setItems]);
 
   const updateQuantity = useCallback((mealId: string, quantity: number) => {
     setItems((prev) => prev.map((row) => (row.meal.id === mealId ? { ...row, quantity } : row)));
-  }, []);
+  }, [setItems]);
 
   const removeItem = useCallback((mealId: string) => {
     setItems((prev) => prev.filter((row) => row.meal.id !== mealId));
-  }, []);
+  }, [setItems]);
 
   const removeSlot = useCallback((daySlot: DaySlot) => {
     setItems((prev) => prev.filter((row) => row.daySlot !== daySlot));
-  }, []);
+  }, [setItems]);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => setItems(() => []), [setItems]);
 
   const itemCount = useMemo(
     () => items.reduce((sum, row) => sum + row.quantity, 0),
