@@ -11,7 +11,7 @@ import {
   getRecommendedMeals,
   recommendationReason,
 } from '../services/orderService';
-import { card, colors, font, radius, spacing, control } from '../theme/theme';
+import { card, colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 function profileMatchChips(profile: MealMatchProfile | null | undefined) {
   if (!profile) return [];
@@ -183,8 +183,8 @@ export default function RecommendedForYouSection({
 
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.sm },
-  title: { fontSize: font.lg, lineHeight: 24, fontWeight: '800', color: colors.heading },
-  lead: { marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  title: { fontFamily: fonts.bold, fontSize: font.lg, lineHeight: 24, color: colors.heading },
+  lead: { fontFamily: fonts.regular, marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.muted },
   profileCard: {
     marginTop: spacing.lg,
     ...card,
@@ -192,8 +192,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   profileCardTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.sm,
-    fontWeight: '800',
     color: colors.muted,
     marginBottom: spacing.sm,
   },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
   },
-  chipText: { fontSize: font.sm, fontWeight: '700', color: colors.heading },
+  chipText: { fontFamily: fonts.bold, fontSize: font.sm, color: colors.heading },
   list: { marginTop: spacing.lg, gap: spacing.md },
   mealCard: {
     flexDirection: 'row',
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mealEmoji: { fontSize: 32 },
+  mealEmoji: { fontFamily: fonts.regular, fontSize: 32 },
   mealMain: { flex: 1, paddingRight: spacing.xs },
   suitableBadge: {
     alignSelf: 'flex-start',
@@ -235,10 +235,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: spacing.xs,
   },
-  suitableBadgeText: { fontSize: 12, fontWeight: '700', color: colors.primary },
-  mealName: { fontSize: font.body, lineHeight: 22, fontWeight: '800', color: colors.heading },
-  mealMeta: { marginTop: 2, fontSize: font.sm, lineHeight: 20, color: colors.muted },
-  mealPrice: { marginTop: spacing.xs, fontSize: font.body, fontWeight: '800', color: colors.heading },
+  suitableBadgeText: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 18, color: colors.primary },
+  mealName: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
+  mealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.sm, lineHeight: 20, color: colors.muted },
+  mealPrice: { fontFamily: fonts.bold, marginTop: spacing.xs, fontSize: font.body, color: colors.heading },
   addButton: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addButtonText: { fontSize: font.body, fontWeight: '700', color: colors.white },
+  addButtonText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
   emptyCard: {
     marginTop: spacing.lg,
     ...card,
@@ -265,8 +265,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  emptyTitle: { fontSize: font.lg, fontWeight: '800', color: colors.heading, textAlign: 'center' },
+  emptyTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.heading, textAlign: 'center' },
   emptyBody: {
+    fontFamily: fonts.regular,
     marginTop: spacing.sm,
     fontSize: font.body,
     lineHeight: 22,
@@ -274,9 +275,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   profileLink: { marginTop: spacing.md, minHeight: control.minHeight, justifyContent: 'center' },
-  profileLinkText: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  statusText: { marginTop: spacing.lg, fontSize: font.body, color: colors.muted },
+  profileLinkText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  statusText: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.body, color: colors.muted },
   disclaimer: {
+    fontFamily: fonts.regular,
     marginTop: spacing.md,
     fontSize: font.sm,
     lineHeight: 20,

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import BackHeader from '../../components/BackHeader';
 import AppPageShell from '../../components/AppPageShell';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -20,7 +21,8 @@ export default function OrderConfirmScreen({ navigation }: {
   const { user, session } = useAuth();
   const { items } = useCart();
   const checkout = useCheckout();
-  const dbUser = useMemo(() => (user?.id ? getUser(user.id) : null), [user?.id]);
+  const userId = user?.id;
+  const dbUser = useMemo(() => (userId ? getUser(userId) : null), [userId]);
   const { profile } = useMealProfile(user);
   const recipientName = (dbUser?.accountFor || user?.accountFor) === 'family'
     ? recipientDisplayName(dbUser?.mealRecipient || user?.mealRecipient)
@@ -64,8 +66,7 @@ export default function OrderConfirmScreen({ navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.confirmTitle}</Text>
-        <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.confirmLead}</Text>
+        <BackHeader title={CHECKOUT_MSG.confirmTitle} subtitle={CHECKOUT_MSG.confirmLead} onBack={() => navigation.goBack()} />
 
         <View style={checkoutFlow.card}>
           <Text style={checkoutFlow.line}>

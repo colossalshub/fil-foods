@@ -2,7 +2,7 @@ import type { ReactNode, Ref } from 'react';
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from './AppButton';
-import { colors, radius, font, spacing, touch } from '../theme/theme';
+import { colors, radius, font, spacing, touch, fonts } from '../theme/theme';
 
 export default function InfoModal({
   visible,
@@ -37,12 +37,12 @@ export default function InfoModal({
   );
 }
 
-export const modalText = { fontSize: font.body, color: colors.text, lineHeight: 24 };
+export const modalText = { fontFamily: fonts.regular, fontSize: font.body, color: colors.text, lineHeight: 24 };
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.xl },
   sheet: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.lg, maxHeight: '80%' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { flex: 1, fontSize: font.lg, fontWeight: '700', color: colors.primary, paddingRight: spacing.md },
+  title: { fontFamily: fonts.bold, flex: 1, fontSize: font.lg, color: colors.primary, paddingRight: spacing.md },
   close: { width: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' },
 });

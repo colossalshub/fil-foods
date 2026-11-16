@@ -1,7 +1,8 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import FormMessage from '../components/FormMessage';
@@ -14,7 +15,7 @@ import {
   refreshClientOrder,
   refreshBackendOrder,
 } from '../services/trackingService';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, fonts } from '../theme/theme';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
 function MetaLine({ label, children }: { label: string; children: ReactNode }) {
@@ -117,17 +118,12 @@ export default function OrderDetailScreen() {
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={ORDERS_COPY.backToOrders}
-          onPress={() => navigation.navigate('TrackingList')}
-          style={styles.backRow}
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.primary} />
-          <Text style={styles.backText}>{ORDERS_COPY.backToOrders}</Text>
-        </Pressable>
-
-        <Text style={styles.title} accessibilityRole="header">{ORDERS_COPY.detailsTitle}</Text>
+        <BackHeader
+          title={ORDERS_COPY.detailsTitle}
+          backLabel={ORDERS_COPY.backToOrders}
+          backAccessibilityLabel={ORDERS_COPY.backToOrders}
+          onBack={() => navigation.navigate('TrackingList')}
+        />
 
         {refreshError ? <FormMessage messages={[refreshError]} tone="error" /> : null}
 
@@ -223,26 +219,17 @@ export default function OrderDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touch.min,
-    alignSelf: 'flex-start',
-    gap: 2,
-  },
-  backText: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E', letterSpacing: -0.4 },
   card: { ...card, padding: spacing.lg, gap: spacing.md },
-  cardTitle: { fontSize: font.lg, fontWeight: '800', color: colors.text },
+  cardTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.text },
   metaRow: { gap: 6 },
-  metaLabel: { fontSize: font.sm, color: colors.muted },
-  value: { fontSize: font.body, color: colors.text },
-  valueStrong: { fontSize: font.body, fontWeight: '800', color: colors.text },
+  metaLabel: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted },
+  value: { fontFamily: fonts.regular, fontSize: font.body, color: colors.text },
+  valueStrong: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   mealRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, alignItems: 'flex-start' },
   mealLeft: { flex: 1, gap: 2 },
-  mealSlot: { fontSize: font.sm, color: colors.muted, fontWeight: '600' },
-  mealName: { fontSize: font.body, color: colors.text },
-  mealPrice: { fontSize: font.body, fontWeight: '700', color: colors.text },
+  mealSlot: { fontFamily: fonts.semibold, fontSize: font.sm, color: colors.muted },
+  mealName: { fontFamily: fonts.regular, fontSize: font.body, color: colors.text },
+  mealPrice: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   amountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -252,20 +239,20 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-  amountLabel: { fontSize: font.body, fontWeight: '700', color: colors.text },
-  amountValue: { fontSize: font.lg, fontWeight: '800', color: colors.primary },
+  amountLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
+  amountValue: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary },
   fulfillmentBox: {
     borderWidth: 2,
     borderColor: '#9BBF9A',
     borderRadius: radius.md,
-    backgroundColor: '#F1FAF4',
+    backgroundColor: colors.mint,
     padding: spacing.lg,
     gap: 4,
   },
   fulfillmentIcon: { marginBottom: spacing.xs },
-  fulfillmentKicker: { fontSize: font.sm, fontWeight: '700', color: colors.primary, letterSpacing: 0.6 },
-  fulfillmentType: { fontSize: font.body, fontWeight: '800', color: colors.text },
-  fulfillmentMeta: { fontSize: font.body, color: colors.muted, lineHeight: 22 },
+  fulfillmentKicker: { fontFamily: fonts.bold, fontSize: font.sm, color: colors.primary, letterSpacing: 0.6 },
+  fulfillmentType: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
+  fulfillmentMeta: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, lineHeight: 22 },
   historyStep: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, minHeight: 52 },
   historyRail: { width: 20, alignItems: 'center' },
   historyDot: {
@@ -285,8 +272,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   historyBody: { flex: 1, paddingBottom: spacing.sm, gap: 2 },
-  historyLabel: { fontSize: font.body, fontWeight: '600', color: colors.text },
-  historyTime: { fontSize: font.sm, color: colors.muted },
+  historyLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.text },
+  historyTime: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted },
   emptyCard: { ...card, padding: spacing.xl, alignItems: 'center' },
-  emptyText: { fontSize: font.body, color: colors.muted, textAlign: 'center' },
+  emptyText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, textAlign: 'center' },
 });

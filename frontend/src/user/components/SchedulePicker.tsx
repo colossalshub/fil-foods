@@ -9,7 +9,7 @@ import {
   pickerValue,
   startOfToday,
 } from './scheduleValue';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 function Field({ icon, label, value, open, onPress, accessibilityLabel }: {
   icon: ComponentProps<typeof Ionicons>['name'];
@@ -126,7 +126,7 @@ export default function SchedulePicker({ date, time, onChangeDate, onChangeTime 
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: font.md, color: colors.muted, marginBottom: 4 },
+  label: { fontFamily: fonts.regular, fontSize: font.md, color: colors.muted, marginBottom: 4 },
   field: {
     minHeight: control.minHeight,
     borderWidth: 1,
@@ -139,6 +139,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  value: { flex: 1, fontSize: font.body, color: colors.text },
+  value: { fontFamily: fonts.regular, flex: 1, fontSize: font.body, color: colors.text },
   placeholder: { color: colors.inactive },
 });

@@ -10,7 +10,7 @@ import SegmentedToggle from '../../components/SegmentedToggle';
 import VerificationFlow from '../../components/VerificationFlow';
 import { lookupPasswordReset } from '../../services/authService';
 import { MSG } from '../../data/messages';
-import { colors, font, spacing } from '../../theme/theme';
+import { colors, font, spacing, fonts } from '../../theme/theme';
 
 export default function ForgotPasswordScreen({ navigation }: {
   navigation: { navigate: (name: string, params?: object) => void };
@@ -104,7 +104,7 @@ export default function ForgotPasswordScreen({ navigation }: {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', overflow: 'hidden', backgroundColor: '#F6F9EF' },
+  page: { flex: 1, width: '100%', maxWidth: 430, alignSelf: 'center', overflow: 'hidden', backgroundColor: colors.authPage },
   safe: { flex: 1 },
   flex: { flex: 1 },
   scroll: {
@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   helpRow: { alignItems: 'flex-end' },
-  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
+  title: { fontFamily: fonts.bold, fontSize: font.xl, color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
   backLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
-  link: { fontSize: font.md, color: colors.secondary, fontWeight: '700' },
+  link: { fontFamily: fonts.bold, fontSize: font.md, color: colors.secondary },
 });

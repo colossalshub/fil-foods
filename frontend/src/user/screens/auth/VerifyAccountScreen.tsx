@@ -3,10 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../components/AppButton';
 import HelpButton from '../../components/HelpButton';
 import LogoPlaceholder from '../../components/LogoPlaceholder';
+import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import VerificationFlow from '../../components/VerificationFlow';
 import { getPublicUser } from '../../services/authService';
 import { MSG } from '../../data/messages';
-import { colors, font, spacing } from '../../theme/theme';
+import { colors, font, spacing, fonts } from '../../theme/theme';
 
 export default function VerifyAccountScreen({ navigation, route }: {
   navigation: { replace: (name: string, params?: object) => void; navigate: (name: string, params?: object) => void };
@@ -16,6 +17,7 @@ export default function VerifyAccountScreen({ navigation, route }: {
 
   return (
     <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
+      <AuthBackgroundDecor />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -64,7 +66,7 @@ export default function VerifyAccountScreen({ navigation, route }: {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.page, alignItems: 'center' },
+  page: { flex: 1, backgroundColor: colors.authPage, alignItems: 'center' },
   flex: { flex: 1, width: '100%', maxWidth: 430 },
   scroll: {
     width: '100%',
@@ -73,6 +75,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   helpRow: { alignItems: 'flex-end' },
-  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
+  title: { fontFamily: fonts.bold, fontSize: font.xl, color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, textAlign: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
 });

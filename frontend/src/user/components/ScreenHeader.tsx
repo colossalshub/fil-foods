@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet } from 'react-native';
 
 declare const require: (id: string) => number;
 import HelpButton from './HelpButton';
-import { colors, font, spacing } from '../theme/theme';
+import { colors, font, spacing, fonts } from '../theme/theme';
 
 const logo = require('../../../assets/images/fil-foods-logo.png');
 
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   logo: { width: 44, height: 44 },
   titles: { flex: 1, paddingRight: spacing.sm },
-  title: { fontSize: font.title, fontWeight: '700', color: colors.text, letterSpacing: -0.4 },
-  sub: { fontSize: font.sm, color: colors.muted, marginTop: 2 },
+  title: { fontFamily: fonts.bold, fontSize: font.title, color: colors.text, letterSpacing: -0.4 },
+  sub: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: 2 },
   actions: { flexDirection: 'row', alignItems: 'center' },
 });

@@ -16,7 +16,7 @@ import {
 } from '../data/helpContent';
 import { openFaq } from '../navigation/openFaq';
 import type { ReactNode } from 'react';
-import { colors, card, font, spacing, touch } from '../theme/theme';
+import { colors, card, font, spacing, touch, fonts } from '../theme/theme';
 
 function SectionHeading({ children }: { children?: ReactNode }) {
   return (
@@ -72,7 +72,7 @@ export default function HelpScreen({ navigation, route }: {
 
   return (
     <>
-      <BackPageShell title="Help" onBack={() => navigation.goBack()}>
+      <BackPageShell title="Help" onBack={() => navigation.goBack()} showHelp={false}>
         <SectionHeading>How to place an order</SectionHeading>
         <View style={styles.card}>
           {ORDER_STEPS.map((step) => (
@@ -156,10 +156,10 @@ export default function HelpScreen({ navigation, route }: {
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
+  sectionTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
   card: { ...card, padding: spacing.lg, marginBottom: spacing.md },
-  stepLine: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
+  stepLine: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
   guideSection: { marginBottom: spacing.md },
   faqLinkCard: {
     ...card,
@@ -171,13 +171,14 @@ const styles = StyleSheet.create({
     minHeight: touch.min,
   },
   faqLinkTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '700',
     color: colors.primary,
     width: '100%',
     marginBottom: spacing.xs,
   },
   faqLinkBody: {
+    fontFamily: fonts.regular,
     flex: 1,
     fontSize: font.body,
     lineHeight: 24,
@@ -186,6 +187,6 @@ const styles = StyleSheet.create({
   },
   faqLinkIcon: { alignSelf: 'center' },
   contactHit: { minHeight: touch.min, justifyContent: 'center', marginBottom: spacing.xs },
-  contactLink: { fontSize: font.body, lineHeight: 24, color: colors.action, fontWeight: '600' },
+  contactLink: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.action },
   guideScroll: { paddingTop: spacing.lg },
 });

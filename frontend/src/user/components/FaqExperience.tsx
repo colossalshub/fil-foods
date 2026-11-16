@@ -9,7 +9,7 @@ import {
   searchFaq,
 } from '../data/helpContent';
 import { FAQ_COPY } from '../data/messages';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 const MIN_SEARCH_CHARS = 2;
 
@@ -145,11 +145,11 @@ export default function FaqExperience({
 const styles = StyleSheet.create({
   root: { flexGrow: 1 },
   subtitle: {
+    fontFamily: fonts.medium,
     marginBottom: spacing.lg,
     fontSize: font.body,
     lineHeight: 24,
     color: '#6B9B7A',
-    fontWeight: '500',
   },
   searchField: {
     ...card,
@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: spacing.sm },
   searchInput: {
+    fontFamily: fonts.regular,
     flex: 1,
     minWidth: 0,
     fontSize: font.body,
@@ -176,6 +177,7 @@ const styles = StyleSheet.create({
     marginRight: -spacing.sm,
   },
   searchHint: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 22,
     color: colors.muted,
@@ -187,6 +189,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   noMatch: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.muted,
@@ -194,8 +197,8 @@ const styles = StyleSheet.create({
   },
   faqGroup: { marginBottom: spacing.lg },
   groupTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '700',
     color: colors.primary,
     marginBottom: spacing.sm,
   },
@@ -217,23 +220,24 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   faqQuestion: {
+    fontFamily: fonts.semibold,
     flex: 1,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.text,
-    fontWeight: '600',
   },
   faqAnswer: {
+    fontFamily: fonts.regular,
     marginTop: spacing.sm,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.text,
   },
   collapseHint: {
+    fontFamily: fonts.semibold,
     marginTop: spacing.md,
     fontSize: font.body,
     lineHeight: 22,
     color: colors.primary,
-    fontWeight: '600',
   },
 });

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import PageHeader from '../components/PageHeader';
 import AppPageShell from '../components/AppPageShell';
 import AppButton from '../components/AppButton';
 import OrderStatusBadge from '../components/OrderStatusBadge';
@@ -18,7 +19,7 @@ import {
 } from '../services/trackingService';
 import type { Meal } from '../types';
 import { isSupabaseConfigured } from '../../lib/supabaseClient';
-import { card, colors, font, radius, spacing, control } from '../theme/theme';
+import { card, colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 type HomeNavigation = {
   navigate: (name: string, params?: object) => void;
@@ -153,10 +154,7 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
   return (
     <AppPageShell edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.homeHeader}>
-          <Text style={styles.homeTitle} accessibilityRole="header">{HOME_COPY.screenTitle}</Text>
-          <Text style={styles.homeSubtitle}>{homeSubtitle}</Text>
-        </View>
+        <PageHeader title={HOME_COPY.screenTitle} subtitle={homeSubtitle} />
 
         <View style={styles.panelCard}>
           <HomeShortcut
@@ -225,9 +223,6 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
-  homeHeader: { marginBottom: spacing.lg },
-  homeTitle: { fontSize: font.title, lineHeight: 34, fontWeight: '800', color: colors.heading },
-  homeSubtitle: { marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.muted },
   panelCard: {
     ...card,
     marginBottom: spacing.lg,
@@ -236,8 +231,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   panelTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '800',
     color: colors.heading,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
@@ -260,7 +255,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shortcutLabel: { flex: 1, fontSize: font.body, fontWeight: '700', color: colors.heading },
+  shortcutLabel: { fontFamily: fonts.bold, flex: 1, fontSize: font.body, color: colors.heading },
   shortcutDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.cardBorder,
@@ -278,6 +273,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   emptyActiveText: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 22,
     color: colors.muted,
@@ -297,6 +293,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
   },
   activeOrderMain: { flex: 1 },
-  activeOrderRef: { fontSize: font.body, fontWeight: '700', color: colors.heading },
-  activeOrderTotal: { marginTop: 2, fontSize: font.sm, color: colors.muted },
+  activeOrderRef: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading },
+  activeOrderTotal: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.sm, color: colors.muted },
 });

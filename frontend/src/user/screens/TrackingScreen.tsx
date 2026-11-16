@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import PageHeader from '../components/PageHeader';
 import AppPageShell from '../components/AppPageShell';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import { MSG, ORDERS_COPY } from '../data/messages';
@@ -23,7 +24,7 @@ import {
   refreshBackendOrdersForUser,
   subscribeToBackendOrderChanges,
 } from '../services/trackingService';
-import { colors, card, font, radius, spacing, touch, control } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, control, fonts } from '../theme/theme';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
 type OrderListItem = {
@@ -252,8 +253,7 @@ export default function TrackingScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onManualRefresh} />}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title} accessibilityRole="header">{ORDERS_COPY.listTitle}</Text>
-        <Text style={styles.subtitle}>{ORDERS_COPY.listSubtitle}</Text>
+        <PageHeader title={ORDERS_COPY.listTitle} subtitle={ORDERS_COPY.listSubtitle} />
 
         {refreshError ? <FormMessage messages={[refreshError]} tone="error" /> : null}
 
@@ -357,8 +357,6 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E' },
-  subtitle: { fontSize: font.body, lineHeight: 22, color: '#5C675F' },
   filterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,12 +364,14 @@ const styles = StyleSheet.create({
     minHeight: touch.min,
     paddingVertical: spacing.sm,
   },
-  filterToggleText: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  filterToggleText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
   section: { gap: spacing.sm },
-  label: { fontSize: font.body, fontWeight: '600', color: colors.text },
+  label: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.text },
   searchRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   input: {
+    fontFamily: fonts.regular,
     flex: 1,
+    minWidth: 0,
     minHeight: control.minHeight,
     borderWidth: 1,
     borderColor: colors.border,
@@ -390,20 +390,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.md,
   },
-  searchBtnText: { color: colors.white, fontSize: font.body, fontWeight: '600' },
-  errorText: { fontSize: font.body, color: colors.danger },
+  searchBtnText: { fontFamily: fonts.semibold, color: colors.white, fontSize: font.body },
+  errorText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger },
   chipRow: { gap: spacing.sm, paddingVertical: spacing.xs },
   emptyCard: { ...card, padding: spacing.xl, alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   emptyIcon: {
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#E9F0E6',
+    backgroundColor: colors.soft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: { fontSize: font.lg, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  emptyLead: { fontSize: font.body, lineHeight: 22, color: colors.muted, textAlign: 'center' },
+  emptyTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.text, textAlign: 'center' },
+  emptyLead: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, textAlign: 'center' },
   browseBtn: {
     marginTop: spacing.sm,
     minHeight: 52,
@@ -414,16 +414,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
-  browseBtnText: { color: colors.white, fontSize: font.body, fontWeight: '700' },
+  browseBtnText: { fontFamily: fonts.bold, color: colors.white, fontSize: font.body },
   orderSection: { gap: spacing.sm },
-  sectionLabel: { fontSize: font.sm, fontWeight: '700', color: '#6B8E6B', letterSpacing: 0.3 },
-  sectionEmpty: { fontSize: font.body, lineHeight: 22, color: colors.muted },
+  sectionLabel: { fontFamily: fonts.bold, fontSize: font.sm, color: '#6B8E6B', letterSpacing: 0.3 },
+  sectionEmpty: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted },
   orderCard: { ...card, padding: spacing.lg },
   orderCardBody: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   orderCardMain: { flex: 1, gap: spacing.xs },
   orderCardAside: { alignItems: 'flex-end', gap: spacing.sm },
-  tracking: { fontSize: font.body, fontWeight: '800', color: colors.text },
-  fulfillmentLine: { fontSize: font.sm, color: colors.muted, lineHeight: 20 },
-  mealsLine: { fontSize: font.sm, color: '#5C675F', lineHeight: 20 },
-  totalValue: { fontSize: font.body, fontWeight: '800', color: colors.primary },
+  tracking: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
+  fulfillmentLine: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, lineHeight: 20 },
+  mealsLine: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, lineHeight: 20 },
+  totalValue: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
 });

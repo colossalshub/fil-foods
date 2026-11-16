@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import ScreenHeader from '../../components/ScreenHeader';
 import AppButton from '../../components/AppButton';
-import { colors, card, font, spacing } from '../../theme/theme';
+import { colors, card, font, spacing, fonts } from '../../theme/theme';
 
 export default function AboutScreen() {
   const navigation = useNavigation();
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   card: { ...card, padding: spacing.lg },
-  headline: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginBottom: spacing.md },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
+  headline: { fontFamily: fonts.bold, fontSize: font.xl, color: colors.primary, marginBottom: spacing.md },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
   back: { marginTop: spacing.lg },
 });

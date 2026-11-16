@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import BackHeader from '../../components/BackHeader';
 import AppPageShell from '../../components/AppPageShell';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -39,8 +40,7 @@ export default function ChoosePlanScreen({ navigation }: {
   return (
     <AppPageShell edges={['top']} contentStyle={{ flex: 1 }}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.choosePlanTitle}</Text>
-        <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.choosePlanLead}</Text>
+        <BackHeader title={CHECKOUT_MSG.choosePlanTitle} subtitle={CHECKOUT_MSG.choosePlanLead} onBack={() => navigation.goBack()} />
 
         {CHECKOUT_PLANS.map((plan) => (
           <View key={plan.id} style={checkoutFlow.card}>

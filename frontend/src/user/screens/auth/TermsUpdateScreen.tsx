@@ -10,7 +10,7 @@ import { MSG } from '../../data/messages';
 import { TERMS_LAST_UPDATED, TERMS_VERSION } from '../../data/terms';
 import { acceptUpdatedTerms, logout } from '../../services/authService';
 import { setLoginNotice } from '../../navigation/loginNotice';
-import { colors, font, spacing } from '../../theme/theme';
+import { colors, font, spacing, fonts } from '../../theme/theme';
 
 export default function TermsUpdateScreen() {
   const { user, signIn, signOut } = useAuth();
@@ -56,7 +56,7 @@ export default function TermsUpdateScreen() {
 }
 
 const styles = StyleSheet.create({
-  lead: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
-  meta: { fontSize: font.body, color: colors.muted, marginBottom: spacing.sm },
+  lead: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
+  meta: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, marginBottom: spacing.sm },
   decline: { marginTop: spacing.sm },
 });

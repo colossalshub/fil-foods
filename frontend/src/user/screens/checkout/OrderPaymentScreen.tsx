@@ -34,15 +34,16 @@ export default function OrderPaymentScreen({ route, navigation }: {
   const [method, setMethod] = useState('gcash');
   const [error, setError] = useState('');
 
+  const userId = user?.id;
   const load = useCallback(() => {
-    if (!user?.id || !orderId) return;
+    if (!userId || !orderId) return;
     if (isSupabaseConfigured) {
-      refreshBackendOrder(user.id, orderId).then((row) => setOrder(row ? { ...(row as unknown as Order) } : null));
+      refreshBackendOrder(userId, orderId).then((row) => setOrder(row ? { ...(row as unknown as Order) } : null));
       return;
     }
-    const result = refreshClientOrder(user.id, orderId, { connected: true });
+    const result = refreshClientOrder(userId, orderId, { connected: true });
     if (result.ok && result.order) setOrder(result.order as unknown as Order);
-  }, [user?.id, orderId]);
+  }, [userId, orderId]);
 
   useFocusEffect(useCallback(() => {
     load();

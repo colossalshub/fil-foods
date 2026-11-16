@@ -2,7 +2,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HelpButton from './HelpButton';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 export default function AuthHeader({ variant = 'login', title, onBack, framed = false }: {
   variant?: string;
@@ -68,13 +68,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     gap: 6,
   },
-  backText: { color: colors.primary, fontSize: font.md, fontWeight: '700' },
+  backText: { fontFamily: fonts.bold, color: colors.primary, fontSize: font.md },
   barTitle: {
+    fontFamily: fonts.bold,
     flex: 1,
     textAlign: 'center',
     color: colors.white,
     fontSize: font.xl,
-    fontWeight: '700',
   },
   framedTitle: { color: colors.deep },
   login: { alignItems: 'center' },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: spacing.sm,
   },
-  plateText: { color: colors.primary, fontSize: font.sm, fontWeight: '700', marginTop: 2 },
-  brand: { color: colors.white, fontSize: font.title, fontWeight: '700', marginTop: spacing.lg },
-  tagline: { color: colors.white, fontSize: font.md, marginTop: 4, textAlign: 'center' },
+  plateText: { fontFamily: fonts.bold, color: colors.primary, fontSize: font.sm, marginTop: 2 },
+  brand: { fontFamily: fonts.bold, color: colors.white, fontSize: font.title, marginTop: spacing.lg },
+  tagline: { fontFamily: fonts.regular, color: colors.white, fontSize: font.md, marginTop: 4, textAlign: 'center' },
 });

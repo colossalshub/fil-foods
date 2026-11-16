@@ -134,10 +134,17 @@ function appendHistory(user: User, entry: {
   });
 }
 
+export function historySectionLabel(section: string) {
+  return HISTORY_SECTION_LABEL[section] || section;
+}
+
 export function formatHistoryLine(entry: ProfileHistoryEntry) {
   const section = HISTORY_SECTION_LABEL[entry.section] || entry.section;
   const actionWord = entry.action === 'removed' ? 'removed' : entry.action === 'updated' ? 'updated' : 'added';
-  return `${formatTimestamp(entry.at)}, ${entry.whoName} (${entry.role}): ${section}, ${actionWord} ${entry.item}`;
+  const change = entry.action === 'updated' && (entry.previousValue || entry.newValue)
+    ? `${actionWord} ${entry.item}: ${entry.previousValue || 'none'} > ${entry.newValue || 'none'}`
+    : `${actionWord} ${entry.item}`;
+  return `${formatTimestamp(entry.at)}, ${entry.whoName} (${entry.role}): ${section}, ${change}`;
 }
 
 function diffListHistory(user: User, section: string, before: string[], after: string[]) {
@@ -161,6 +168,22 @@ function diffAllergyHistory(user: User, before: Allergy[] | null | undefined, af
   }
   for (const name of prevNames) {
     if (!nextNames.has(name)) appendHistory(user, { section: 'allergies', action: 'removed', item: name });
+  }
+  // USR-38: a changed allergy note is recorded with its old and new value (e.g. "Skin rash > Hives").
+  const prevNotes = new Map((before || []).map((a) => [a.name, trim(a.note)]));
+  for (const allergy of after || []) {
+    if (!prevNotes.has(allergy.name)) continue;
+    const previousNote = prevNotes.get(allergy.name) || '';
+    const nextNote = trim(allergy.note);
+    if (previousNote !== nextNote) {
+      appendHistory(user, {
+        section: 'allergies',
+        action: 'updated',
+        item: allergy.name,
+        previousValue: previousNote,
+        newValue: nextNote,
+      });
+    }
   }
 }
 

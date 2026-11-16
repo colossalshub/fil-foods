@@ -3,7 +3,7 @@ import { View, Text, Pressable, Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { dateFromIsoDay, formatScheduleDate, toIsoDay } from './scheduleValue';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 function pickerStart(iso: string) {
   const parsed = dateFromIsoDay(iso);
@@ -132,6 +132,6 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   fieldHit: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: control.minHeight },
-  value: { flex: 1, fontSize: font.body, color: colors.text },
+  value: { fontFamily: fonts.regular, flex: 1, fontSize: font.body, color: colors.text },
   placeholder: { color: colors.inactive },
 });

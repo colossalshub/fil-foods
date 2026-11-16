@@ -1,5 +1,5 @@
 import { Pressable, Text, StyleSheet } from 'react-native';
-import { colors, font, radius, touch } from '../theme/theme';
+import { colors, font, radius, touch, fonts } from '../theme/theme';
 
 export default function Chip({ label, active, onPress }: {
   label: string;
@@ -24,5 +24,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   on: { backgroundColor: colors.primary, borderColor: colors.primary },
-  text: { fontSize: font.body, color: colors.primary },
+  text: { fontFamily: fonts.regular, fontSize: font.body, color: colors.primary },
 });

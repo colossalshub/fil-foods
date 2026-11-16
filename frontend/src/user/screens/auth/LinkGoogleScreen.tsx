@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { linkGoogleAccount } from '../../services/authService';
 import { MSG } from '../../data/messages';
 import type { PublicUser } from '../../types';
-import { colors, font, spacing } from '../../theme/theme';
+import { colors, font, spacing, fonts } from '../../theme/theme';
 
 export default function LinkGoogleScreen({ navigation, route }: {
   navigation: { navigate: (name: string, params?: object) => void; replace: (name: string, params?: object) => void };
@@ -76,5 +76,5 @@ export default function LinkGoogleScreen({ navigation, route }: {
 }
 
 const styles = StyleSheet.create({
-  email: { fontSize: font.md, color: colors.deep, fontWeight: '700', marginBottom: spacing.md },
+  email: { fontFamily: fonts.bold, fontSize: font.md, color: colors.deep, marginBottom: spacing.md },
 });

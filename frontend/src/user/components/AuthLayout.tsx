@@ -5,7 +5,7 @@ declare const require: (id: string) => number;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from './AuthHeader';
 import AuthBackgroundDecor from './AuthBackgroundDecor';
-import { colors, font, spacing, card } from '../theme/theme';
+import { colors, font, spacing, card, fonts } from '../theme/theme';
 
 export default function AuthLayout({ variant, title, subtitle, onBack, backgroundFrame = false, children }: {
   variant?: string;
@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
   backScroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   scroll: { padding: spacing.xl, alignItems: 'center' },
   logo: { width: 88, height: 88, marginTop: spacing.lg },
-  brand: { marginTop: spacing.sm, fontSize: font.sm, letterSpacing: 2, color: colors.secondary, fontWeight: '700' },
-  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginTop: spacing.md },
-  sub: { fontSize: font.sm, color: colors.muted, marginTop: 2, textAlign: 'center' },
+  brand: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: font.sm, letterSpacing: 2, color: colors.secondary },
+  title: { fontFamily: fonts.bold, fontSize: font.xl, color: colors.primary, marginTop: spacing.md },
+  sub: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: 2, textAlign: 'center' },
   card: { ...card, width: '100%', padding: spacing.lg, marginTop: spacing.lg },
 });

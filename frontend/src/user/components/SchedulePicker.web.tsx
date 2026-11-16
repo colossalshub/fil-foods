@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { dateFromIsoDay, timeFromClock, toClock, toIsoDay } from './scheduleValue';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 function WebInput({ type, value, onChange, accessibilityLabel }: {
   type: string;
@@ -57,5 +57,5 @@ export default function SchedulePicker({ date, time, onChangeDate, onChangeTime 
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: font.md, color: colors.muted, marginBottom: 4 },
+  label: { fontFamily: fonts.regular, fontSize: font.md, color: colors.muted, marginBottom: 4 },
 });

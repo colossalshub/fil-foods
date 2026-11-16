@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import ScreenHeader from '../../components/ScreenHeader';
 import AppButton from '../../components/AppButton';
 import { clearPendingDestination } from '../../navigation/pendingDestination';
-import { colors, card, font, spacing, touch } from '../../theme/theme';
+import { colors, card, font, spacing, touch, fonts } from '../../theme/theme';
 
 const STEPS = [
   {
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
   intro: { ...card, padding: spacing.lg, marginBottom: spacing.xl },
-  introTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
-  sectionTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.md },
+  introTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginBottom: spacing.sm },
+  sectionTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginBottom: spacing.md },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg, minHeight: touch.min },
   stepNumWrap: {
     width: 32,
@@ -98,10 +98,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
   },
-  stepNum: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  stepNum: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
   stepBody: { flex: 1 },
-  stepTitle: { fontSize: font.body, lineHeight: 24, color: colors.text, fontWeight: '700' },
-  stepLine: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginTop: 2 },
+  stepTitle: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 24, color: colors.text },
+  stepLine: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginTop: 2 },
   cta: { marginTop: spacing.xl, marginBottom: spacing.sm },
   about: { marginTop: spacing.sm },
 });

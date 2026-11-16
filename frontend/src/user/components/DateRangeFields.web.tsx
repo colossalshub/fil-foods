@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 function WebDate({ label, value, onChange, accessibilityLabel }: {
   label: string;
@@ -59,5 +59,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
   },
-  caption: { fontSize: font.xs, color: colors.muted },
+  caption: { fontFamily: fonts.regular, fontSize: font.xs, color: colors.muted },
 });

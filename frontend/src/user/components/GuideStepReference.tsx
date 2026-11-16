@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { GuideStepId } from '../data/helpContent';
 import { GUIDE_COPY } from '../data/messages';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 function MenuWireframe() {
   return (
@@ -96,8 +96,8 @@ const block = colors.border;
 
 const styles = StyleSheet.create({
   refLabel: {
+    fontFamily: fonts.semibold,
     fontSize: font.sm,
-    fontWeight: '600',
     color: colors.muted,
     marginBottom: spacing.sm,
   },
@@ -186,5 +186,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
   },
-  captionText: { fontSize: font.sm, fontWeight: '600', color: colors.primary },
+  captionText: { fontFamily: fonts.semibold, fontSize: font.sm, color: colors.primary },
 });

@@ -18,7 +18,7 @@ import {
   listPlanPeriods,
   setPendingPlanPeriod,
 } from '../services/planService';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 const PERIOD_LABELS: Record<string, string> = {
   weekly: 'Weekly',
@@ -201,8 +201,8 @@ export default function PlanPicker({
 }
 
 const styles = StyleSheet.create({
-  headline: { fontSize: font.xl, fontWeight: '700', color: colors.primary, marginBottom: spacing.sm },
-  sub: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.lg },
+  headline: { fontFamily: fonts.bold, fontSize: font.xl, color: colors.primary, marginBottom: spacing.sm },
+  sub: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.lg },
   periodRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
   periodChip: {
     minHeight: touch.min,
@@ -216,16 +216,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   periodChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  periodChipText: { fontSize: font.body, color: colors.text, fontWeight: '600' },
+  periodChipText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.text },
   periodChipTextActive: { color: colors.white },
   planCard: { ...card, padding: spacing.lg, marginBottom: spacing.lg },
-  planName: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.xs },
-  price: { fontSize: font.body, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
-  tagline: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.md },
-  benefit: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
-  pendingNote: { fontSize: font.sm, color: colors.warning, marginTop: spacing.sm, marginBottom: spacing.sm },
+  planName: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginBottom: spacing.xs },
+  price: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text, marginBottom: spacing.sm },
+  tagline: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.md },
+  benefit: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
+  pendingNote: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.warning, marginTop: spacing.sm, marginBottom: spacing.sm },
   chooseBtn: { marginTop: spacing.md },
   summaryCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
   modalCancel: { marginTop: spacing.sm },
 });

@@ -103,7 +103,7 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-23 | Partial | Status display/Realtime exist; review/payment states and authorized staff transition workflow are missing. |
 | USR-24 | Partial | Order/notification Realtime subscriptions exist; status-triggered durable notifications, reconnect/offline coverage, and push delivery are not established. |
 | USR-25 | Partial | Local alerts/read state exist; the screen is not wired to the remote notifications table and Admin announcements/push delivery are missing. |
-| USR-26 | Partial | Shared palette/body/touch foundations and Help controls exist; Help reachability on every screen, minimum text sizing everywhere, large-text layouts, and screen-reader checks need verification. |
+| USR-26 | Partial | A labelled Help pill (`HelpButton`) now sits in the shared `PageHeader` (Home, Meal, Orders, Account) and `BackHeader`/`BackPageShell` (every sub-page, checkout step, meal detail, order detail, Notifications, Change history), plus the auth screens. The Help page itself hides it. Large-text layouts and screen-reader passes still need a manual device check. |
 | USR-27 | Partial | FAQ search ignores case and extra spaces, ranks an exact match first, allows the specified typo budget, and leaves a one-character query unfiltered. |
 | USR-28 | Partial | Figma welcome, stepped tour, and Help replay list cover menu, order, tracking, profile, and help with labeled screen references; viewed state remains device-local. |
 | USR-29 | Partial | Signed-in Help has a comments field, rejects an empty comment, and stores the comment locally. Admin review of submitted feedback is still an Admin-module gap. |
@@ -115,7 +115,7 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-35 | Partial | `getRecommendedMeals` filters local meals, limits results, and has tests for availability, conflicts, and empty results. Health/doctor restrictions and the mandatory Dietitian review-before-payment workflow are not comprehensively applied; client filtering is not clinical approval. |
 | USR-36 | Partial | Home has the required three shortcuts; no-active-order now includes Browse Meals and backend load errors are distinct from empty state. Cross-screen label consistency and navigation-level tests remain outstanding. |
 | USR-37 | Partial | Four Home/Meal/Orders/Account tabs and visitor Orders/Account gates exist; private-data and destination-restoration behavior lack end-to-end tests. |
-| USR-38 | Partial | Local history captures many old/new values and has integrity tests; allergy-note changes and remote profile/recipient history writers are missing. |
+| USR-38 | Partial | Local history records old/new values, including allergy-note changes ("Skin rash > Hives", tested). Account > Change history shows read-only cards newest first with date/time, field, Added/Removed or old → new value, actor, and meal recipient; empty state shows "No changes yet." Remote profile/recipient history writers are still missing. |
 | USR-39 | Partial | Local nutrition solver/recommendations exist; complete safety exclusions, doctor restrictions, and Dietitian approval are missing. |
 | USR-40 | Partial | Local bcrypt and Supabase Auth paths exist; remote reset/session revocation and database-level credential-storage evidence are missing. |
 | USR-41 | Partial | RLS protects several owner-scoped tables; separate recipient authorization, Dietitian role/scopes, and two-client deployed policy tests are missing. |
@@ -125,11 +125,28 @@ The audit below covers the current PDF at story level. “Partial” means some 
 | USR-45 | Partial | Family accounts have Edit meal recipient, required-field and contact checks, unsaved-back confirmation, and a history entry that leaves the account holder unchanged. Remote recipient persistence is still missing. |
 | USR-46 | Partial | Home, Account, order summary, allergen warnings, and family status alerts name the meal recipient. Staff-facing copies of those labels are not in this client. |
 | USR-47 | Partial | Account has Delete account with the quoted warning, wrong-password message, in-progress block, and local removal. Ending every device session, Admin anonymization, and cross-user denial remain server rules. |
-| USR-48 | Partial | Palette/contrast/body/touch tests exist; sub-16px text, max-font responsive layout, and complete screen-reader coverage remain. |
+| USR-48 | Partial | The spec palette is unchanged and is now used through theme tokens instead of per-screen hex values. Text uses the design guide's Poppins family, loaded with `expo-font`, plus shared `type` presets for page title, subtitle, section, card, body, label and button. All client text is 16px or larger except tab-bar labels (13px under icons) and the "Suitable for you" badge (14px). Large-font layout and full screen-reader coverage still need device verification. |
 | USR-49 | Partial | Static numbered terms, version/date, links, and content tests exist; offline load/retry state and blocking acceptance until text loads are absent. |
 | USR-50 | Partial | A changed terms version blocks Home until the user accepts, and decline ends the session with the quoted message. The tamper-evident acceptance record is still a server audit rule. |
 
 These are not all criterion-level passes: stories remain Partial/Missing until each numbered criterion in the source PDF is mapped to a passing automated or documented manual test. The recommendation tests are local service tests; they do not prove the live Admin catalog, backend authorization, Dietitian decisions, or payment workflow.
+
+## 2026-11-17 design-consistency pass (Figma "FIXED 11/13/26" vs app)
+
+This pass compared every USR frame in the designer's Figma page with the running web build. The specification still decides behaviour, labels and messages. The Figma file sets the look. Story status above is unchanged unless a row says otherwise.
+
+| Story group | Figma vs app before this pass | Change made |
+|---|---|---|
+| All screens (USR-26, USR-46, USR-48) | Titles were 28–32px in different weights and positions. Help was missing on Home, Meal, Orders, meal/order detail and checkout. Sub-pages used a white app bar, and the Figma design does not. About 40 hard-coded greens/greys duplicated theme colours. Text used the system font, and the design uses Poppins. | Added Poppins (Regular/Medium/SemiBold/Bold) through `expo-font` and `@expo-google-fonts/poppins`. Added `fonts` and `type` tokens. Replaced the duplicated hex values with theme tokens. Added `PageHeader` for tab pages and `BackHeader`/`BackPageShell` for sub-pages: a back link and Help pill on the botanical background, then a left-aligned title, as in the design. Restyled Help as the design's outlined pill. |
+| Navigation (USR-37) | The Figma bar shows text only with an underline. The app used a floating pill with icons and 11px labels. | Kept the app's floating bar with icons, which are easier to recognise and tap. Labels are now 13px Poppins, and the active tab gets the design's soft-green indicator. |
+| Sign-up (USR-01, USR-43) | The account-purpose screen was white, with a small logo and plain text options. It had no way back to log in. | Moved it to the botanical page with the large brand block. The options are now cards with an icon tile and a radio, as in the design. The spec's descriptions and the missing-choice message are unchanged. Added "Already have an account? Log in". |
+| Meals (USR-16–18) | The final meal time still said "Next · Choose Breakfast →" after all three meals were chosen. The allergy note printed "[object Object]". The Continue button was hidden below the list. | Next-step labels now go to the next empty meal time, or to "Save · Review today's meals". Fixed the allergy-name note. The primary action is now a sticky footer. Customize and Menu screens use the shared back header. |
+| Checkout (USR-19–20) | Checkout pages had no back link or Help, and their titles did not match other pages. | Plan, Delivery or Pickup, delivery/pickup details, Order summary and Confirm now use `BackHeader`. The checkout title style is `type.pageTitle`. |
+| Orders (USR-21–23) | The search button was cut off on narrow screens. The order detail used its own back row. | Fixed the input sizing. Order detail uses `BackHeader`. |
+| Account (USR-07, USR-25, USR-38, USR-42) | Notifications had no back control. Change history and Activity record were plain text lines with a redundant Close button. | Notifications now uses `BackPageShell` (back to Account). Change history uses `ChangeHistoryCard`, matching USR 38 F1. Activity record is a divided card. Both have empty-state cards. |
+| USR-40, USR-41, USR-48 | No Figma frames. | Built in the same visual language. No new screens were needed. |
+
+Design decisions where the app's UX was kept over the Figma: the floating icon tab bar; the sticky primary action on Build Today's Meals; descriptive subtitles on the sign-up choice (spec text); 16px minimum text where the Figma uses 13–14px captions (USR-48); and the existing filter/search panel on My Orders.
 
 ## Dependency-aware implementation batches
 

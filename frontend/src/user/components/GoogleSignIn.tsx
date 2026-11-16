@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { AccountFor, AuthUser, PublicUser } from '../types';
 import { Text, View } from 'react-native';
-import { colors, font, spacing } from '../theme/theme';
+import { colors, font, spacing, fonts } from '../theme/theme';
 import AppButton from './AppButton';
 import FormMessage from './FormMessage';
 import { continueWithGoogle } from '../services/supabaseGoogleAuthService';
@@ -37,7 +37,7 @@ export default function GoogleSignIn({ accountFor, onSuccess, color, style }: {
   if (pendingUser) {
     return (
       <View>
-        <Text style={{ fontSize: font.body, color: colors.text, marginBottom: spacing.md }} accessibilityRole="header">
+        <Text style={{ fontFamily: fonts.regular, fontSize: font.body, color: colors.text, marginBottom: spacing.md }} accessibilityRole="header">
           Who is this meal subscription for?
         </Text>
         <AppButton

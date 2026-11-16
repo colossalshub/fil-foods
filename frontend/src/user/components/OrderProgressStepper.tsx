@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ORDERS_COPY } from '../data/messages';
-import { colors, card, font, radius, spacing } from '../theme/theme';
+import { colors, card, font, radius, spacing, fonts } from '../theme/theme';
 
 type ProgressStep = {
   status: string;
@@ -80,8 +80,8 @@ export default function OrderProgressStepper({
 const styles = StyleSheet.create({
   card: { ...card, padding: spacing.lg },
   cardTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '800',
     color: colors.text,
     marginBottom: spacing.md,
   },
@@ -109,9 +109,9 @@ const styles = StyleSheet.create({
   },
   lineDone: { backgroundColor: colors.primary },
   stepBody: { flex: 1, paddingBottom: spacing.md },
-  stepLabel: { fontSize: font.body, fontWeight: '600', color: colors.muted },
+  stepLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.muted },
   stepLabelActive: { color: colors.text },
-  stepHint: { marginTop: 4, fontSize: font.sm, lineHeight: 22, color: colors.muted },
+  stepHint: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.sm, lineHeight: 22, color: colors.muted },
   cancelledRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   cancelIcon: {
     width: 44,
@@ -122,6 +122,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelText: { flex: 1, gap: 4 },
-  cancelTitle: { fontSize: font.body, fontWeight: '800', color: colors.danger },
-  cancelBody: { fontSize: font.body, lineHeight: 22, color: colors.muted },
+  cancelTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.danger },
+  cancelBody: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted },
 });

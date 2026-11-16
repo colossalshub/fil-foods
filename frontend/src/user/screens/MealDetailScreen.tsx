@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, Alert,
 } from 'react-native';
+import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +19,7 @@ import {
 } from '../services/orderService';
 import { mealInitials } from '../data/menuCatalog';
 import type { Meal } from '../types';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 const MEAL_TIMES = new Set(['Breakfast', 'Lunch', 'Dinner']);
 
@@ -134,18 +135,13 @@ export default function MealDetailScreen({ route, navigation }: {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={MEAL_DETAIL_COPY.backToMeals}
-          onPress={() => navigation.goBack()}
-          style={styles.backRow}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.primary} />
-          <Text style={styles.backLabel}>{MEAL_DETAIL_COPY.backToMeals}</Text>
-        </Pressable>
-
-        <Text style={styles.title} accessibilityRole="header">{MEAL_DETAIL_COPY.title}</Text>
-        <Text style={styles.lead}>{MEAL_DETAIL_COPY.lead}</Text>
+        <BackHeader
+          title={MEAL_DETAIL_COPY.title}
+          subtitle={MEAL_DETAIL_COPY.lead}
+          backLabel={MEAL_DETAIL_COPY.backToMeals}
+          backAccessibilityLabel={MEAL_DETAIL_COPY.backToMeals}
+          onBack={() => navigation.goBack()}
+        />
 
         {!available ? (
           <View style={styles.infoBanner}>
@@ -241,10 +237,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrollFlex: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: control.minHeight, marginBottom: spacing.sm },
-  backLabel: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E' },
-  lead: { marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: '#5C675F', marginBottom: spacing.md },
   infoBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -253,8 +245,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  infoBannerTitle: { fontSize: font.body, fontWeight: '800', color: '#2F6FA8' },
-  infoBannerBody: { marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#3D5870' },
+  infoBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, color: '#2F6FA8' },
+  infoBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#3D5870' },
   warnBanner: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -263,11 +255,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  warnBannerTitle: { fontSize: font.body, fontWeight: '800', color: colors.danger },
-  warnBannerBody: { marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#5C3D3A' },
+  warnBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.danger },
+  warnBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#5C3D3A' },
   bannerCopy: { flex: 1 },
   hero: {
-    backgroundColor: '#DCEAD8',
+    backgroundColor: colors.mintStrong,
     borderRadius: 20,
     minHeight: 180,
     alignItems: 'center',
@@ -284,18 +276,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroCircleUnavailable: { backgroundColor: '#F3F5F2' },
-  heroInitials: { fontSize: 28, fontWeight: '800', color: '#8A6A12' },
+  heroInitials: { fontFamily: fonts.bold, fontSize: 28, color: '#8A6A12' },
   heroInitialsMuted: { color: '#9AA39D' },
   infoCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#E4EAE2',
+    borderColor: colors.cardBorder,
     padding: spacing.lg,
   },
   infoTop: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   infoHeading: { flex: 1 },
-  mealName: { fontSize: font.lg, fontWeight: '800', color: '#1C3B2E', lineHeight: 26 },
+  mealName: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.heading, lineHeight: 26 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   statusPill: {
     borderRadius: radius.pill,
@@ -303,21 +295,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
   },
-  statusPillOn: { borderColor: '#1E7A45', backgroundColor: '#F1FAF4' },
+  statusPillOn: { borderColor: '#1E7A45', backgroundColor: colors.mint },
   statusPillOff: { borderColor: '#C8CFC8', backgroundColor: '#F6F7F5' },
-  statusPillText: { fontSize: font.sm, fontWeight: '700' },
+  statusPillText: { fontFamily: fonts.bold, fontSize: font.sm },
   statusPillTextOn: { color: '#1E7A45' },
-  statusPillTextOff: { color: '#8A948C' },
+  statusPillTextOff: { color: colors.inactive },
   categoryPill: {
     borderRadius: radius.pill,
     backgroundColor: '#F1F3F0',
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
   },
-  categoryPillText: { fontSize: font.sm, fontWeight: '700', color: '#5C675F' },
-  price: { fontSize: font.lg, fontWeight: '800', color: '#1C3B2E' },
-  sectionLabel: { marginTop: spacing.lg, fontSize: font.body, fontWeight: '800', color: '#1C3B2E' },
-  sectionBody: { marginTop: 6, fontSize: font.body, lineHeight: 22, color: '#4E5B52' },
+  categoryPillText: { fontFamily: fonts.bold, fontSize: font.sm, color: colors.muted },
+  price: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.heading },
+  sectionLabel: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.body, color: colors.heading },
+  sectionBody: { fontFamily: fonts.regular, marginTop: 6, fontSize: font.body, lineHeight: 22, color: colors.muted },
   allergenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   allergenPill: {
     borderRadius: radius.pill,
@@ -326,10 +318,10 @@ const styles = StyleSheet.create({
   },
   allergenPillNeutral: { backgroundColor: '#F6E7B4' },
   allergenPillWarn: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.danger },
-  allergenPillText: { fontSize: font.sm, fontWeight: '700', color: '#8A6A12' },
+  allergenPillText: { fontFamily: fonts.bold, fontSize: font.sm, color: '#8A6A12' },
   allergenPillTextWarn: { color: colors.danger },
-  profileNote: { marginTop: spacing.md, fontSize: font.sm, lineHeight: 20, color: '#8A948C' },
-  error: { marginTop: spacing.md, color: colors.danger, fontSize: font.body },
+  profileNote: { fontFamily: fonts.regular, marginTop: spacing.md, fontSize: font.sm, lineHeight: 20, color: colors.inactive },
+  error: { fontFamily: fonts.regular, marginTop: spacing.md, color: colors.danger, fontSize: font.body },
   footer: {
     alignSelf: 'stretch',
     paddingHorizontal: spacing.lg,
@@ -340,16 +332,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.authPage,
   },
   secondaryAction: { marginBottom: spacing.sm, alignItems: 'center', minHeight: control.minHeight, justifyContent: 'center' },
-  secondaryActionText: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  secondaryActionText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
   primary: {
     alignSelf: 'stretch',
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: '#1E4D38',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryMuted: { backgroundColor: '#E4EAE2' },
-  primaryLabel: { fontSize: font.body, fontWeight: '700', color: colors.white },
+  primaryMuted: { backgroundColor: colors.cardBorder },
+  primaryLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
   primaryLabelMuted: { color: '#7E8C82' },
 });

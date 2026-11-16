@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
-import { todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
+import { DAY_SLOTS, todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -15,7 +16,7 @@ import {
   VEGETABLE_STYLES,
   profileAllergensInMeal,
 } from '../services/orderService';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 const DIETITIAN_NOTES: Record<string, string> = {
   Steamed: 'Steamed vegetables keep sodium lower and preserve texture.',
@@ -65,7 +66,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const slot = route.params?.slot || todayMeal?.slot || 'Lunch';
   const { user } = useAuth();
   const { profile } = useMealProfile(user);
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [vegetableStyle, setVegetableStyle] = useState(
     () => todayMeal?.defaultVegetableStyle || VEGETABLE_STYLES[0],
   );
@@ -98,7 +99,11 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const highCalorie = calories >= 600;
   const allergens = profile ? profileAllergensInMeal(catalogMeal, profile) : [];
   const dietitianNote = DIETITIAN_NOTES[cookingStyle] || DIETITIAN_NOTES[vegetableStyle];
-  const upcoming = nextSlot(slot);
+  // Point the user at the next meal time that still needs a meal, or to the review once all three are set.
+  const filledSlots = new Set(items.map((row) => row.daySlot).filter(Boolean));
+  const remaining = DAY_SLOTS.filter((item) => item !== slot && !filledSlots.has(item));
+  const upcoming = remaining.length ? (remaining.includes(nextSlot(slot)) ? nextSlot(slot) : remaining[0]) : null;
+  const nextLabel = upcoming ? `Next · Choose ${upcoming} →` : 'Save · Review today\'s meals';
 
   const onSave = () => {
     const veg = VEGETABLE_STYLES.includes(vegetableStyle as typeof VEGETABLE_STYLES[number])
@@ -133,14 +138,13 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 
   return (
     <AppPageShell edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={colors.primary} />
-        </Pressable>
-        <Text style={styles.headerTitle} accessibilityRole="header">{`Build Your ${slot}`}</Text>
-      </View>
-
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <BackHeader
+          title={`Build Your ${slot}`}
+          backLabel="Today's meals"
+          backAccessibilityLabel="Go back"
+          onBack={() => navigation.goBack()}
+        />
         <ChoiceRow title="Vegetables" options={[...VEGETABLE_STYLES]} value={vegetableStyle} onChange={setVegetableStyle} />
         <ChoiceRow title="Meat Option" options={[...MEAT_PROTEINS]} value={meatProtein} onChange={setMeatProtein} />
         <ChoiceRow title="Pinoy Cooking Style" options={[...COOKING_STYLES]} value={cookingStyle} onChange={setCookingStyle} />
@@ -185,11 +189,11 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Next, choose ${upcoming}`}
+          accessibilityLabel={upcoming ? `Next, choose ${upcoming}` : 'Save and review today\'s meals'}
           onPress={onSave}
           style={styles.next}
         >
-          <Text style={styles.nextLabel}>{`Next · Choose ${upcoming} →`}</Text>
+          <Text style={styles.nextLabel}>{nextLabel}</Text>
         </Pressable>
       </ScrollView>
     </AppPageShell>
@@ -197,30 +201,22 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  backBtn: { width: control.minHeight, height: control.minHeight, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, fontSize: font.xl, fontWeight: '800', color: '#1C3B2E', marginLeft: spacing.sm },
   scroll: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   choiceSection: { marginBottom: spacing.lg },
-  choiceTitle: { fontSize: font.body, fontWeight: '800', color: '#1C3B2E', marginBottom: spacing.sm },
+  choiceTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading, marginBottom: spacing.sm },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choicePill: {
     minHeight: 40,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: '#D6DDD5',
+    borderColor: colors.border,
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
-  choicePillOn: { backgroundColor: '#1E4D38', borderColor: '#1E4D38' },
-  choiceText: { fontSize: font.body, fontWeight: '700', color: '#24312A' },
+  choicePillOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  choiceText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   choiceTextOn: { color: colors.white },
   summaryCard: {
     backgroundColor: colors.white,
@@ -231,10 +227,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   summaryWarn: { borderColor: colors.danger },
-  summaryLabel: { fontSize: font.body, fontWeight: '700', color: '#5C675F' },
-  summaryName: { marginTop: 4, fontSize: font.lg, fontWeight: '800', color: '#1C3B2E' },
-  summaryMeta: { marginTop: 4, fontSize: font.body, color: '#66706A' },
-  conflict: { marginTop: spacing.sm, fontSize: font.body, fontWeight: '700', color: colors.danger },
+  summaryLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.muted },
+  summaryName: { fontFamily: fonts.bold, marginTop: 4, fontSize: font.lg, color: colors.heading },
+  summaryMeta: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, color: colors.muted },
+  conflict: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: font.body, color: colors.danger },
   alertBox: {
     borderWidth: 1,
     borderColor: colors.danger,
@@ -243,8 +239,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  alertTitle: { fontSize: font.body, fontWeight: '800', color: colors.danger },
-  alertBody: { marginTop: 4, fontSize: font.body, color: '#5C3D3A', lineHeight: 22 },
+  alertTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.danger },
+  alertBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, color: '#5C3D3A', lineHeight: 22 },
   allergyBox: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -254,20 +250,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   allergyCopy: { flex: 1 },
-  allergyTitle: { fontSize: font.body, fontWeight: '800', color: colors.danger },
-  allergyText: { marginTop: 4, fontSize: font.body, color: '#5C3D3A', lineHeight: 22 },
-  dietitianTitle: { marginTop: spacing.sm, fontSize: font.body, fontWeight: '800', color: '#1C3B2E' },
-  dietitianBody: { marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#4E5B52' },
+  allergyTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.danger },
+  allergyText: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, color: '#5C3D3A', lineHeight: 22 },
+  dietitianTitle: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: font.body, color: colors.heading },
+  dietitianBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 22, color: colors.muted },
   next: {
     marginTop: spacing.xl,
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: '#1E4D38',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nextLabel: { fontSize: font.body, fontWeight: '700', color: colors.white },
+  nextLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
   missing: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  missingText: { fontSize: font.body, color: colors.muted },
-  backLink: { marginTop: spacing.md, color: colors.primary, fontWeight: '700' },
+  missingText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted },
+  backLink: { fontFamily: fonts.bold, marginTop: spacing.md, color: colors.primary },
 });

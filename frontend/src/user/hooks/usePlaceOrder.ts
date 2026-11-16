@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import type { AuthTokenSession, AuthUser, Order, ServiceResult } from '../types';
-import { getUser } from '../services/authService';
 import { useCart } from '../context/CartContext';
 import { useCheckout } from '../context/CheckoutContext';
 import {

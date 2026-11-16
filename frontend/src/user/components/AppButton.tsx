@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { Pressable, Text, ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, font } from '../theme/theme';
+import { colors, radius, font, fonts } from '../theme/theme';
 
 export default function AppButton({
   title,
@@ -56,5 +56,5 @@ const styles = StyleSheet.create({
   btn: { minHeight: 48, paddingHorizontal: 18, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   outline: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary },
   content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  text: { color: colors.white, fontSize: font.body, fontWeight: '600', textAlign: 'center' },
+  text: { fontFamily: fonts.semibold, color: colors.white, fontSize: font.body, textAlign: 'center' },
 });

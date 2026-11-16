@@ -14,7 +14,7 @@ import { MSG } from '../../data/messages';
 import { RECOMMENDATION_MEALS } from '../../data/meals';
 import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
 import type { FieldMap, MealMatchProfile } from '../../types';
-import { colors, font, spacing, card } from '../../theme/theme';
+import { colors, font, spacing, card, fonts } from '../../theme/theme';
 
 const HEALTH_OPTIONS = ['High blood pressure (HTN)', 'Diabetes', 'Gout', 'Kidney Problem', 'Low-Cholesterol Diet'];
 const DIET_OPTIONS = ['Low-sodium', 'Low-sugar', 'Low-cholesterol diet', 'Soft food texture'];
@@ -427,23 +427,23 @@ export default function CompleteProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  progress: { fontSize: font.xs, color: colors.secondary, fontWeight: '700', letterSpacing: 1.2, marginBottom: spacing.sm },
-  lead: { fontSize: font.md, color: colors.text, lineHeight: 22, marginBottom: spacing.lg },
-  sectionTitle: { fontSize: font.md, color: colors.deep, fontWeight: '700', marginBottom: spacing.sm },
-  sectionDescription: { fontSize: font.sm, lineHeight: 18, color: colors.muted, marginTop: -spacing.xs, marginBottom: spacing.md },
-  inputLabel: { fontSize: font.sm, color: colors.text, fontWeight: '600', marginBottom: spacing.sm },
+  progress: { fontFamily: fonts.bold, fontSize: font.xs, color: colors.secondary, letterSpacing: 1.2, marginBottom: spacing.sm },
+  lead: { fontFamily: fonts.regular, fontSize: font.md, color: colors.text, lineHeight: 22, marginBottom: spacing.lg },
+  sectionTitle: { fontFamily: fonts.bold, fontSize: font.md, color: colors.deep, marginBottom: spacing.sm },
+  sectionDescription: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 18, color: colors.muted, marginTop: -spacing.xs, marginBottom: spacing.md },
+  inputLabel: { fontFamily: fonts.semibold, fontSize: font.sm, color: colors.text, marginBottom: spacing.sm },
   allergyCard: { ...card, padding: spacing.md, marginBottom: spacing.lg },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
   legalLinks: { gap: spacing.sm, marginBottom: spacing.md },
-  legalLink: { minHeight: 48, textAlignVertical: 'center', color: colors.primary, fontSize: font.body, textDecorationLine: 'underline' },
-  error: { color: colors.danger, fontSize: font.sm, marginBottom: spacing.md },
-  disclaimer: { fontSize: font.sm, color: colors.muted, lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.md },
-  recipientName: { fontSize: font.lg, fontWeight: '700', color: colors.deep, marginBottom: spacing.md },
+  legalLink: { fontFamily: fonts.regular, minHeight: 48, textAlignVertical: 'center', color: colors.primary, fontSize: font.body, textDecorationLine: 'underline' },
+  error: { fontFamily: fonts.regular, color: colors.danger, fontSize: font.sm, marginBottom: spacing.md },
+  disclaimer: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, lineHeight: 20, marginTop: spacing.sm, marginBottom: spacing.md },
+  recipientName: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.deep, marginBottom: spacing.md },
   recommendation: { backgroundColor: colors.soft, borderRadius: 14, padding: spacing.md, marginBottom: spacing.md },
-  mealName: { fontSize: font.body, color: colors.deep, fontWeight: '700' },
-  mealMeta: { fontSize: font.sm, color: colors.muted, marginTop: 4 },
-  mealReason: { fontSize: font.sm, color: colors.secondary, marginTop: spacing.sm },
-  noRecommendations: { fontSize: font.body, color: colors.muted, lineHeight: 22, marginBottom: spacing.md },
+  mealName: { fontFamily: fonts.bold, fontSize: font.body, color: colors.deep },
+  mealMeta: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: 4 },
+  mealReason: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.secondary, marginTop: spacing.sm },
+  noRecommendations: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, lineHeight: 22, marginBottom: spacing.md },
   continue: { marginTop: spacing.md },
   back: { marginTop: spacing.sm },
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, type StyleProp, type TextStyle, type ViewStyle, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, font, spacing, touch } from '../theme/theme';
+import { colors, radius, font, spacing, touch, fonts } from '../theme/theme';
 
 export default function AppInput({
   label,
@@ -62,16 +62,16 @@ export default function AppInput({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
-  label: { fontSize: font.body, color: colors.text, fontWeight: '600', marginBottom: 6 },
+  label: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.text, marginBottom: 6 },
   field: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.md,
     paddingHorizontal: spacing.md, minHeight: touch.min,
   },
   fieldError: { borderColor: colors.danger },
-  input: { flex: 1, minWidth: 0, fontSize: font.body, color: colors.text, paddingVertical: 12 },
+  input: { fontFamily: fonts.regular, flex: 1, minWidth: 0, fontSize: font.body, color: colors.text, paddingVertical: 12 },
   leadingIcon: { marginRight: spacing.md },
   eye: { minWidth: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' },
-  toggle: { fontSize: font.body, color: colors.primary, fontWeight: '700' },
-  error: { fontSize: font.body, color: colors.danger, marginTop: 6, lineHeight: 22 },
+  toggle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  error: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger, marginTop: 6, lineHeight: 22 },
 });

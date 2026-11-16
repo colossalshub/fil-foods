@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from '../components/AppPageShell';
-import { colors, card, font, spacing } from '../theme/theme';
+import { colors, card, font, spacing, fonts } from '../theme/theme';
 
 export default function PlaceholderScreen({ title, icon, message, children }: {
   title: string;
@@ -30,15 +30,15 @@ export default function PlaceholderScreen({ title, icon, message, children }: {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md, justifyContent: 'flex-start' },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E', marginBottom: spacing.xl },
+  title: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 38, color: colors.heading, marginBottom: spacing.xl },
   card: { ...card, alignItems: 'center', padding: spacing.xl, gap: spacing.md },
   iconWrap: {
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#E9F0E6',
+    backgroundColor: colors.soft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  msg: { fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center' },
+  msg: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center' },
 });

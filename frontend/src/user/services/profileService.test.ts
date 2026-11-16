@@ -15,6 +15,7 @@ import {
   mealMatchesNutritionalPreferences,
   rankMeal,
   readChangeHistory,
+  saveAllergies,
   saveHealthConditions,
   saveNutritionalPreference,
   savePersonalInfo,
@@ -174,4 +175,16 @@ test('seeded msantos profile includes story fields', () => {
   assert.equal(profile.allergies[0].name, 'Peanuts');
   assert.equal(profile.guardian.name, 'Jose Santos');
   assert.ok(profile.profileLastUpdatedFormatted.includes('2026-10-11'));
+});
+
+test('USR-38 records an allergy note change with old and new value', () => {
+  resetStore();
+  saveAllergies(MARIA_ID, [{ name: 'Peanuts', note: 'Skin rash' }]);
+  saveAllergies(MARIA_ID, [{ name: 'Peanuts', note: 'Hives' }]);
+  const latest = getChangeHistory(MARIA_ID)[0];
+  assert.equal(latest.action, 'updated');
+  assert.equal(latest.item, 'Peanuts');
+  assert.equal(latest.previousValue, 'Skin rash');
+  assert.equal(latest.newValue, 'Hives');
+  assert.match(formatHistoryLine(latest), /Skin rash > Hives/);
 });

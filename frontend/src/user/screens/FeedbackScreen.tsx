@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { FEEDBACK_COPY, MSG } from '../data/messages';
 import { submitFeedback } from '../services/feedbackService';
 import { openHelp } from '../navigation/openHelp';
-import { colors, card, font, spacing, radius } from '../theme/theme';
+import { colors, card, font, spacing, radius, fonts } from '../theme/theme';
 
 export default function FeedbackScreen({ navigation }: {
   navigation: {
@@ -115,10 +115,10 @@ export default function FeedbackScreen({ navigation }: {
 
 const styles = StyleSheet.create({
   subtitle: {
+    fontFamily: fonts.medium,
     fontSize: font.body,
     lineHeight: 24,
     color: '#6B9B7A',
-    fontWeight: '500',
     marginBottom: spacing.lg,
   },
   formCard: {
@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorText: {
+    fontFamily: fonts.semibold,
     flex: 1,
     fontSize: font.body,
     lineHeight: 22,
     color: colors.danger,
-    fontWeight: '600',
   },
   submitBtn: { marginTop: spacing.sm },
   successScroll: {
@@ -161,13 +161,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   successTitle: {
+    fontFamily: fonts.bold,
     fontSize: 32,
     lineHeight: 38,
-    fontWeight: '800',
     color: colors.primary,
     textAlign: 'center',
   },
   successBody: {
+    fontFamily: fonts.regular,
     marginTop: spacing.md,
     fontSize: font.body,
     lineHeight: 24,

@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AppPageShell from '../components/AppPageShell';
-import HelpButton from '../components/HelpButton';
+import BackPageShell from '../components/BackPageShell';
 import { useAuth } from '../context/AuthContext';
 import { NOTIFICATIONS_COPY } from '../data/messages';
 import { getAlertsForUser, markAlertRead } from '../services/trackingService';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 type AlertItem = {
   id: string;
@@ -149,19 +148,12 @@ export default function AlertsScreen() {
   };
 
   return (
-    <AppPageShell edges={['top']} contentStyle={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.toolsRow}>
-          <HelpButton />
-        </View>
-        <Text style={styles.pageTitle} accessibilityRole="header" allowFontScaling>
-          {NOTIFICATIONS_COPY.screenTitle}
-        </Text>
-        <Text style={styles.pageLead} allowFontScaling>{subtitle}</Text>
-
+    <BackPageShell
+      title={NOTIFICATIONS_COPY.screenTitle}
+      subtitle={subtitle}
+      backLabel="Account"
+      onBack={() => navigation.goBack()}
+    >
         {items.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconWrap}>
@@ -181,8 +173,7 @@ export default function AlertsScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
-    </AppPageShell>
+    </BackPageShell>
   );
 }
 
@@ -193,31 +184,6 @@ const PAGE = {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  scroll: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  toolsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  pageTitle: {
-    fontSize: font.title,
-    lineHeight: 34,
-    fontWeight: '800',
-    color: PAGE.title,
-  },
-  pageLead: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
-    fontSize: font.body,
-    lineHeight: 22,
-    color: PAGE.muted,
-  },
   list: { gap: spacing.md },
   notifCard: {
     borderRadius: radius.lg,
@@ -269,17 +235,17 @@ const styles = StyleSheet.create({
   },
   tagFamily: { backgroundColor: colors.mint },
   tagAnnouncement: { backgroundColor: '#FDF0D8' },
-  tagText: { fontSize: font.sm, fontWeight: '700', lineHeight: 20 },
+  tagText: { fontFamily: fonts.bold, fontSize: font.sm, lineHeight: 20 },
   tagTextFamily: { color: colors.primary },
   tagTextAnnouncement: { color: colors.warning },
   notifMessage: {
+    fontFamily: fonts.medium,
     fontSize: font.body,
     lineHeight: 22,
     color: PAGE.body,
-    fontWeight: '500',
   },
-  notifMessageUnread: { fontWeight: '700', color: colors.heading },
-  notifTime: { fontSize: font.sm, lineHeight: 20, color: colors.inactive, marginTop: 2 },
+  notifMessageUnread: { fontFamily: fonts.bold, color: colors.heading },
+  notifTime: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 20, color: colors.inactive, marginTop: 2 },
   emptyCard: {
     ...card,
     borderColor: colors.cardBorder,
@@ -297,12 +263,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   emptyTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '800',
     color: PAGE.title,
     textAlign: 'center',
   },
   emptyBody: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 22,
     color: PAGE.muted,

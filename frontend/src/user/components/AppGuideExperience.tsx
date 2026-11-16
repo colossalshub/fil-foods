@@ -8,7 +8,7 @@ import { GUIDE_STEPS, type GuideStepId } from '../data/helpContent';
 import { GUIDE_COPY } from '../data/messages';
 import AppButton from './AppButton';
 import GuideStepReference from './GuideStepReference';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -230,12 +230,13 @@ export default function AppGuideExperience({
 
 const styles = StyleSheet.create({
   welcomeTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.title,
-    fontWeight: '700',
     color: colors.primary,
     marginBottom: spacing.sm,
   },
   welcomeLead: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.text,
@@ -272,12 +273,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   overviewText: { flex: 1 },
-  overviewTitle: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  overviewBlurb: { fontSize: font.sm, color: colors.muted, marginTop: 2 },
+  overviewTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  overviewBlurb: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: 2 },
   ctaGap: { marginBottom: spacing.md },
   stepCount: {
+    fontFamily: fonts.semibold,
     fontSize: font.sm,
-    fontWeight: '600',
     color: colors.muted,
     marginBottom: spacing.sm,
   },
@@ -291,13 +292,14 @@ const styles = StyleSheet.create({
   segmentFilled: { backgroundColor: colors.primary },
   stepCard: { ...card, padding: spacing.lg, marginBottom: spacing.lg },
   stepTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.lg,
-    fontWeight: '700',
     color: colors.primary,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   stepBody: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.text,
@@ -308,8 +310,9 @@ const styles = StyleSheet.create({
   navBtn: { flex: 1 },
   navSpacer: { flex: 1 },
   skipHit: { alignItems: 'center', minHeight: touch.min, justifyContent: 'center' },
-  skipText: { fontSize: font.body, fontWeight: '600', color: colors.primary },
+  skipText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
   replayLead: {
+    fontFamily: fonts.regular,
     fontSize: font.body,
     lineHeight: 24,
     color: colors.text,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import BackHeader from '../../components/BackHeader';
 import AppPageShell from '../../components/AppPageShell';
 import CheckoutRadio from '../../components/CheckoutRadio';
 import ScheduleSlotPicker from '../../components/ScheduleSlotPicker';
@@ -93,6 +94,7 @@ export default function FulfillmentDetailsScreen({ navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
+        <BackHeader title={FULFILLMENT_COPY.chooseTitle} onBack={() => navigation.goBack()} />
         <FulfillmentToggle
           type={type}
           onChange={(next) => checkout.setFulfillmentType(next)}

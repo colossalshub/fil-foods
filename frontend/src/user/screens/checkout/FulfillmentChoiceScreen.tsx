@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import BackHeader from '../../components/BackHeader';
 import AppPageShell from '../../components/AppPageShell';
 import CheckoutRadio from '../../components/CheckoutRadio';
 import { useCart } from '../../context/CartContext';
@@ -41,7 +42,7 @@ function MethodCard({
 }
 
 export default function FulfillmentChoiceScreen({ navigation }: {
-  navigation: { navigate: (name: string) => void };
+  navigation: { navigate: (name: string) => void; goBack: () => void };
 }) {
   const { items } = useCart();
   const checkout = useCheckout();
@@ -64,8 +65,7 @@ export default function FulfillmentChoiceScreen({ navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{FULFILLMENT_COPY.chooseTitle}</Text>
-        <Text style={checkoutFlow.lead}>{FULFILLMENT_COPY.chooseLead}</Text>
+        <BackHeader title={FULFILLMENT_COPY.chooseTitle} subtitle={FULFILLMENT_COPY.chooseLead} onBack={() => navigation.goBack()} />
 
         <View style={checkoutFlow.methodList}>
           <MethodCard

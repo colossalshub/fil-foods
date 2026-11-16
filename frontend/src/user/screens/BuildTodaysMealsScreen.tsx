@@ -4,6 +4,7 @@ import {
   Alert, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import PageHeader from '../components/PageHeader';
 import AppPageShell from '../components/AppPageShell';
 import {
   DAY_SLOTS,
@@ -16,12 +17,12 @@ import { useAuth } from '../context/AuthContext';
 import { useMealProfile } from '../hooks/useMealProfile';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useCart } from '../context/CartContext';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 const BADGE = {
   warm: { background: '#F6E7B4', text: '#8A6A12' },
   neutral: { background: '#E4E7E3', text: '#5E675F' },
-  fresh: { background: '#DCEAD8', text: '#2F6A45' },
+  fresh: { background: colors.mintStrong, text: '#2F6A45' },
 };
 
 function MealChoice({ meal, selected, onPress }: {
@@ -80,9 +81,13 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   useFocusEffect(useCallback(() => {
     const advanceFrom = route.params?.advanceFromSlot;
     if (!advanceFrom) return;
-    setSlot(nextSlot(advanceFrom));
+    // Move to the next meal time that still needs a meal; stay put when all three are chosen.
+    const filled = new Set(items.map((row) => row.daySlot).filter(Boolean));
+    const pending = DAY_SLOTS.filter((item) => !filled.has(item));
+    const preferred = nextSlot(advanceFrom);
+    setSlot(pending.length ? (pending.includes(preferred) ? preferred : pending[0]) : advanceFrom);
     navigation.setParams?.({ advanceFromSlot: undefined });
-  }, [navigation, route.params?.advanceFromSlot]));
+  }, [navigation, route.params?.advanceFromSlot, items]));
 
   const mealGroups = useMemo(() => {
     const list = mealsForSlot(slot);
@@ -110,7 +115,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   const upcoming = nextSlot(slot);
   const allChosen = chosenCount === DAY_SLOTS.length;
   const allergyNote = (profile?.allergies || []).length
-    ? `Check ingredients against your ${(profile?.allergies || []).join(' + ')} allergies before submitting.`
+    ? `Check ingredients against your ${(profile?.allergies || []).map((item) => (typeof item === 'string' ? item : item.name)).join(' + ')} allergies before submitting.`
   : 'Check ingredients against your allergies before submitting.';
 
   const selectMeal = (meal: TodayMeal) => {
@@ -148,8 +153,10 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   return (
     <AppPageShell edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title} accessibilityRole="header">{`Build Today's Meals`}</Text>
-        <Text style={styles.lead}>Choose each meal. Your dietitian checks it against your profile.</Text>
+        <PageHeader
+          title="Build Today's Meals"
+          subtitle="Choose each meal. Your dietitian checks it against your profile."
+        />
 
         <View style={styles.slots}>
           {DAY_SLOTS.map((item) => {
@@ -212,30 +219,40 @@ export default function BuildTodaysMealsScreen({ navigation }: {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={primaryLabel}
-          onPress={onPrimaryAction}
-          style={[styles.next, (!chosen[slot] && !allChosen) && styles.nextDisabled]}
-          disabled={!chosen[slot] && !allChosen}
-        >
-          <Text style={styles.nextLabel}>{primaryLabel}</Text>
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
           onPress={() => navigation.navigate('MealBrowse')}
           style={styles.browseLink}
         >
           <Text style={styles.browseLinkLabel}>Browse all meals</Text>
         </Pressable>
       </ScrollView>
+      {/* Sticky action so the next step is always visible, however long the meal list is. */}
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={primaryLabel}
+          accessibilityState={{ disabled: !chosen[slot] && !allChosen }}
+          onPress={onPrimaryAction}
+          style={[styles.next, styles.footerButton, (!chosen[slot] && !allChosen) && styles.nextDisabled]}
+          disabled={!chosen[slot] && !allChosen}
+        >
+          <Text style={styles.nextLabel}>{primaryLabel}</Text>
+        </Pressable>
+      </View>
     </AppPageShell>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.authPage,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  footerButton: { marginTop: 0 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: '800', color: '#1C3B2E' },
-  lead: { marginTop: spacing.sm, fontSize: font.body, lineHeight: 22, color: '#4E5B52', maxWidth: 320 },
   slots: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   slot: {
     flex: 1,
@@ -247,18 +264,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
   },
-  slotOn: { backgroundColor: '#1E4D38' },
+  slotOn: { backgroundColor: colors.primary },
   slotOff: { backgroundColor: colors.white, borderWidth: 1, borderColor: '#E1E6DE' },
-  slotDone: { backgroundColor: colors.white, borderWidth: 2, borderColor: '#1E4D38' },
-  slotLabel: { fontSize: font.body, fontWeight: '700', color: '#24312A' },
+  slotDone: { backgroundColor: colors.white, borderWidth: 2, borderColor: colors.primary },
+  slotLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   slotLabelOn: { color: colors.white },
   slotCheck: { marginLeft: 4 },
-  progressLabel: { marginTop: spacing.lg, fontSize: font.body, fontWeight: '700', color: '#4E5B52' },
+  progressLabel: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.body, color: colors.muted },
   progressRow: { flexDirection: 'row', gap: 6, marginTop: spacing.sm },
   progressSegment: { flex: 1, height: 6, borderRadius: 4, backgroundColor: '#DCE4DB' },
-  progressSegmentOn: { backgroundColor: '#1E4D38' },
-  group: { marginTop: spacing.lg, fontSize: font.lg, lineHeight: 24, fontWeight: '800', color: '#1C3B2E' },
-  rule: { marginTop: 4, marginBottom: spacing.md, fontSize: font.body, lineHeight: 22, color: '#5C675F' },
+  progressSegmentOn: { backgroundColor: colors.primary },
+  group: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.lg, lineHeight: 24, color: colors.heading },
+  rule: { fontFamily: fonts.regular, marginTop: 4, marginBottom: spacing.md, fontSize: font.body, lineHeight: 22, color: colors.muted },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -266,11 +283,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E4EAE2',
+    borderColor: colors.cardBorder,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  cardSelected: { borderColor: '#1E4D38', borderWidth: 2 },
+  cardSelected: { borderColor: colors.primary, borderWidth: 2 },
   badge: {
     width: 48,
     height: 48,
@@ -278,12 +295,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { fontSize: font.body, fontWeight: '800' },
+  badgeText: { fontFamily: fonts.bold, fontSize: font.body },
   cardBody: { flex: 1 },
-  mealName: { fontSize: font.body, lineHeight: 22, fontWeight: '800', color: '#1C3B2E' },
-  mealMeta: { marginTop: 2, fontSize: font.body, lineHeight: 22, color: '#66706A' },
-  available: { marginTop: 2, fontSize: font.body, lineHeight: 22, fontWeight: '700', color: '#1E7A45' },
-  note: { marginTop: 2, fontSize: font.body, lineHeight: 22, fontWeight: '700', color: '#1F6B45' },
+  mealName: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
+  mealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  available: { fontFamily: fonts.bold, marginTop: 2, fontSize: font.body, lineHeight: 22, color: '#1E7A45' },
+  note: { fontFamily: fonts.bold, marginTop: 2, fontSize: font.body, lineHeight: 22, color: '#1F6B45' },
   radio: {
     width: 28,
     height: 28,
@@ -294,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4,
   },
-  radioOn: { backgroundColor: '#1E4D38', borderColor: '#1E4D38' },
+  radioOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   summaryCard: {
     marginTop: spacing.sm,
     backgroundColor: colors.white,
@@ -304,25 +321,25 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   nutritionLabel: {
+    fontFamily: fonts.bold,
     fontSize: font.body,
     letterSpacing: 1.1,
-    fontWeight: '800',
     color: '#7E8B7A',
   },
-  calories: { marginTop: spacing.sm, fontSize: 28, lineHeight: 34, fontWeight: '800', color: '#1C3B2E' },
-  reviewTitle: { marginTop: spacing.sm, fontSize: font.body, lineHeight: 22, fontWeight: '700', color: '#1F6B45' },
-  reviewBody: { marginTop: 2, fontSize: font.body, lineHeight: 22, color: '#66706A' },
-  allergy: { marginTop: spacing.lg, fontSize: font.body, lineHeight: 22, color: '#24312A' },
+  calories: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: 28, lineHeight: 34, color: colors.heading },
+  reviewTitle: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: font.body, lineHeight: 22, color: '#1F6B45' },
+  reviewBody: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  allergy: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.body, lineHeight: 22, color: colors.text },
   next: {
     marginTop: spacing.lg,
     minHeight: 52,
     borderRadius: 16,
-    backgroundColor: '#1E4D38',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nextDisabled: { opacity: 0.45 },
-  nextLabel: { fontSize: font.body, fontWeight: '700', color: colors.white },
+  nextLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
   browseLink: { marginTop: spacing.lg, alignItems: 'center', minHeight: 44, justifyContent: 'center' },
-  browseLinkLabel: { fontSize: font.body, fontWeight: '700', color: colors.primary },
+  browseLinkLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
 });

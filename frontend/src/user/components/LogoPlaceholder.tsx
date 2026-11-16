@@ -1,18 +1,23 @@
 import { View, Text, Image, StyleSheet } from 'react-native';
 
 declare const require: (id: string) => number;
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, radius, spacing, fonts } from '../theme/theme';
 
-export default function LogoPlaceholder({ label = 'F.I.L Foods', showTagline = true }: {
+const logo = require('../../../assets/images/fil-foods-logo.png');
+
+/** Brand block from the design guide: plate mark, "F.I.L Foods" and the tagline. */
+export default function LogoPlaceholder({ label = 'F.I.L Foods', showTagline = true, size = 'md' }: {
   label?: string;
   showTagline?: boolean;
+  size?: 'md' | 'lg';
 }) {
+  const large = size === 'lg';
   return (
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={`${label} logo`}>
-      <View style={styles.markWrap}>
-        <Image source={require('../../../assets/images/fil-foods-logo.png')} style={styles.mark} resizeMode="contain" />
+      <View style={[styles.markWrap, large && styles.markWrapLg]}>
+        <Image source={logo} style={large ? styles.markLg : styles.mark} resizeMode="contain" />
       </View>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, large && styles.labelLg]}>{label}</Text> : null}
       {showTagline ? <Text style={styles.tagline}>Manage. Serve. Nourish.</Text> : null}
     </View>
   );
@@ -21,22 +26,25 @@ export default function LogoPlaceholder({ label = 'F.I.L Foods', showTagline = t
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
   markWrap: {
-    width: 48,
-    height: 48,
+    width: 72,
+    height: 72,
     borderRadius: radius.pill,
-    backgroundColor: colors.soft,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mark: {
-    width: 40,
-    height: 40,
-  },
+  markWrapLg: { width: 96, height: 96 },
+  mark: { width: 64, height: 64 },
+  markLg: { width: 88, height: 88 },
   label: {
-    marginTop: spacing.xs,
-    fontSize: font.body,
-    fontWeight: '700',
-    color: colors.deep,
+    fontFamily: fonts.bold,
+    marginTop: spacing.sm,
+    fontSize: 24,
+    lineHeight: 32,
+    color: colors.heading,
   },
-  tagline: { fontSize: font.xs, color: colors.secondary, marginTop: 2 },
+  labelLg: { fontSize: 32, lineHeight: 40 },
+  tagline: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: colors.primary, marginTop: 2 },
 });

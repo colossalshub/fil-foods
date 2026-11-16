@@ -5,7 +5,7 @@ import AppButton from './AppButton';
 import { PRIVACY_TEXT, HELP_TEXT } from '../data/legal';
 import { MSG } from '../data/messages';
 import { loadTerms } from '../data/terms';
-import { colors, font, spacing } from '../theme/theme';
+import { colors, font, spacing, fonts } from '../theme/theme';
 
 export function HelpModal({ visible, onClose }: { visible?: boolean; onClose?: () => void }) {
   return (
@@ -90,7 +90,7 @@ export function TermsModal({ visible, onClose, onAccept, acceptedAt, closeLabel 
   );
 }
 
-const acceptedStyle = { marginTop: 16, fontWeight: '600' as const };
+const acceptedStyle = { marginTop: 16, fontFamily: fonts.semibold };
 
 const styles = StyleSheet.create({
   sectionLinks: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.sm, marginBottom: spacing.md },
@@ -104,12 +104,12 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     marginBottom: spacing.sm,
   },
-  sectionLinkText: { color: colors.primary, fontSize: font.body, fontWeight: '600' },
+  sectionLinkText: { fontFamily: fonts.semibold, color: colors.primary, fontSize: font.body },
   section: { marginBottom: spacing.lg },
   sectionTitle: {
+    fontFamily: fonts.bold,
     color: colors.primary,
     fontSize: font.lg,
-    fontWeight: '700',
     lineHeight: 26,
     marginBottom: spacing.sm,
   },

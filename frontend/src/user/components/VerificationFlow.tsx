@@ -10,7 +10,7 @@ import {
 import { verifyResetCode } from '../services/authService';
 import { verifyContactChange } from '../services/profileService';
 import { EMAIL_SUBJECT, EMAIL_TEMPLATE, SMS_TEMPLATE } from '../data/messages';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 export default function VerificationFlow({
   userId, purpose, phone, email, autoChannel, successMessage, successButtonTitle = 'Continue',
@@ -180,12 +180,12 @@ function DevLink({ title, onPress }: { title: string; onPress?: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  lead: { fontSize: font.md, color: colors.text, marginBottom: spacing.sm, lineHeight: 22 },
-  mask: { fontSize: font.md, color: colors.deep, fontWeight: '700', marginBottom: 4 },
+  lead: { fontFamily: fonts.regular, fontSize: font.md, color: colors.text, marginBottom: spacing.sm, lineHeight: 22 },
+  mask: { fontFamily: fonts.bold, fontSize: font.md, color: colors.deep, marginBottom: 4 },
   dev: { backgroundColor: '#FFF6D8', borderRadius: radius.md, padding: spacing.md, marginVertical: spacing.lg },
-  devTitle: { fontSize: font.md, fontWeight: '700', color: colors.deep, marginBottom: 6 },
-  devBody: { fontSize: font.sm, color: colors.text, lineHeight: 20, marginTop: 4 },
+  devTitle: { fontFamily: fonts.bold, fontSize: font.md, color: colors.deep, marginBottom: 6 },
+  devBody: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.text, lineHeight: 20, marginTop: 4 },
   devActions: { marginTop: spacing.md },
   devHit: { minHeight: 48, justifyContent: 'center' },
-  devLink: { fontSize: font.md, color: colors.primary, fontWeight: '700' },
+  devLink: { fontFamily: fonts.bold, fontSize: font.md, color: colors.primary },
 });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import BackHeader from '../../components/BackHeader';
 import AppPageShell from '../../components/AppPageShell';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -65,8 +66,7 @@ export default function OrderSummaryScreen({ navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.orderSummaryTitle}</Text>
-        <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.orderSummaryLead}</Text>
+        <BackHeader title={CHECKOUT_MSG.orderSummaryTitle} subtitle={CHECKOUT_MSG.orderSummaryLead} onBack={() => navigation.goBack()} />
 
         <View style={checkoutFlow.mealList}>
           {showPlanLine ? (

@@ -3,7 +3,7 @@ import InfoModal from './InfoModal';
 import AppButton from './AppButton';
 import Chip from './Chip';
 import { FILTER_CATEGORIES, FILTER_RESTRICTIONS, ALLERGENS } from '../data/meals';
-import { colors, font } from '../theme/theme';
+import { colors, font, fonts } from '../theme/theme';
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
@@ -45,6 +45,6 @@ export default function FilterModal({ visible, filters, onChange, onClose }: {
 }
 
 const styles = StyleSheet.create({
-  h: { fontSize: font.body, fontWeight: '700', color: colors.primary, marginBottom: 6, marginTop: 4 },
+  h: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary, marginBottom: 6, marginTop: 4 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
 });

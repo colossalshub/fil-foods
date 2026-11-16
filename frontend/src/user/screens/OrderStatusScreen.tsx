@@ -17,7 +17,7 @@ import {
 } from '../services/trackingService';
 import { CHECKOUT_MSG } from '../data/checkoutCopy';
 import { checkoutFlow } from '../styles/checkoutFlow';
-import { colors, font, spacing } from '../theme/theme';
+import { colors, font, spacing, fonts } from '../theme/theme';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
 type OrderView = {
@@ -149,10 +149,10 @@ export default function OrderStatusScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
-  pageTitle: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E' },
-  pageSubtitle: { fontSize: font.body, lineHeight: 22, color: '#5C675F', marginBottom: spacing.xs },
+  pageTitle: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 38, color: colors.heading },
+  pageSubtitle: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, marginBottom: spacing.xs },
   empty: { padding: spacing.xl, alignItems: 'center' },
-  emptyText: { fontSize: font.body, color: colors.muted, textAlign: 'center' },
+  emptyText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, textAlign: 'center' },
   detailsBtn: { marginTop: spacing.sm },
   payBtn: { marginTop: spacing.md },
 });

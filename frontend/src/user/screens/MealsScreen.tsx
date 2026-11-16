@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
 import {
   MENU_SLOT_SUBTITLE,
@@ -10,7 +10,7 @@ import {
   type MenuSlot,
 } from '../data/menuCatalog';
 import { formatPeso } from '../services/orderService';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 const MENU_SLOTS: MenuSlot[] = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -64,18 +64,13 @@ export default function MealsScreen({ navigation }: {
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to today's meals"
-          onPress={() => navigation.goBack()}
-          style={styles.backRow}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.primary} />
-          <Text style={styles.backLabel}>{`Today's meals`}</Text>
-        </Pressable>
-
-        <Text style={styles.title} accessibilityRole="header">Menu</Text>
-        <Text style={styles.subtitle}>{MENU_SLOT_SUBTITLE[slot]}</Text>
+        <BackHeader
+          title="Menu"
+          subtitle={MENU_SLOT_SUBTITLE[slot]}
+          backLabel="Today's meals"
+          backAccessibilityLabel="Back to today's meals"
+          onBack={() => navigation.goBack()}
+        />
 
         <View style={styles.slots}>
           {MENU_SLOTS.map((item) => {
@@ -115,16 +110,6 @@ export default function MealsScreen({ navigation }: {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    minHeight: control.minHeight,
-    marginBottom: spacing.sm,
-  },
-  backLabel: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: '#1C3B2E' },
-  subtitle: { marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: '#5C675F' },
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg, marginBottom: spacing.md },
   slot: {
     minHeight: 40,
@@ -133,23 +118,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slotOn: { backgroundColor: '#1E4D38' },
-  slotOff: { backgroundColor: colors.white, borderWidth: 1, borderColor: '#D6DDD5' },
-  slotLabel: { fontSize: font.body, fontWeight: '700', color: '#24312A' },
+  slotOn: { backgroundColor: colors.primary },
+  slotOff: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  slotLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   slotLabelOn: { color: colors.white },
   sectionBlock: { marginTop: spacing.lg },
   sectionTitle: {
+    fontFamily: fonts.bold,
     fontSize: font.sm,
     letterSpacing: 1.2,
-    fontWeight: '800',
-    color: '#8A948C',
+    color: colors.inactive,
     marginBottom: spacing.sm,
   },
   sectionCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#E4EAE2',
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   row: {
@@ -162,15 +147,15 @@ const styles = StyleSheet.create({
     minHeight: control.minHeight,
   },
   rowMain: { flex: 1 },
-  rowName: { fontSize: font.body, lineHeight: 22, fontWeight: '800', color: '#1C3B2E' },
-  rowSubtitle: { marginTop: 2, fontSize: font.body, lineHeight: 20, color: '#66706A' },
+  rowName: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
+  rowSubtitle: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 20, color: colors.muted },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.xs },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusDotOn: { backgroundColor: '#1E7A45' },
   statusDotOff: { backgroundColor: '#B0B8B2' },
-  statusLabel: { fontSize: font.body, fontWeight: '700' },
+  statusLabel: { fontFamily: fonts.bold, fontSize: font.body },
   statusOn: { color: '#1E7A45' },
-  statusOff: { color: '#8A948C' },
-  rowPrice: { fontSize: font.body, lineHeight: 22, fontWeight: '800', color: '#1C3B2E' },
+  statusOff: { color: colors.inactive },
+  rowPrice: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E8EDE6', marginHorizontal: spacing.lg },
 });

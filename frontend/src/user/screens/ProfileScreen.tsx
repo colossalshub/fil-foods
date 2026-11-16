@@ -5,6 +5,8 @@ import {
   View, Text, Modal, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import PageHeader from '../components/PageHeader';
+import ChangeHistoryCard from '../components/ChangeHistoryCard';
 import AppPageShell from '../components/AppPageShell';
 import BackPageShell from '../components/BackPageShell';
 import AppButton from '../components/AppButton';
@@ -13,7 +15,6 @@ import Checkbox from '../components/Checkbox';
 import Chip from '../components/Chip';
 import FormMessage from '../components/FormMessage';
 import VerificationFlow from '../components/VerificationFlow';
-import HelpButton from '../components/HelpButton';
 import { PrivacyModal, TermsModal } from '../components/LegalModals';
 import { useAuth } from '../context/AuthContext';
 import { recipientDisplayName } from '../domain/audience';
@@ -73,7 +74,7 @@ import {
   PROFILE_DIET_OPTIONS,
   PROFILE_HEALTH_OPTIONS,
 } from '../constants/profileFormOptions';
-import { colors, card, font, radius, spacing, touch } from '../theme/theme';
+import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 function fullName(profile: Profile | null | undefined) {
   return [profile?.firstName, profile?.middleName, profile?.lastName, profile?.suffix]
@@ -144,14 +145,7 @@ function ProfileNameRow({ firstName, lastName }: { firstName?: string | null; la
 
 function ProfilePageHeader({ subtitle }: { subtitle?: string }) {
   return (
-    <>
-      <View style={styles.toolsRow}>
-        <HelpButton />
-      </View>
-      <Text style={styles.pageTitle} accessibilityRole="header">{ACCOUNT_COPY.screenTitle}</Text>
-      <Text style={styles.pageLead}>{ACCOUNT_COPY.screenSubtitle}</Text>
-      {subtitle ? <Text style={styles.pageSubtitle}>{subtitle}</Text> : null}
-    </>
+    <PageHeader title={ACCOUNT_COPY.screenTitle} subtitle={ACCOUNT_COPY.screenSubtitle} caption={subtitle} />
   );
 }
 
@@ -327,6 +321,11 @@ export default function ProfileScreen() {
   const history = localProfile && user?.id
     ? readChangeHistory(user.id as string, user.id as string)
     : [];
+  const historyRecipientName = localProfile
+    ? (localProfile.accountFor === 'family'
+      ? recipientDisplayName(localProfile.mealRecipient)
+      : recipientDisplayName(localProfile))
+    : null;
   const activity = localProfile && user?.id
     ? readActivityRecord(user.id as string, user.id as string)
     : [];
@@ -1167,16 +1166,25 @@ export default function ProfileScreen() {
           title={ACCOUNT_COPY.activityRecord}
           onBack={() => setActivityOpen(false)}
           edges={['top', 'bottom']}
-          footer={(
-            <AppButton title="Close" onPress={() => setActivityOpen(false)} color={colors.primary} style={styles.modalCancel} />
-          )}
+          subtitle={activity.length ? 'Newest first' : null}
+          backLabel={ACCOUNT_COPY.screenTitle}
         >
           {activity.length === 0 ? (
-            <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
+            <View style={styles.historyEmpty}>
+              <Ionicons name="document-text-outline" size={32} color={colors.primary} />
+              <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
+            </View>
           ) : (
-            activity.map((entry) => (
-              <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
-            ))
+            <View style={styles.activityCard}>
+              {activity.map((entry, index) => (
+                <Text
+                  key={entry.id}
+                  style={[styles.activityLine, index > 0 && styles.activityDivider]}
+                >
+                  {entry.formatted}
+                </Text>
+              ))}
+            </View>
           )}
           {!isAuditChainIntact() ? (
             <Text style={styles.body}>{ACCOUNT_COPY.activityIntegrityWarning}</Text>
@@ -1189,15 +1197,17 @@ export default function ProfileScreen() {
           title={ACCOUNT_COPY.changeHistory}
           onBack={() => setHistoryOpen(false)}
           edges={['top', 'bottom']}
-          footer={(
-            <AppButton title="Close" onPress={() => setHistoryOpen(false)} color={colors.primary} style={styles.modalCancel} />
-          )}
+          subtitle={history.length ? 'Newest first' : null}
+          backLabel={ACCOUNT_COPY.screenTitle}
         >
           {history.length === 0 ? (
-            <Text style={styles.body}>{MSG.noChangesYet}</Text>
+            <View style={styles.historyEmpty}>
+              <Ionicons name="time-outline" size={32} color={colors.primary} />
+              <Text style={styles.body}>{MSG.noChangesYet}</Text>
+            </View>
           ) : (
             history.map((entry) => (
-              <Text key={entry.id} style={styles.historyLine}>{entry.formatted}</Text>
+              <ChangeHistoryCard key={entry.id} entry={entry} recipientName={historyRecipientName} />
             ))
           )}
           {!isAuditChainIntact() ? (
@@ -1279,7 +1289,6 @@ export default function ProfileScreen() {
           onBack={closeRecipient}
           edges={['top', 'bottom']}
           avoidKeyboard
-          trailing={<HelpButton />}
           footer={(
             <>
               <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
@@ -1339,26 +1348,16 @@ export default function ProfileScreen() {
 }
 
 const PAGE = {
-  title: '#1C3B2E',
-  body: '#4E5B52',
-  muted: '#5C675F',
-  border: '#E4EAE2',
+  title: colors.heading,
+  body: colors.muted,
+  muted: colors.muted,
+  border: colors.cardBorder,
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
-  emptyState: { marginTop: spacing.xl, fontSize: font.body, lineHeight: 24, color: PAGE.body },
-  toolsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  pageTitle: { fontSize: 32, lineHeight: 38, fontWeight: '800', color: PAGE.title },
-  pageLead: { marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: PAGE.muted },
-  pageSubtitle: { marginTop: spacing.xs, fontSize: font.sm, lineHeight: 20, color: '#6B8E6B', fontWeight: '600' },
+  emptyState: { fontFamily: fonts.regular, marginTop: spacing.xl, fontSize: font.body, lineHeight: 24, color: PAGE.body },
   identityCard: {
     ...card,
     marginTop: spacing.lg,
@@ -1370,15 +1369,15 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#1C3B2E',
+    backgroundColor: colors.heading,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  avatarText: { fontSize: 28, fontWeight: '800', color: colors.white },
-  identityName: { fontSize: font.lg, fontWeight: '800', color: PAGE.title, textAlign: 'center' },
-  identityMeta: { fontSize: font.sm, color: PAGE.muted, textAlign: 'center' },
-  identityEmail: { fontSize: font.body, color: PAGE.body, textAlign: 'center' },
+  avatarText: { fontFamily: fonts.bold, fontSize: 28, color: colors.white },
+  identityName: { fontFamily: fonts.bold, fontSize: font.lg, color: PAGE.title, textAlign: 'center' },
+  identityMeta: { fontFamily: fonts.regular, fontSize: font.sm, color: PAGE.muted, textAlign: 'center' },
+  identityEmail: { fontFamily: fonts.regular, fontSize: font.body, color: PAGE.body, textAlign: 'center' },
   menuCard: {
     ...card,
     marginTop: spacing.lg,
@@ -1396,7 +1395,7 @@ const styles = StyleSheet.create({
     borderBottomColor: PAGE.border,
   },
   menuIconWrap: { width: 28, alignItems: 'center' },
-  menuLabel: { flex: 1, fontSize: font.body, fontWeight: '600', color: PAGE.title },
+  menuLabel: { fontFamily: fonts.semibold, flex: 1, fontSize: font.body, color: PAGE.title },
   menuLabelDanger: { color: colors.danger },
   moreCard: {
     ...card,
@@ -1412,8 +1411,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: spacing.md,
   },
-  moreLabel: { flex: 1, fontSize: font.body, color: PAGE.body },
-  moreDanger: { color: colors.danger, fontWeight: '600' },
+  moreLabel: { fontFamily: fonts.regular, flex: 1, fontSize: font.body, color: PAGE.body },
+  moreDanger: { fontFamily: fonts.semibold, color: colors.danger },
   profileCard: {
     marginTop: spacing.lg,
     backgroundColor: colors.white,
@@ -1423,34 +1422,21 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.md },
-  cardTitle: { flex: 1, fontSize: font.lg, fontWeight: '800', color: PAGE.title },
+  cardTitle: { fontFamily: fonts.bold, flex: 1, fontSize: font.lg, color: PAGE.title },
   nameRow: { flexDirection: 'row', gap: spacing.md },
   nameCol: { flex: 1 },
   fieldRow: { marginBottom: spacing.md },
-  fieldLabel: { fontSize: font.sm, color: PAGE.muted, marginBottom: 4 },
-  fieldValue: { fontSize: font.lg, color: PAGE.title, lineHeight: 26, fontWeight: '600' },
+  fieldLabel: { fontFamily: fonts.regular, fontSize: font.sm, color: PAGE.muted, marginBottom: 4 },
+  fieldValue: { fontFamily: fonts.semibold, fontSize: font.lg, color: PAGE.title, lineHeight: 26 },
   cardLinks: { marginTop: spacing.sm, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PAGE.border, gap: spacing.xs },
   cardLinkHit: { minHeight: 40, justifyContent: 'center' },
-  cardLink: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  lastUpdated: { marginTop: spacing.lg, fontSize: font.sm, color: PAGE.muted },
-  primaryCta: { marginTop: spacing.lg, marginBottom: spacing.lg },
-  settingsCard: {
-    marginTop: spacing.md,
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: PAGE.border,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  sectionHeading: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginTop: spacing.lg, marginBottom: spacing.sm },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text },
+  cardLink: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  lastUpdated: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.sm, color: PAGE.muted },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text },
   acceptedMeta: { color: colors.muted },
-  mutedLine: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.xs },
+  mutedLine: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.xs },
   editHit: { minHeight: touch.min, justifyContent: 'center', paddingHorizontal: spacing.sm },
-  editLink: { fontSize: font.body, color: colors.action, fontWeight: '700' },
-  linkBtn: { marginTop: spacing.sm },
+  editLink: { fontFamily: fonts.bold, fontSize: font.body, color: colors.action },
   biometricWrap: { marginTop: spacing.md },
   biometricRow: {
     flexDirection: 'row',
@@ -1458,15 +1444,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: touch.min,
   },
-  biometricLabel: { flex: 1, fontSize: font.body, lineHeight: 24, color: colors.text, paddingRight: spacing.md },
-  logout: { marginTop: spacing.lg },
-  modalLead: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.lg },
+  biometricLabel: { fontFamily: fonts.regular, flex: 1, fontSize: font.body, lineHeight: 24, color: colors.text, paddingRight: spacing.md },
+  modalLead: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.lg },
   modalFormCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
   modalSave: { marginTop: spacing.lg },
   modalCancel: { marginTop: spacing.sm },
   inputGroupLabel: {
+    fontFamily: fonts.bold,
     fontSize: font.sm,
-    fontWeight: '700',
     color: colors.muted,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -1483,7 +1468,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     backgroundColor: colors.white,
   },
-  dislikedText: { fontSize: font.body, color: colors.danger, fontWeight: '600' },
+  dislikedText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.danger },
   allergyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   choiceCard: {
     borderWidth: 1,
@@ -1494,13 +1479,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   choiceCardOn: { backgroundColor: colors.tint, borderColor: colors.primary },
-  choiceDetail: { fontSize: font.sm, color: colors.muted, marginLeft: 36, marginTop: -4, marginBottom: spacing.xs },
-  familyNote: { fontSize: font.sm, lineHeight: 22, color: colors.muted, marginBottom: spacing.md },
+  choiceDetail: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginLeft: 36, marginTop: -4, marginBottom: spacing.xs },
+  familyNote: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 22, color: colors.muted, marginBottom: spacing.md },
   guardianSummary: { marginBottom: spacing.md, paddingBottom: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  historyLine: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.md },
+  historyEmpty: { ...card, alignItems: 'center', gap: spacing.sm, padding: spacing.xl },
+  activityCard: { ...card, paddingHorizontal: spacing.lg },
+  activityLine: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.text, paddingVertical: spacing.md },
+  activityDivider: { borderTopWidth: 1, borderTopColor: colors.cardBorder },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing.xl },
   sheet: { backgroundColor: colors.white, borderRadius: radius.md, padding: spacing.lg },
-  confirmTitle: { fontSize: font.lg, fontWeight: '700', color: colors.primary, marginBottom: spacing.lg },
-  confirmBody: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.lg },
+  confirmTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginBottom: spacing.lg },
+  confirmBody: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.lg },
   confirmNo: { marginTop: spacing.sm },
 });

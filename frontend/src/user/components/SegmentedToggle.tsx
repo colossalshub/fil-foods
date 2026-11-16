@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { colors, font, radius, spacing, control } from '../theme/theme';
+import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
 export default function SegmentedToggle({ label, options, value, onChange }: {
   label?: string;
@@ -33,7 +33,7 @@ export default function SegmentedToggle({ label, options, value, onChange }: {
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.lg },
-  label: { fontSize: font.md, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
+  label: { fontFamily: fonts.bold, fontSize: font.md, color: colors.text, marginBottom: spacing.md },
   row: { flexDirection: 'row', gap: spacing.md },
   option: {
     flex: 1,
@@ -48,6 +48,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   selected: { backgroundColor: colors.primary },
-  text: { fontSize: font.md, fontWeight: '700', color: colors.primary, textAlign: 'center' },
+  text: { fontFamily: fonts.bold, fontSize: font.md, color: colors.primary, textAlign: 'center' },
   selectedText: { color: colors.white },
 });

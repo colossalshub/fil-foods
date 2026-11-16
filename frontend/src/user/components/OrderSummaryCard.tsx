@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import OrderStatusBadge from './OrderStatusBadge';
 import { ORDERS_COPY } from '../data/messages';
-import { colors, card, font, spacing } from '../theme/theme';
+import { colors, card, font, spacing, fonts } from '../theme/theme';
 
 export default function OrderSummaryCard({
   trackingNumber,
@@ -43,10 +43,10 @@ const styles = StyleSheet.create({
   card: { ...card, padding: spacing.lg, gap: spacing.md },
   refRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   refBlock: { flex: 1, gap: 4 },
-  label: { fontSize: font.sm, color: colors.muted },
-  refValue: { fontSize: font.body, fontWeight: '800', color: colors.text },
+  label: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted },
+  refValue: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   row: { gap: 4 },
-  value: { fontSize: font.body, color: colors.text, lineHeight: 22 },
+  value: { fontFamily: fonts.regular, fontSize: font.body, color: colors.text, lineHeight: 22 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  total: { fontSize: font.lg, fontWeight: '800', color: colors.primary },
+  total: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary },
 });

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, font, spacing, radius } from '../theme/theme';
+import { colors, font, spacing, radius, fonts } from '../theme/theme';
 
 export default function FormMessage({ messages, tone = 'error' }: {
   messages?: string | Array<string | null | undefined | false> | null;
@@ -35,6 +35,6 @@ const styles = StyleSheet.create({
   box: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.lg },
   error: { backgroundColor: '#FDECEC' },
   ok: { backgroundColor: colors.tint },
-  text: { fontSize: font.body, color: colors.danger, lineHeight: 22 },
+  text: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger, lineHeight: 22 },
   okText: { color: colors.primary },
 });

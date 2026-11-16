@@ -9,9 +9,9 @@ import {
 } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { EdgeInsets } from 'react-native-safe-area-context';
-import { colors, radius, shadow, spacing } from '../theme/theme';
+import { colors, radius, shadow, spacing, fonts } from '../theme/theme';
 
-export const FLOATING_TAB_BAR_HEIGHT = 58;
+export const FLOATING_TAB_BAR_HEIGHT = 64;
 const TAB_BOTTOM_GAP = spacing.md;
 const SHADOW_BLEED = spacing.sm;
 
@@ -33,7 +33,12 @@ function tabIcon(routeName: string, focused: boolean, color: string, size = 22) 
   const base = TAB_ROUTE_ICONS[routeName] ?? 'ellipse';
   const outline = `${String(base).replace(/-outline$/, '')}-outline` as ComponentProps<typeof Ionicons>['name'];
   const name = (focused ? base : outline) as ComponentProps<typeof Ionicons>['name'];
-  return <Ionicons name={name} size={size} color={color} />;
+  // Active tab gets the design guide's soft green indicator behind the icon.
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Ionicons name={name} size={size} color={color} />
+    </View>
+  );
 }
 
 export function floatingTabBottomInset(insets: EdgeInsets) {
@@ -52,13 +57,14 @@ export function floatingTabScreenOptions(
     tabBarShowLabel: true,
     tabBarLabel: TAB_ROUTE_LABELS[route.name] ?? route.name,
     tabBarLabelStyle: {
-      fontSize: 11,
-      lineHeight: 14,
-      fontWeight: '600',
+      fontFamily: fonts.semibold,
+      fontSize: 13,
+      lineHeight: 16,
       marginTop: 2,
       marginBottom: 0,
     },
-    tabBarIcon: ({ focused, color, size }) => tabIcon(route.name, focused, color, size ?? 22),
+    tabBarIcon: ({ focused, color }) => tabIcon(route.name, focused, color, 22),
+    tabBarAccessibilityLabel: TAB_ROUTE_LABELS[route.name] ?? route.name,
     tabBarItemStyle: {
       paddingVertical: 0,
     },
@@ -68,7 +74,7 @@ export function floatingTabScreenOptions(
       elevation: 0,
       shadowOpacity: 0,
       height: FLOATING_TAB_BAR_HEIGHT,
-      paddingTop: spacing.xs,
+      paddingTop: 6,
       paddingBottom: 0,
     },
   };
@@ -102,6 +108,16 @@ export function FloatingTabBar(props: BottomTabBarProps) {
 }
 
 const styles = StyleSheet.create({
+  iconWrap: {
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: colors.mintStrong,
+  },
   shell: {
     position: 'absolute',
     left: 0,

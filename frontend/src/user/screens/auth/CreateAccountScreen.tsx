@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AppInput from '../../components/AppInput';
 import HelpButton from '../../components/HelpButton';
 import AppButton from '../../components/AppButton';
@@ -8,13 +9,14 @@ import Checkbox from '../../components/Checkbox';
 import FormMessage from '../../components/FormMessage';
 import GoogleSignIn from '../../components/GoogleSignIn';
 import LogoPlaceholder from '../../components/LogoPlaceholder';
+import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import { useAuth } from '../../context/AuthContext';
 import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { register } from '../../services/authService';
 import { MSG } from '../../data/messages';
 import { loadTerms } from '../../data/terms';
 import type { FieldMap } from '../../types';
-import { colors, font, spacing } from '../../theme/theme';
+import { card, colors, font, spacing, fonts } from '../../theme/theme';
 
 const EMPTY = {
   firstName: '',
@@ -66,12 +68,13 @@ export default function CreateAccountScreen({ navigation }: {
   return (
     <View style={styles.page}>
       <SafeAreaView style={styles.column} edges={['top', 'bottom']}>
+        <AuthBackgroundDecor />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <View style={styles.helpRow}>
               <HelpButton />
             </View>
-            <LogoPlaceholder />
+            <LogoPlaceholder size={showForm ? 'md' : 'lg'} />
             {!showForm ? (
               <>
                 <Text style={styles.title} accessibilityRole="header">Who is this meal subscription for?</Text>
@@ -80,21 +83,39 @@ export default function CreateAccountScreen({ navigation }: {
                 </Text>
                 <Pressable
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: accountFor === 'self' }}
-                  onPress={() => setAccountFor('self')}
-                  style={[styles.choice, accountFor === 'self' && styles.choiceSelected]}
+                  accessibilityLabel="Signing Up for Myself. I will receive and consume the meals."
+                  accessibilityState={{ selected: accountFor === 'self', checked: accountFor === 'self' }}
+                  onPress={() => { setAccountFor('self'); setMessages([]); }}
+                  style={({ pressed }) => [styles.choice, accountFor === 'self' && styles.choiceSelected, pressed && styles.pressed]}
                 >
-                  <Text style={styles.choiceTitle}>Signing Up for Myself</Text>
-                  <Text style={styles.choiceDescription}>I will receive and consume the meals.</Text>
+                  <View style={styles.choiceIcon}>
+                    <Ionicons name="person-outline" size={24} color={colors.primary} />
+                  </View>
+                  <View style={styles.choiceCopy}>
+                    <Text style={styles.choiceTitle}>Signing Up for Myself</Text>
+                    <Text style={styles.choiceDescription}>I will receive and consume the meals.</Text>
+                  </View>
+                  <View style={[styles.radio, accountFor === 'self' && styles.radioOn]}>
+                    {accountFor === 'self' ? <View style={styles.radioDot} /> : null}
+                  </View>
                 </Pressable>
                 <Pressable
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: accountFor === 'family' }}
-                  onPress={() => setAccountFor('family')}
-                  style={[styles.choice, accountFor === 'family' && styles.choiceSelected]}
+                  accessibilityLabel="Signing Up for a Family Member. Ordering for a parent, senior relative, or loved one."
+                  accessibilityState={{ selected: accountFor === 'family', checked: accountFor === 'family' }}
+                  onPress={() => { setAccountFor('family'); setMessages([]); }}
+                  style={({ pressed }) => [styles.choice, accountFor === 'family' && styles.choiceSelected, pressed && styles.pressed]}
                 >
-                  <Text style={styles.choiceTitle}>Signing Up for a Family Member</Text>
-                  <Text style={styles.choiceDescription}>Ordering for a parent, senior relative, or loved one.</Text>
+                  <View style={styles.choiceIcon}>
+                    <Ionicons name="people-outline" size={24} color={colors.primary} />
+                  </View>
+                  <View style={styles.choiceCopy}>
+                    <Text style={styles.choiceTitle}>Signing Up for a Family Member</Text>
+                    <Text style={styles.choiceDescription}>Ordering for a parent, senior relative, or loved one.</Text>
+                  </View>
+                  <View style={[styles.radio, accountFor === 'family' && styles.radioOn]}>
+                    {accountFor === 'family' ? <View style={styles.radioDot} /> : null}
+                  </View>
                 </Pressable>
                 {messages.length > 0 ? <FormMessage messages={messages} /> : null}
                 <AppButton
@@ -110,11 +131,25 @@ export default function CreateAccountScreen({ navigation }: {
                   color={colors.action}
                   style={styles.action}
                 />
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel="Log in"
+                  onPress={() => navigation.navigate('Login')}
+                  style={styles.loginLink}
+                >
+                  <Text style={styles.loginText}>Already have an account? Log in</Text>
+                </Pressable>
               </>
             ) : (
               <>
-                <Pressable onPress={() => setShowForm(false)} style={styles.backLink}>
-                  <Text style={styles.termsLinkText}>‹ Change subscription recipient</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Change subscription recipient"
+                  onPress={() => setShowForm(false)}
+                  style={styles.backLink}
+                >
+                  <Ionicons name="chevron-back" size={20} color={colors.primary} />
+                  <Text style={styles.backLinkText}>Change subscription recipient</Text>
                 </Pressable>
                 <Text style={styles.title} accessibilityRole="header">Create your account</Text>
                 <Text style={styles.subtitle}>
@@ -216,23 +251,39 @@ export default function CreateAccountScreen({ navigation }: {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.soft, alignItems: 'center' },
-  column: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.white },
+  page: { flex: 1, backgroundColor: colors.authPage, alignItems: 'center' },
+  column: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.authPage, overflow: 'hidden' },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
   input: { minHeight: 48, backgroundColor: colors.white, borderColor: colors.border, borderRadius: 12 },
   helpRow: { alignItems: 'flex-end' },
-  title: { fontSize: font.xl, fontWeight: '700', color: colors.primary, textAlign: 'center', marginTop: spacing.lg },
-  subtitle: { fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
+  title: { fontFamily: fonts.semibold, fontSize: font.xl, lineHeight: 30, color: colors.heading, textAlign: 'center', marginTop: spacing.lg },
+  subtitle: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
   termsLink: { minHeight: 48, justifyContent: 'center', marginTop: -4, marginBottom: spacing.sm },
-  backLink: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' },
-  termsLinkText: { fontSize: font.body, color: colors.action, textDecorationLine: 'underline' },
-  choice: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: spacing.lg, marginBottom: spacing.md },
-  choiceSelected: { borderColor: colors.primary, backgroundColor: colors.soft },
-  choiceTitle: { color: colors.text, fontSize: font.body, fontWeight: '700' },
-  choiceDescription: { color: colors.muted, fontSize: font.body, lineHeight: 24, marginTop: spacing.xs },
-  fieldError: { fontSize: font.body, lineHeight: 22, color: colors.danger, marginBottom: spacing.md },
+  backLink: { minHeight: 48, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginLeft: -4 },
+  backLinkText: { fontFamily: fonts.medium, fontSize: font.body, color: colors.primary, marginLeft: 2 },
+  termsLinkText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.action, textDecorationLine: 'underline' },
+  choice: {
+    ...card,
+    borderColor: colors.cardBorder,
+    borderWidth: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  choiceSelected: { borderColor: colors.primary, backgroundColor: colors.mint },
+  pressed: { opacity: 0.85 },
+  choiceIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.mintStrong, alignItems: 'center', justifyContent: 'center' },
+  choiceCopy: { flex: 1 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.inactive, alignItems: 'center', justifyContent: 'center' },
+  radioOn: { borderColor: colors.primary },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary },
+  choiceTitle: { fontFamily: fonts.bold, color: colors.text, fontSize: font.body },
+  choiceDescription: { fontFamily: fonts.regular, color: colors.muted, fontSize: font.body, lineHeight: 24, marginTop: spacing.xs },
+  fieldError: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.danger, marginBottom: spacing.md },
   action: { marginTop: spacing.sm },
   loginLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
-  loginText: { fontSize: font.body, color: colors.primary, fontWeight: '600' },
+  loginText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
 });

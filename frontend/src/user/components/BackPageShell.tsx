@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   View,
-  Text,
   ScrollView,
-  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -11,31 +9,46 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { type Edge } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from './AppPageShell';
-import { colors, font, spacing, touch } from '../theme/theme';
+import BackHeader from './BackHeader';
+import { spacing } from '../theme/theme';
 
 type BackPageShellProps = {
   title: string;
   onBack: () => void;
   children: ReactNode;
+  /** Optional line under the title (e.g. who the page is for, USR-46). */
+  subtitle?: string | null;
+  /** Text next to the back arrow. Defaults to "Back". */
+  backLabel?: string;
   edges?: Edge[];
   scroll?: boolean;
   scrollContentStyle?: StyleProp<ViewStyle>;
   footer?: ReactNode;
+  /** Replaces the default Help control on the right of the back row. */
   trailing?: ReactNode;
+  /** Hide the Help control (only for the Help page itself). */
+  showHelp?: boolean;
   avoidKeyboard?: boolean;
 };
 
+/**
+ * Sub-page layout from the design guide: a back link and the Help pill on the botanical
+ * background, then a left-aligned page title. Matches the tab pages so every screen shares
+ * one header language.
+ */
 export default function BackPageShell({
   title,
   onBack,
   children,
+  subtitle,
+  backLabel = 'Back',
   edges = ['top'],
   scroll = true,
   scrollContentStyle,
   footer,
   trailing,
+  showHelp = true,
   avoidKeyboard = false,
 }: BackPageShellProps) {
   const scrollBody = (
@@ -70,22 +83,15 @@ export default function BackPageShell({
 
   return (
     <AppPageShell edges={edges} contentStyle={styles.shell}>
-      <View style={styles.topBar}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={onBack}
-          style={styles.backHit}
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.primary} />
-          <Text style={styles.backText} allowFontScaling>Back</Text>
-        </Pressable>
-        <Text style={styles.barTitle} accessibilityRole="header" allowFontScaling>{title}</Text>
-        {trailing ? (
-          <View style={styles.trailing}>{trailing}</View>
-        ) : (
-          <View style={styles.backSpacer} />
-        )}
+      <View style={styles.header}>
+        <BackHeader
+          title={title}
+          subtitle={subtitle}
+          onBack={onBack}
+          backLabel={backLabel}
+          trailing={trailing}
+          showHelp={showHelp}
+        />
       </View>
       {wrapped}
     </AppPageShell>
@@ -95,27 +101,11 @@ export default function BackPageShell({
 const styles = StyleSheet.create({
   shell: { flex: 1 },
   flex: { flex: 1 },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
   },
-  backHit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: touch.min,
-    minHeight: touch.min,
-    paddingRight: spacing.sm,
-  },
-  backSpacer: { minWidth: touch.min },
-  trailing: { minWidth: touch.min, alignItems: 'flex-end', justifyContent: 'center' },
-  backText: { fontSize: font.body, color: colors.primary, fontWeight: '600', marginLeft: 4 },
-  barTitle: { flex: 1, textAlign: 'center', fontSize: font.xl, fontWeight: '700', color: colors.primary },
   scrollView: { flex: 1 },
-  scroll: { padding: spacing.xl, paddingBottom: spacing.xxl, flexGrow: 1 },
-  body: { flex: 1, padding: spacing.xl, paddingBottom: spacing.xxl },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.xs, paddingBottom: spacing.xxl, flexGrow: 1 },
+  body: { flex: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.xs, paddingBottom: spacing.xxl },
 });

@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
 import { consumeLoginNotice } from '../../navigation/loginNotice';
 import type { FieldMap } from '../../types';
-import { colors, font, spacing } from '../../theme/theme';
+import { colors, font, spacing, fonts } from '../../theme/theme';
 
 declare const require: (id: string) => number;
 
@@ -174,9 +174,9 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', paddingTop: 68 },
   helpRow: { alignItems: 'center', marginTop: spacing.sm },
   logo: { width: 96, height: 96 },
-  brand: { color: '#10251C', fontSize: 28, lineHeight: 34, fontWeight: '800', textAlign: 'center', marginTop: -spacing.xs },
-  loginTitle: { color: '#10251C', fontSize: 20, lineHeight: 24, fontWeight: '700', textAlign: 'center' },
-  tagline: { color: colors.deep, fontSize: font.body, lineHeight: 22, fontWeight: '600', textAlign: 'center' },
+  brand: { fontFamily: fonts.bold, color: '#10251C', fontSize: 28, lineHeight: 34, textAlign: 'center', marginTop: -spacing.xs },
+  loginTitle: { fontFamily: fonts.bold, color: '#10251C', fontSize: 20, lineHeight: 24, textAlign: 'center' },
+  tagline: { fontFamily: fonts.semibold, color: colors.deep, fontSize: font.body, lineHeight: 22, textAlign: 'center' },
   illustration: { height: 96, alignItems: 'center', justifyContent: 'flex-end', marginTop: spacing.sm, marginBottom: spacing.lg },
   dome: { width: 128, height: 66, backgroundColor: colors.primaryDark, borderTopLeftRadius: 70, borderTopRightRadius: 70, zIndex: 1 },
   domeRim: { width: 148, height: 8, borderRadius: 8, backgroundColor: colors.deep, marginTop: -1, zIndex: 1 },
@@ -195,14 +195,14 @@ const styles = StyleSheet.create({
   options: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -spacing.sm },
   remember: { flex: 1, minWidth: 0 },
   forgotLink: { minHeight: 48, justifyContent: 'center', paddingLeft: spacing.xs, flexShrink: 0 },
-  textLinkLabel: { color: colors.primary, fontSize: font.sm, fontWeight: '700', textAlign: 'right' },
-  formError: { color: colors.danger, fontSize: font.sm, marginBottom: spacing.sm },
+  textLinkLabel: { fontFamily: fonts.bold, color: colors.primary, fontSize: font.sm, textAlign: 'right' },
+  formError: { fontFamily: fonts.regular, color: colors.danger, fontSize: font.sm, marginBottom: spacing.sm },
   primary: { height: 48, borderRadius: 16, marginTop: 0, backgroundColor: colors.primaryDark },
   separator: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: 6 },
   separatorLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#DDE5D7' },
-  separatorText: { color: colors.deep, fontSize: font.sm, lineHeight: 20 },
+  separatorText: { fontFamily: fonts.regular, color: colors.deep, fontSize: font.sm, lineHeight: 20 },
   googleButton: { height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: '#78B996' },
   extraActions: { marginTop: 72 },
   textLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.sm, marginTop: spacing.xs },
-  copyright: { color: colors.muted, fontSize: font.xs, lineHeight: 18, textAlign: 'center', paddingVertical: spacing.xs },
+  copyright: { fontFamily: fonts.regular, color: colors.muted, fontSize: font.xs, lineHeight: 18, textAlign: 'center', paddingVertical: spacing.xs },
 });

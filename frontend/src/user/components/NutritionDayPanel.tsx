@@ -6,7 +6,7 @@ import AppInput from './AppInput';
 import { RECOMMENDATION_MEALS } from '../data/meals';
 import { ORDER_MSG, profileAllergensInMeal, hasDislikedIngredient, hasRestrictionConflict, isMealAvailable } from '../services/orderService';
 import { NUTRITION_MSG, solveNutritionPlan } from '../services/nutritionService';
-import { colors, font, radius, spacing } from '../theme/theme';
+import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
 function eligibleMeals(profile: MealMatchProfile | null | undefined) {
   return RECOMMENDATION_MEALS.filter((meal) => {
@@ -103,11 +103,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
-  title: { fontSize: font.body, fontWeight: '700', color: colors.primary, flex: 1 },
-  toggle: { fontSize: font.body, fontWeight: '700', color: colors.primary },
-  hint: { fontSize: font.sm, color: colors.muted, marginTop: spacing.xs },
-  body: { fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
-  meal: { fontSize: font.body, lineHeight: 24, color: colors.text },
+  title: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary, flex: 1 },
+  toggle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  hint: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: spacing.xs },
+  body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
+  meal: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text },
   result: { marginTop: spacing.md },
-  disclaimer: { fontSize: font.body, lineHeight: 24, color: colors.muted, marginTop: spacing.sm },
+  disclaimer: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginTop: spacing.sm },
 });
