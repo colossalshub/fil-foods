@@ -33,10 +33,19 @@ Some of those flows still use the local sample store until Supabase is configure
 
 ## Algorithms
 
-| Algorithm | What to open |
-|---|---|
-| Fuzzy meal search (edit distance) | `frontend/src/user/services/orderService.ts` — `fuzzySearchMeals`, `levenshtein`. Used by the Meals search box. |
-| Nutritional target solver (one meal per slot, calorie and fat ceilings) | `frontend/src/user/services/nutritionService.ts` — `solveNutritionPlan`. On the Meals screen, open Daily nutrition targets and choose Suggest a day of meals (`frontend/src/user/components/NutritionDayPanel.tsx`). |
+Five algorithms, in two groups. Each group has a simple baseline and the one the app uses. Plain-language explainer with worked examples: [`docs/algorithms.md`](docs/algorithms.md). Benchmarks: [`docs/benchmarking/FIL_Foods_Algorithm_Benchmark.ipynb`](docs/benchmarking/FIL_Foods_Algorithm_Benchmark.ipynb).
+
+| # | Algorithm | What it does | Where in the code | Screen | Complexity | Role |
+|---|---|---|---|---|---|---|
+| 1 | Substring matching | Is the typed text found, letter for letter, in the stored text? | `frontend/src/lib/algorithms/stringMatch.ts` — `substringMatch` | First (exact) tier of every search below | O(n·m) worst case | Baseline, kept as the exact tier |
+| 2 | Levenshtein distance | Fewest inserts, deletes and replacements between two words | `stringMatch.ts` — `levenshtein` | None (tests and notebook only) | O(n·m) time, O(m) memory | Baseline |
+| 3 | Optimal String Alignment (OSA) distance | Levenshtein plus a swap of two neighbouring letters as one edit (`chikcen` → `chicken` = 1) | `stringMatch.ts` — `osaDistance`, `fuzzyWordMatch`, `bestWordMatch`. Called by `searchFaq` (`user/data/helpContent.ts`), `searchClientOrders` (`user/services/trackingService.ts`), `searchOrders` (`admin/domain/search.ts`), `fuzzySearchMeals` (`user/services/orderService.ts`) | Help → FAQ; Orders tab search; Admin → Orders; meal catalog search (not on a screen right now) | O(n·m) per word pair | **Used** (typo tier) |
+| 4 | Greedy equal-share selection | Splits daily targets equally across slots and picks, per slot, the meal closest to its share | `frontend/src/user/services/nutritionService.ts` — `greedyEqualShareSelection` | None (tests and notebook only) | O(s·k) for s slots, k meals per slot | Baseline |
+| 5 | Exhaustive search | Tries every one-meal-per-slot combination and keeps the best one within the calorie and fat ceilings | `nutritionService.ts` — `solveNutritionPlan`, called by `user/components/NutritionDayPanel.tsx` | "Daily nutrition targets" → "Suggest a day of meals" (panel not mounted on a screen right now) | O(kˢ) combinations | **Used** |
+
+Rules shared by all searches: text is lowercased with accents and extra spaces removed. Exact (substring) hits come before typo hits. Typo budget: 0 for 1–2 letters, 1 for 3–5, 2 for 6+. Order and tracking numbers are never spelling-corrected.
+
+Tests: `frontend/src/lib/algorithms/stringMatch.test.ts` and `frontend/src/user/services/nutritionAlgorithms.test.ts` (including a check that exhaustive is never worse than greedy).
 
 ## Security
 
