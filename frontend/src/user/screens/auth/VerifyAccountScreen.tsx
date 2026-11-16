@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppButton from '../../components/AppButton';
 import HelpButton from '../../components/HelpButton';
@@ -20,7 +20,7 @@ export default function VerifyAccountScreen({ navigation, route }: {
       <AuthBackgroundDecor />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <ScrollView
           contentContainerStyle={styles.scroll}

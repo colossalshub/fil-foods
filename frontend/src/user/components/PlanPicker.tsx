@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { AuthUser } from '../types';
-import {
-  View, Text, Pressable, Modal, StyleSheet,
-} from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import AppModal from './AppModal';
 import AppButton from './AppButton';
 import BackPageShell from './BackPageShell';
 import FormMessage from './FormMessage';
@@ -168,7 +167,7 @@ export default function PlanPicker({
         />
       </View>
 
-      <Modal visible={summaryOpen} animationType="slide" onRequestClose={onCancelSummary}>
+      <AppModal visible={summaryOpen} animationType="slide" onRequestClose={onCancelSummary} onCloseAll={onCancelSummary}>
         <BackPageShell
           title="Confirm your plan"
           onBack={onCancelSummary}
@@ -195,7 +194,7 @@ export default function PlanPicker({
             </View>
           ) : null}
         </BackPageShell>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

@@ -184,6 +184,15 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           subtitle="Choose each meal. Your dietitian checks it against your profile."
         />
 
+        {/* Today's nutrition sits above search so it is visible without scrolling. */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.nutritionLabel}>{`TODAY'S NUTRITION`}</Text>
+          <Text style={styles.calories}>{calories} Kcal today</Text>
+          <Text style={styles.reviewTitle}>Subject to Dietitian review</Text>
+          <Text style={styles.reviewBody}>Final suitability requires Dietitian review.</Text>
+        </View>
+
+
         {/* USR-37: the Meal tab opens the meal catalog and its search tools. */}
         <Pressable
           accessibilityRole="search"
@@ -249,13 +258,6 @@ export default function BuildTodaysMealsScreen({ navigation }: {
             ))}
           </View>
         ))}
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.nutritionLabel}>{`TODAY'S NUTRITION`}</Text>
-          <Text style={styles.calories}>{calories} Kcal today</Text>
-          <Text style={styles.reviewTitle}>Subject to Dietitian review</Text>
-          <Text style={styles.reviewBody}>Final suitability requires Dietitian review.</Text>
-        </View>
 
         <Text style={styles.allergy}>{allergyNote}</Text>
 

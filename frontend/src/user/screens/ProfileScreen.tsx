@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import type { Allergy, FieldMap, PersonalInfoInput, Profile } from '../types';
 import { useNavigation } from '@react-navigation/native';
-import {
-  View, Text, Modal, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+import AppModal from '../components/AppModal';
+import ActionRow from '../components/ActionRow';
+import InlineDialog from '../components/InlineDialog';
+import SlideLayer from '../components/SlideLayer';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
 import ChangeHistoryCard from '../components/ChangeHistoryCard';
@@ -159,29 +161,22 @@ function AccountMenuRow({
   label,
   onPress,
   danger,
+  summary,
+  last,
 }: {
   icon: ComponentProps<typeof Ionicons>['name'];
   label: string;
   onPress: () => void;
   danger?: boolean;
+  summary?: string | null;
+  last?: boolean;
 }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={styles.menuRow}
-    >
-      <View style={styles.menuIconWrap}>
-        <Ionicons name={icon} size={22} color={danger ? colors.danger : colors.primary} />
-      </View>
-      <Text style={[styles.menuLabel, danger && styles.menuLabelDanger]}>{label}</Text>
-      {!danger ? <Ionicons name="chevron-forward" size={18} color={colors.inactive} /> : null}
-    </Pressable>
-  );
+  return <ActionRow icon={icon} label={label} summary={summary} onPress={onPress} danger={danger} divider={!last} />;
 }
 
 function ProfileModalShell({
   visible,
+  animate = true,
   title,
   subtitle,
   onClose,
@@ -189,6 +184,8 @@ function ProfileModalShell({
   footer,
 }: {
   visible?: boolean;
+  /** False when this is the only page: the host modal slides instead. */
+  animate?: boolean;
   title: string;
   subtitle?: string;
   onClose?: () => void;
@@ -196,7 +193,7 @@ function ProfileModalShell({
   footer?: ReactNode;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <SlideLayer visible={Boolean(visible)} animate={animate}>
       <BackPageShell
         title={title}
         onBack={onClose ?? (() => undefined)}
@@ -207,7 +204,7 @@ function ProfileModalShell({
         {subtitle ? <Text style={styles.modalLead}>{subtitle}</Text> : null}
         <View style={styles.modalFormCard}>{children}</View>
       </BackPageShell>
-    </Modal>
+    </SlideLayer>
   );
 }
 
@@ -273,6 +270,8 @@ export default function ProfileScreen() {
   } | null>(null);
   const [verifyKey, setVerifyKey] = useState(0);
   const [discardPersonal, setDiscardPersonal] = useState(false);
+  const [discardRecipient, setDiscardRecipient] = useState(false);
+  const [hostAnimation, setHostAnimation] = useState<'slide' | 'fade'>('slide');
 
   const [healthOpen, setHealthOpen] = useState(false);
   const [healthSelected, setHealthSelected] = useState<string[]>([]);
@@ -685,10 +684,7 @@ export default function ProfileScreen() {
 
   const closeRecipient = () => {
     if (recipientDirty) {
-      Alert.alert('Discard unsaved changes?', undefined, [
-        { text: 'Keep editing', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => setRecipientOpen(false) },
-      ]);
+      setDiscardRecipient(true);
       return;
     }
     setRecipientOpen(false);
@@ -737,6 +733,50 @@ export default function ProfileScreen() {
     signOut();
   };
 
+  // Layers inside the single Account modal, top first (Android back closes the top one).
+  const editorOpen = personalOpen || healthOpen || allergyOpen || mealPrefOpen || nutritionOpen || guardianOpen;
+  const anyPageOpen = editorOpen || healthOverviewOpen || activityOpen || historyOpen || recipientOpen;
+  const anyDialogOpen = discardPersonal || discardRecipient || enableBioOpen || unlockBioOpen
+    || confirmRemoveGuardian || deleteOpen || confirmLogout;
+  const accountModalVisible = anyPageOpen || anyDialogOpen;
+  const openPageCount = [personalOpen, healthOpen, allergyOpen, mealPrefOpen, nutritionOpen, guardianOpen,
+    healthOverviewOpen, activityOpen, historyOpen, recipientOpen].filter(Boolean).length;
+  // A page slides by itself only when another page stays underneath it; the first page
+  // rides on the host modal's own slide, so it never slides twice.
+  const slideFor = (open: boolean) => openPageCount - (open ? 1 : 0) > 0;
+  // Pages slide the whole host; a confirmation shown from the Account screen itself fades.
+  // Remember the last choice so the host closes with the same animation it opened with.
+  const wantedHostAnimation = anyPageOpen ? 'slide' : anyDialogOpen ? 'fade' : hostAnimation;
+  if (wantedHostAnimation !== hostAnimation) setHostAnimation(wantedHostAnimation);
+  const closeTopLayer = () => {
+    if (discardPersonal) return setDiscardPersonal(false);
+    if (discardRecipient) return setDiscardRecipient(false);
+    if (confirmRemoveGuardian) return setConfirmRemoveGuardian(false);
+    if (enableBioOpen) return setEnableBioOpen(false);
+    if (unlockBioOpen) return setUnlockBioOpen(false);
+    if (deleteOpen) return setDeleteOpen(false);
+    if (confirmLogout) return setConfirmLogout(false);
+    if (personalOpen) return tryClosePersonal();
+    if (healthOpen) return setHealthOpen(false);
+    if (allergyOpen) return setAllergyOpen(false);
+    if (mealPrefOpen) return setMealPrefOpen(false);
+    if (nutritionOpen) return setNutritionOpen(false);
+    if (guardianOpen) return setGuardianOpen(false);
+    if (recipientOpen) return closeRecipient();
+    if (historyOpen) return setHistoryOpen(false);
+    if (activityOpen) return setActivityOpen(false);
+    if (healthOverviewOpen) return setHealthOverviewOpen(false);
+    return undefined;
+  };
+
+  const closeAllLayers = () => {
+    if (personalOpen && user?.id) cancelPendingContactChange(user!.id as string);
+    [setDiscardPersonal, setDiscardRecipient, setConfirmRemoveGuardian, setEnableBioOpen, setUnlockBioOpen,
+      setDeleteOpen, setConfirmLogout, setPersonalOpen, setHealthOpen, setAllergyOpen, setMealPrefOpen,
+      setNutritionOpen, setGuardianOpen, setRecipientOpen, setHistoryOpen, setActivityOpen,
+      setHealthOverviewOpen].forEach((close) => close(false));
+  };
+
   if (!profile) {
     return (
       <AppPageShell edges={['top']} contentStyle={styles.screen}>
@@ -771,23 +811,24 @@ export default function ProfileScreen() {
     </>
   );
 
+  const mealPrefSummary = [
+    ...(profile.mealPreferences?.preferredCategories || []),
+    ...((profile.mealPreferences?.dislikedIngredients || []).length
+      ? [`Avoid: ${(profile.mealPreferences?.dislikedIngredients || []).join(', ')}`]
+      : []),
+  ].join(' · ');
+  const nutritionSummary = (profile.nutritionalPreferences || [])
+    .map((id) => NUTRITIONAL_OPTIONS.find((option) => option.id === id)?.label || id)
+    .join(', ');
+
   const healthEditLinks = (
-    <View style={styles.cardLinks}>
-      <Pressable accessibilityRole="button" onPress={openHealth} style={styles.cardLinkHit}>
-        <Text style={styles.cardLink}>Health conditions</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={openAllergies} style={styles.cardLinkHit}>
-        <Text style={styles.cardLink}>Food allergies</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={openMealPref} style={styles.cardLinkHit}>
-        <Text style={styles.cardLink}>Meal preferences</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={openNutrition} style={styles.cardLinkHit}>
-        <Text style={styles.cardLink}>Nutritional preferences</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={openGuardian} style={styles.cardLinkHit}>
-        <Text style={styles.cardLink}>Guardian or family contact</Text>
-      </Pressable>
+    <View style={styles.rowsCard}>
+      <Text style={styles.rowsHeading}>Update your information</Text>
+      <AccountMenuRow icon="medkit-outline" label="Health conditions" summary={joinValues(profile.healthConditions)} onPress={openHealth} />
+      <AccountMenuRow icon="alert-circle-outline" label="Food allergies" summary={allergiesText} onPress={openAllergies} />
+      <AccountMenuRow icon="restaurant-outline" label="Meal preferences" summary={mealPrefSummary || '—'} onPress={openMealPref} />
+      <AccountMenuRow icon="nutrition-outline" label="Nutritional preferences" summary={nutritionSummary || '—'} onPress={openNutrition} />
+      <AccountMenuRow icon="call-outline" label="Guardian or family contact" summary={healthContactValue} onPress={openGuardian} last />
     </View>
   );
 
@@ -834,18 +875,11 @@ export default function ProfileScreen() {
             onPress={() => (navigation as { navigate: (name: string) => void }).navigate('Alerts')}
           />
           <AccountMenuRow icon="help-circle-outline" label={ACCOUNT_COPY.help} onPress={() => openHelp(navigation)} />
-          <AccountMenuRow icon="log-out-outline" label={ACCOUNT_COPY.logOut} onPress={() => setConfirmLogout(true)} danger />
+          <AccountMenuRow icon="log-out-outline" label={ACCOUNT_COPY.logOut} onPress={() => setConfirmLogout(true)} danger last />
         </View>
 
         <View style={styles.moreCard}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => openFeedback(navigation)}
-            style={styles.moreRow}
-          >
-            <Text style={styles.moreLabel}>{FEEDBACK_COPY.title}</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.inactive} />
-          </Pressable>
+          <AccountMenuRow icon="chatbubble-ellipses-outline" label={FEEDBACK_COPY.title} onPress={() => openFeedback(navigation)} />
 
           {showBiometricOption ? (
             <View style={styles.biometricWrap}>
@@ -863,23 +897,14 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
-          {acceptance ? (
-            <View style={styles.moreRow}>
-              <Text style={[styles.moreLabel, styles.acceptedMeta]}>Accepted {acceptance.formatted}</Text>
-            </View>
-          ) : null}
-          <Pressable accessibilityRole="button" onPress={() => setShowTerms(true)} style={styles.moreRow}>
-            <Text style={styles.moreLabel}>Terms and Conditions</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.inactive} />
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setShowPrivacy(true)} style={styles.moreRow}>
-            <Text style={styles.moreLabel}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.inactive} />
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={openDelete} style={styles.moreRow}>
-            <Text style={[styles.moreLabel, styles.moreDanger]}>Delete account</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.inactive} />
-          </Pressable>
+          <AccountMenuRow
+            icon="document-text-outline"
+            label="Terms and Conditions"
+            summary={acceptance ? `Accepted ${acceptance.formatted}` : null}
+            onPress={() => setShowTerms(true)}
+          />
+          <AccountMenuRow icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => setShowPrivacy(true)} />
+          <AccountMenuRow icon="trash-outline" label="Delete account" onPress={openDelete} danger last />
         </View>
       </ScrollView>
 
@@ -891,458 +916,491 @@ export default function ProfileScreen() {
       />
       <PrivacyModal visible={showPrivacy} onClose={() => setShowPrivacy(false)} />
 
-      <ProfileModalShell
-        visible={personalOpen}
-        title="Edit profile"
-        subtitle={editProfileSubtitle}
-        onClose={tryClosePersonal}
-        footer={personalStep === 'form' ? (
-          <AppButton title="Save Profile" onPress={onSavePersonal} color={colors.action} style={styles.modalSave} />
-        ) : null}
+      {/*
+        One modal for every Account sub-page. React Native cannot reliably present a second
+        native Modal while one is visible (iOS waits for the first to close; this is why the
+        editors only appeared after pressing Back). So all sub-pages are in-tree layers inside
+        this single AppModal: base pages first, editors above them, confirmations last.
+      */}
+      <AppModal
+        visible={accountModalVisible}
+        transparent
+        avoidKeyboard={false}
+        animationType={wantedHostAnimation}
+        onRequestClose={closeTopLayer}
+        onCloseAll={closeAllLayers}
       >
-        {personalStep === 'form' ? (
-          <>
-            <FormMessage messages={personalMessages} />
-            <AppInput label="First name" value={personalForm.firstName} error={personalErrors.firstName ? MSG.required : undefined}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, firstName: v })); setPersonalDirty(true); }} />
-            <AppInput label="Middle name" value={personalForm.middleName}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, middleName: v })); setPersonalDirty(true); }} />
-            <AppInput label="Last name" value={personalForm.lastName} error={personalErrors.lastName ? MSG.required : undefined}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, lastName: v })); setPersonalDirty(true); }} />
-            <AppInput label="Suffix (optional)" value={personalForm.suffix}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, suffix: v })); setPersonalDirty(true); }} />
-            <AppInput label="Contact number" value={personalForm.contactNumber} keyboardType="phone-pad"
-              error={personalErrors.contactNumber ? (personalMessages.find((m) => m.includes('contact')) || MSG.invalidContact) : undefined}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, contactNumber: v })); setPersonalDirty(true); }} />
-            <AppInput label="Email" value={personalForm.email} keyboardType="email-address"
-              error={personalErrors.email ? (personalMessages.find((m) => m.includes('email')) || MSG.invalidEmail) : undefined}
-              onChangeText={(v) => { setPersonalForm((f) => ({ ...f, email: v })); setPersonalDirty(true); }} />
-            {profile.accountFor !== 'family' ? (
-              <AppInput label="Address" value={personalForm.address}
-                onChangeText={(v) => { setPersonalForm((f) => ({ ...f, address: v })); setPersonalDirty(true); }} />
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Text style={styles.body}>Confirm your new contact details with a verification code.</Text>
-            <VerificationFlow
-              key={verifyKey}
-              userId={user!.id as string}
-              purpose="contact"
-              phone={verifyMeta?.phone}
-              email={verifyMeta?.email}
-              autoChannel={verifyMeta?.channel}
-              successMessage={MSG.profileUpdated}
-              successButtonTitle="Continue"
-              onVerified={onContactVerified}
-            />
-          </>
-        )}
-      </ProfileModalShell>
-
-      <ProfileModalShell
-        visible={healthOpen}
-        title="Health conditions"
-        subtitle="Select known conditions and add doctor-provided restrictions."
-        onClose={() => setHealthOpen(false)}
-        footer={<AppButton title="Save" onPress={saveHealthAndDiet} color={colors.action} style={styles.modalSave} />}
-      >
-        {PROFILE_HEALTH_OPTIONS.map((label) => (
-          <Checkbox
-            key={label}
-            checked={healthSelected.includes(label)}
-            onToggle={() => setHealthSelected((prev) => (
-              prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
-            ))}
-          >
-            {label}
-          </Checkbox>
-        ))}
-        <AppInput label="Other / Doctor-provided restriction" value={healthOther} onChangeText={setHealthOther} />
-        <Text style={styles.inputGroupLabel}>Other dietary restrictions</Text>
-        {PROFILE_DIET_OPTIONS.map((label) => (
-          <Checkbox
-            key={label}
-            checked={dietSelected.includes(label)}
-            onToggle={() => setDietSelected((prev) => (
-              prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
-            ))}
-          >
-            {label}
-          </Checkbox>
-        ))}
-        <AppInput label="Other dietary restriction" value={dietOther} onChangeText={setDietOther} />
-      </ProfileModalShell>
-
-      <ProfileModalShell
-        visible={allergyOpen}
-        title="Food allergies"
-        subtitle={profile.accountFor === 'family' && recipientName ? `Meals for ${recipientName}` : 'Meals for you'}
-        onClose={() => setAllergyOpen(false)}
-        footer={<AppButton title="Save" onPress={saveAllergy} color={colors.action} style={styles.modalSave} />}
-      >
-        <View style={styles.chipWrap}>
-          {ALLERGY_PRESETS.map((name) => (
-            <Chip key={name} label={name} active={allergyList.some((a) => a.name === name)} onPress={() => toggleAllergy(name)} />
-          ))}
-          <Chip
-            label="No allergies"
-            active={allergyList.length === 0 && !allergyManual.trim()}
-            onPress={() => setAllergyList([])}
-          />
-        </View>
-        <AppInput label="Other allergies" value={allergyManual} onChangeText={setAllergyManual} />
-        <AppInput label="Reaction note (optional)" value={allergyNote} onChangeText={setAllergyNote} />
-        <AppButton title="Add allergen" variant="outline" onPress={addManualAllergy} color={colors.primary} />
-        {allergyList.map((a) => (
-          <View key={a.name} style={styles.allergyRow}>
-            <Text style={styles.body}>{a.name}{a.note ? ` — ${a.note}` : ''}</Text>
-            <Pressable accessibilityRole="button" onPress={() => setAllergyList((prev) => prev.filter((x) => x.name !== a.name))}>
-              <Text style={styles.editLink}>Remove</Text>
-            </Pressable>
-          </View>
-        ))}
-      </ProfileModalShell>
-
-      <ProfileModalShell
-        visible={mealPrefOpen}
-        title="Meal preferences"
-        subtitle="Choose the meals you enjoy and the ingredients to avoid."
-        onClose={() => setMealPrefOpen(false)}
-        footer={<AppButton title="Save" onPress={saveMealPref} color={colors.action} style={styles.modalSave} />}
-      >
-        <Text style={styles.inputGroupLabel}>Preferred categories</Text>
-        <View style={styles.chipWrap}>
-          {MEAL_CATEGORY_PRESETS.map((category) => (
-            <Chip
-              key={category}
-              label={category}
-              active={mealCategories.includes(category)}
-              onPress={() => setMealCategories((prev) => (
-                prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]
-              ))}
-            />
-          ))}
-        </View>
-        <Text style={styles.inputGroupLabel}>Disliked ingredients</Text>
-        <View style={styles.chipWrap}>
-          {dislikedList.map((ingredient) => (
-            <Pressable
-              key={ingredient}
-              accessibilityRole="button"
-              onPress={() => setDislikedList((prev) => prev.filter((item) => item !== ingredient))}
-              style={styles.dislikedChip}
-            >
-              <Text style={styles.dislikedText}>{ingredient} ×</Text>
-            </Pressable>
-          ))}
-        </View>
-        <AppInput
-          label="Add an ingredient to avoid"
-          value={ingredientDraft}
-          onChangeText={setIngredientDraft}
-          onSubmitEditing={addDislikedIngredient}
-        />
-      </ProfileModalShell>
-
-      <ProfileModalShell
-        visible={nutritionOpen}
-        title="Nutritional preferences"
-        subtitle={profile.accountFor === 'family' ? 'Choose what matters for the meal recipient.' : 'Choose what matters for your meals.'}
-        onClose={() => setNutritionOpen(false)}
-        footer={<AppButton title="Save" onPress={saveNutrition} color={colors.action} style={styles.modalSave} />}
-      >
-        {profile.accountFor === 'family' ? (
-          <Text style={styles.familyNote}>
-            For a Family Member account, these options are shown for the meal recipient.
-          </Text>
-        ) : null}
-        {NUTRITIONAL_OPTIONS.map((opt) => {
-          const selected = nutritionChoice.includes(opt.id);
-          return (
-            <View key={opt.id} style={[styles.choiceCard, selected && styles.choiceCardOn]}>
-              <Checkbox
-                checked={selected}
-                onToggle={() => setNutritionChoice((prev) => (
-                  prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]
-                ))}
-              >
-                {opt.label}
-              </Checkbox>
-              <Text style={styles.choiceDetail}>{NUTRITION_OPTION_DETAILS[opt.id]}</Text>
-            </View>
-          );
-        })}
-        <AppInput label="Daily calories (optional)" value={targetCalories} onChangeText={setTargetCalories} keyboardType="number-pad" />
-        <AppInput label="Daily protein (g) (optional)" value={targetProtein} onChangeText={setTargetProtein} keyboardType="number-pad" />
-        <AppInput label="Daily fat limit (g) (optional)" value={targetFat} onChangeText={setTargetFat} keyboardType="number-pad" />
-      </ProfileModalShell>
-
-      <ProfileModalShell
-        visible={guardianOpen}
-        title={profile.guardian ? 'Edit guardian' : 'Add guardian'}
-        subtitle={profile.guardian ? 'Update the saved details.' : 'Name, relationship and contact number.'}
-        onClose={() => setGuardianOpen(false)}
-        footer={(
-          <>
-            <AppButton
-              title={profile.guardian ? 'Save' : 'Add guardian'}
-              onPress={saveGuardianForm}
-              color={colors.action}
-              style={styles.modalSave}
-            />
-            {profile.guardian ? (
-              <AppButton title="Remove guardian" variant="outline" onPress={() => setConfirmRemoveGuardian(true)} color={colors.danger} style={styles.modalCancel} />
-            ) : null}
-          </>
-        )}
-      >
-        {profile.guardian ? (
-          <View style={styles.guardianSummary}>
-            <Text style={styles.body}>{profile.guardian.name}</Text>
-            <Text style={styles.mutedLine}>{profile.guardian.relationship}</Text>
-            <Text style={styles.mutedLine}>{profile.guardian.contactNumber}</Text>
-          </View>
-        ) : (
-          <Text style={styles.mutedLine}>{MSG.noGuardian}</Text>
-        )}
-        <FormMessage messages={guardianMessages} />
-        <AppInput label="Name" value={guardianForm.name} onChangeText={(v) => setGuardianForm((f) => ({ ...f, name: v }))} />
-        <AppInput label="Relationship" value={guardianForm.relationship} onChangeText={(v) => setGuardianForm((f) => ({ ...f, relationship: v }))} />
-        <AppInput label="Contact number" value={guardianForm.contactNumber} keyboardType="phone-pad" onChangeText={(v) => setGuardianForm((f) => ({ ...f, contactNumber: v }))} />
-      </ProfileModalShell>
-
-      <Modal visible={healthOverviewOpen} animationType="slide" onRequestClose={() => setHealthOverviewOpen(false)}>
-        <BackPageShell
-          title={ACCOUNT_COPY.healthInformation}
-          onBack={() => setHealthOverviewOpen(false)}
-          edges={['top', 'bottom']}
-          footer={(
-            <AppButton
-              title="Close"
-              onPress={() => setHealthOverviewOpen(false)}
-              color={colors.primary}
-              style={styles.modalCancel}
-            />
-          )}
-        >
-          {profile.accountFor === 'family' ? (
-            <>
-              <ProfileCard title="Your details">
-                <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                <ProfileField label="Contact number" value={profile.contactNumber} />
-                <ProfileField label="Email" value={profile.email} />
-              </ProfileCard>
-              <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
-                <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
-                <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
-                {healthSummary}
-              </ProfileCard>
-            </>
-          ) : (
-            <>
-              <ProfileCard title="Personal information">
-                <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                <ProfileField label="Contact number" value={profile.contactNumber} />
-                <ProfileField label="Email" value={profile.email} />
-                <ProfileField label="Address" value={profile.address} />
-              </ProfileCard>
-              <ProfileCard title="Health Information">
-                {healthSummary}
-              </ProfileCard>
-            </>
-          )}
-          {healthEditLinks}
-          <Text style={styles.lastUpdated}>
-            {profile.profileLastUpdatedFormatted
-              ? `Last updated ${profile.profileLastUpdatedFormatted}`
-              : 'Last updated —'}
-          </Text>
-        </BackPageShell>
-      </Modal>
-
-      <Modal visible={activityOpen} animationType="slide" onRequestClose={() => setActivityOpen(false)}>
-        <BackPageShell
-          title={ACCOUNT_COPY.activityRecord}
-          onBack={() => setActivityOpen(false)}
-          edges={['top', 'bottom']}
-          subtitle={activity.length ? 'Newest first' : null}
-          backLabel={ACCOUNT_COPY.screenTitle}
-        >
-          {activity.length === 0 ? (
-            <View style={styles.historyEmpty}>
-              <Ionicons name="document-text-outline" size={32} color={colors.primary} />
-              <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
-            </View>
-          ) : (
-            <View style={styles.activityCard}>
-              {activity.map((entry, index) => (
-                <Text
-                  key={entry.id}
-                  style={[styles.activityLine, index > 0 && styles.activityDivider]}
-                >
-                  {entry.formatted}
-                </Text>
-              ))}
-            </View>
-          )}
-          {!isAuditChainIntact() ? (
-            <Text style={styles.body}>{ACCOUNT_COPY.activityIntegrityWarning}</Text>
-          ) : null}
-        </BackPageShell>
-      </Modal>
-
-      <Modal visible={historyOpen} animationType="slide" onRequestClose={() => setHistoryOpen(false)}>
-        <BackPageShell
-          title={ACCOUNT_COPY.changeHistory}
-          onBack={() => setHistoryOpen(false)}
-          edges={['top', 'bottom']}
-          subtitle={history.length ? 'Newest first' : null}
-          backLabel={ACCOUNT_COPY.screenTitle}
-        >
-          {history.length === 0 ? (
-            <View style={styles.historyEmpty}>
-              <Ionicons name="time-outline" size={32} color={colors.primary} />
-              <Text style={styles.body}>{MSG.noChangesYet}</Text>
-            </View>
-          ) : (
-            history.map((entry) => (
-              <ChangeHistoryCard key={entry.id} entry={entry} recipientName={historyRecipientName} />
-            ))
-          )}
-          {!isAuditChainIntact() ? (
-            <Text style={styles.body}>Change history could not be verified. A stored event may have been altered.</Text>
-          ) : null}
-        </BackPageShell>
-      </Modal>
-
-      <Modal visible={discardPersonal} transparent animationType="fade" onRequestClose={() => setDiscardPersonal(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Discard unsaved changes?</Text>
-            <AppButton title="Keep editing" onPress={() => setDiscardPersonal(false)} color={colors.primary} />
-            <AppButton title="Discard" variant="outline" onPress={() => {
-              if (user?.id) cancelPendingContactChange(user!.id as string);
-              setDiscardPersonal(false);
-              setPersonalOpen(false);
-            }} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={enableBioOpen} transparent animationType="fade" onRequestClose={() => setEnableBioOpen(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Turn on biometric unlock</Text>
-            <Text style={styles.confirmBody}>Enter your current password to confirm.</Text>
-            <FormMessage messages={enableBioMessages} />
-            <AppInput
-              label="Password"
-              value={enableBioPassword}
-              secureTextEntry
-              onChangeText={setEnableBioPassword}
-            />
-            <AppButton title="Confirm" onPress={onConfirmEnableBio} color={colors.primary} />
-            <AppButton title="Cancel" variant="outline" onPress={() => setEnableBioOpen(false)} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={unlockBioOpen} transparent animationType="fade" onRequestClose={() => setUnlockBioOpen(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Confirm it&apos;s you</Text>
-            <FormMessage messages={unlockBioMessages} />
-            {unlockNeedsPassword ? (
-              <>
-                <Text style={styles.confirmBody}>Use your password to continue.</Text>
-                <AppInput
-                  label="Password"
-                  value={unlockBioPassword}
-                  secureTextEntry
-                  onChangeText={setUnlockBioPassword}
+        <View style={styles.layerHost}>
+          <SlideLayer visible={healthOverviewOpen} animate={slideFor(healthOverviewOpen)}>
+            <BackPageShell
+              title={ACCOUNT_COPY.healthInformation}
+              onBack={() => setHealthOverviewOpen(false)}
+              edges={['top', 'bottom']}
+              footer={(
+                <AppButton
+                  title="Close"
+                  onPress={() => setHealthOverviewOpen(false)}
+                  color={colors.primary}
+                  style={styles.modalCancel}
                 />
-                <AppButton title="Continue with password" onPress={onUnlockWithPassword} color={colors.primary} />
+              )}
+            >
+              {profile.accountFor === 'family' ? (
+                <>
+                  <ProfileCard title="Your details">
+                    <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+                    <ProfileField label="Contact number" value={profile.contactNumber} />
+                    <ProfileField label="Email" value={profile.email} />
+                  </ProfileCard>
+                  <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
+                    <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
+                    <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
+                    {healthSummary}
+                  </ProfileCard>
+                </>
+              ) : (
+                <>
+                  <ProfileCard title="Personal information">
+                    <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+                    <ProfileField label="Contact number" value={profile.contactNumber} />
+                    <ProfileField label="Email" value={profile.email} />
+                    <ProfileField label="Address" value={profile.address} />
+                  </ProfileCard>
+                  <ProfileCard title="Health Information">
+                    {healthSummary}
+                  </ProfileCard>
+                </>
+              )}
+              {healthEditLinks}
+              <Text style={styles.lastUpdated}>
+                {profile.profileLastUpdatedFormatted
+                  ? `Last updated ${profile.profileLastUpdatedFormatted}`
+                  : 'Last updated —'}
+              </Text>
+            </BackPageShell>
+          </SlideLayer>
+
+          <SlideLayer visible={activityOpen} animate={slideFor(activityOpen)}>
+            <BackPageShell
+              title={ACCOUNT_COPY.activityRecord}
+              onBack={() => setActivityOpen(false)}
+              edges={['top', 'bottom']}
+              subtitle={activity.length ? 'Newest first' : null}
+              backLabel={ACCOUNT_COPY.screenTitle}
+            >
+              {activity.length === 0 ? (
+                <View style={styles.historyEmpty}>
+                  <Ionicons name="document-text-outline" size={32} color={colors.primary} />
+                  <Text style={styles.body}>{ACCOUNT_COPY.noActivityYet}</Text>
+                </View>
+              ) : (
+                <View style={styles.activityCard}>
+                  {activity.map((entry, index) => (
+                    <Text
+                      key={entry.id}
+                      style={[styles.activityLine, index > 0 && styles.activityDivider]}
+                    >
+                      {entry.formatted}
+                    </Text>
+                  ))}
+                </View>
+              )}
+              {!isAuditChainIntact() ? (
+                <Text style={styles.body}>{ACCOUNT_COPY.activityIntegrityWarning}</Text>
+              ) : null}
+            </BackPageShell>
+          </SlideLayer>
+
+          <SlideLayer visible={historyOpen} animate={slideFor(historyOpen)}>
+            <BackPageShell
+              title={ACCOUNT_COPY.changeHistory}
+              onBack={() => setHistoryOpen(false)}
+              edges={['top', 'bottom']}
+              subtitle={history.length ? 'Newest first' : null}
+              backLabel={ACCOUNT_COPY.screenTitle}
+            >
+              {history.length === 0 ? (
+                <View style={styles.historyEmpty}>
+                  <Ionicons name="time-outline" size={32} color={colors.primary} />
+                  <Text style={styles.body}>{MSG.noChangesYet}</Text>
+                </View>
+              ) : (
+                history.map((entry) => (
+                  <ChangeHistoryCard key={entry.id} entry={entry} recipientName={historyRecipientName} />
+                ))
+              )}
+              {!isAuditChainIntact() ? (
+                <Text style={styles.body}>Change history could not be verified. A stored event may have been altered.</Text>
+              ) : null}
+            </BackPageShell>
+          </SlideLayer>
+
+          <SlideLayer visible={recipientOpen} animate={slideFor(recipientOpen)}>
+            <BackPageShell
+              title="Edit meal recipient"
+              onBack={closeRecipient}
+              edges={['top', 'bottom']}
+              avoidKeyboard
+              footer={(
+                <>
+                  <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
+                  <AppButton title="Back" variant="outline" onPress={closeRecipient} color={colors.primary} style={styles.modalCancel} />
+                </>
+              )}
+            >
+              <FormMessage messages={recipientMessages} />
+              <View style={styles.modalFormCard}>
+                <AppInput label="First name" value={recipientForm.firstName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, firstName: value })); setRecipientDirty(true); }} />
+                <AppInput label="Middle name" value={recipientForm.middleName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, middleName: value })); setRecipientDirty(true); }} />
+                <AppInput label="Last name" value={recipientForm.lastName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, lastName: value })); setRecipientDirty(true); }} />
+                <AppInput label="Suffix" value={recipientForm.suffix} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, suffix: value })); setRecipientDirty(true); }} />
+                <AppInput label="Relationship" value={recipientForm.relationship} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, relationship: value })); setRecipientDirty(true); }} />
+                <AppInput label="Contact number" value={recipientForm.contactNumber} keyboardType="phone-pad" onChangeText={(value) => { setRecipientForm((form) => ({ ...form, contactNumber: value })); setRecipientDirty(true); }} />
+                <AppInput label="Delivery address" value={recipientForm.deliveryAddress} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, deliveryAddress: value })); setRecipientDirty(true); }} />
+              </View>
+            </BackPageShell>
+          </SlideLayer>
+          <ProfileModalShell
+            visible={personalOpen}
+            animate={slideFor(personalOpen)}
+            title="Edit profile"
+            subtitle={editProfileSubtitle}
+            onClose={tryClosePersonal}
+            footer={personalStep === 'form' ? (
+              <AppButton title="Save Profile" onPress={onSavePersonal} color={colors.action} style={styles.modalSave} />
+            ) : null}
+          >
+            {personalStep === 'form' ? (
+              <>
+                <FormMessage messages={personalMessages} />
+                <AppInput label="First name" value={personalForm.firstName} error={personalErrors.firstName ? MSG.required : undefined}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, firstName: v })); setPersonalDirty(true); }} />
+                <AppInput label="Middle name" value={personalForm.middleName}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, middleName: v })); setPersonalDirty(true); }} />
+                <AppInput label="Last name" value={personalForm.lastName} error={personalErrors.lastName ? MSG.required : undefined}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, lastName: v })); setPersonalDirty(true); }} />
+                <AppInput label="Suffix (optional)" value={personalForm.suffix}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, suffix: v })); setPersonalDirty(true); }} />
+                <AppInput label="Contact number" value={personalForm.contactNumber} keyboardType="phone-pad"
+                  error={personalErrors.contactNumber ? (personalMessages.find((m) => m.includes('contact')) || MSG.invalidContact) : undefined}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, contactNumber: v })); setPersonalDirty(true); }} />
+                <AppInput label="Email" value={personalForm.email} keyboardType="email-address"
+                  error={personalErrors.email ? (personalMessages.find((m) => m.includes('email')) || MSG.invalidEmail) : undefined}
+                  onChangeText={(v) => { setPersonalForm((f) => ({ ...f, email: v })); setPersonalDirty(true); }} />
+                {profile.accountFor !== 'family' ? (
+                  <AppInput label="Address" value={personalForm.address}
+                    onChangeText={(v) => { setPersonalForm((f) => ({ ...f, address: v })); setPersonalDirty(true); }} />
+                ) : null}
               </>
             ) : (
-              <AppButton title="Try biometric again" onPress={onTryBiometricUnlock} color={colors.primary} />
-            )}
-            <AppButton title="Cancel" variant="outline" onPress={() => setUnlockBioOpen(false)} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={confirmRemoveGuardian} transparent animationType="fade" onRequestClose={() => setConfirmRemoveGuardian(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Remove guardian</Text>
-            <Text style={styles.confirmBody}>{MSG.removeGuardianConfirm}</Text>
-            <AppButton title="Yes" onPress={() => { setConfirmRemoveGuardian(false); onRemoveGuardian(); }} color={colors.primary} />
-            <AppButton title="No" variant="outline" onPress={() => setConfirmRemoveGuardian(false)} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={recipientOpen} animationType="slide" onRequestClose={closeRecipient}>
-        <BackPageShell
-          title="Edit meal recipient"
-          onBack={closeRecipient}
-          edges={['top', 'bottom']}
-          avoidKeyboard
-          footer={(
-            <>
-              <AppButton title="Save" onPress={onSaveRecipient} color={colors.primary} />
-              <AppButton title="Back" variant="outline" onPress={closeRecipient} color={colors.primary} style={styles.modalCancel} />
-            </>
-          )}
-        >
-          <FormMessage messages={recipientMessages} />
-          <View style={styles.modalFormCard}>
-            <AppInput label="First name" value={recipientForm.firstName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, firstName: value })); setRecipientDirty(true); }} />
-            <AppInput label="Middle name" value={recipientForm.middleName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, middleName: value })); setRecipientDirty(true); }} />
-            <AppInput label="Last name" value={recipientForm.lastName} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, lastName: value })); setRecipientDirty(true); }} />
-            <AppInput label="Suffix" value={recipientForm.suffix} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, suffix: value })); setRecipientDirty(true); }} />
-            <AppInput label="Relationship" value={recipientForm.relationship} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, relationship: value })); setRecipientDirty(true); }} />
-            <AppInput label="Contact number" value={recipientForm.contactNumber} keyboardType="phone-pad" onChangeText={(value) => { setRecipientForm((form) => ({ ...form, contactNumber: value })); setRecipientDirty(true); }} />
-            <AppInput label="Delivery address" value={recipientForm.deliveryAddress} onChangeText={(value) => { setRecipientForm((form) => ({ ...form, deliveryAddress: value })); setRecipientDirty(true); }} />
-          </View>
-        </BackPageShell>
-      </Modal>
-
-      <Modal visible={deleteOpen} transparent animationType="fade" onRequestClose={() => setDeleteOpen(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Delete account</Text>
-            {deleteMessage ? <FormMessage messages={deleteMessage} /> : null}
-            {profile?.accountFor === 'family' && profile.mealRecipient ? (
-              <Text style={styles.confirmBody}>Meal recipient: {recipientDisplayName(profile.mealRecipient)}</Text>
-            ) : null}
-            {deleteMessage === MSG.orderInProgress ? null : (
               <>
-                <Text style={styles.confirmBody}>{MSG.deleteWarning}</Text>
-                {user?.id && isGoogleOnlyAccount(getUser(String(user.id))) && !deleteReady ? (
-                  <AppButton title="Sign in with Google again" onPress={() => setDeleteReady(true)} color={colors.primary} />
-                ) : (
-                  <AppInput label="Password" value={deletePassword} onChangeText={setDeletePassword} secure />
-                )}
-                <AppButton title="Yes" onPress={onDeleteYes} color={colors.danger} />
+                <Text style={styles.body}>Confirm your new contact details with a verification code.</Text>
+                <VerificationFlow
+                  key={verifyKey}
+                  userId={user!.id as string}
+                  purpose="contact"
+                  phone={verifyMeta?.phone}
+                  email={verifyMeta?.email}
+                  autoChannel={verifyMeta?.channel}
+                  successMessage={MSG.profileUpdated}
+                  successButtonTitle="Continue"
+                  onVerified={onContactVerified}
+                />
               </>
             )}
-            <AppButton title="No" variant="outline" onPress={() => setDeleteOpen(false)} color={colors.primary} style={styles.confirmNo} />
-          </View>
-        </View>
-      </Modal>
+          </ProfileModalShell>
 
-      <Modal visible={confirmLogout} transparent animationType="fade" onRequestClose={() => setConfirmLogout(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Text style={styles.confirmTitle} accessibilityRole="header">Log out</Text>
-            <Text style={styles.confirmBody}>{MSG.logoutConfirm}</Text>
-            <AppButton title="Yes" onPress={onLogoutYes} color={colors.primary} />
-            <AppButton title="No" variant="outline" onPress={() => setConfirmLogout(false)} color={colors.primary} style={styles.confirmNo} />
-          </View>
+          <ProfileModalShell
+            visible={healthOpen}
+            animate={slideFor(healthOpen)}
+            title="Health conditions"
+            subtitle="Select known conditions and add doctor-provided restrictions."
+            onClose={() => setHealthOpen(false)}
+            footer={<AppButton title="Save" onPress={saveHealthAndDiet} color={colors.action} style={styles.modalSave} />}
+          >
+            {PROFILE_HEALTH_OPTIONS.map((label) => (
+              <Checkbox
+                key={label}
+                checked={healthSelected.includes(label)}
+                onToggle={() => setHealthSelected((prev) => (
+                  prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
+                ))}
+              >
+                {label}
+              </Checkbox>
+            ))}
+            <AppInput label="Other / Doctor-provided restriction" value={healthOther} onChangeText={setHealthOther} />
+            <Text style={styles.inputGroupLabel}>Other dietary restrictions</Text>
+            {PROFILE_DIET_OPTIONS.map((label) => (
+              <Checkbox
+                key={label}
+                checked={dietSelected.includes(label)}
+                onToggle={() => setDietSelected((prev) => (
+                  prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
+                ))}
+              >
+                {label}
+              </Checkbox>
+            ))}
+            <AppInput label="Other dietary restriction" value={dietOther} onChangeText={setDietOther} />
+          </ProfileModalShell>
+
+          <ProfileModalShell
+            visible={allergyOpen}
+            animate={slideFor(allergyOpen)}
+            title="Food allergies"
+            subtitle={profile.accountFor === 'family' && recipientName ? `Meals for ${recipientName}` : 'Meals for you'}
+            onClose={() => setAllergyOpen(false)}
+            footer={<AppButton title="Save" onPress={saveAllergy} color={colors.action} style={styles.modalSave} />}
+          >
+            <View style={styles.chipWrap}>
+              {ALLERGY_PRESETS.map((name) => (
+                <Chip key={name} label={name} active={allergyList.some((a) => a.name === name)} onPress={() => toggleAllergy(name)} />
+              ))}
+              <Chip
+                label="No allergies"
+                active={allergyList.length === 0 && !allergyManual.trim()}
+                onPress={() => setAllergyList([])}
+              />
+            </View>
+            <AppInput label="Other allergies" value={allergyManual} onChangeText={setAllergyManual} />
+            <AppInput label="Reaction note (optional)" value={allergyNote} onChangeText={setAllergyNote} />
+            <AppButton title="Add allergen" variant="outline" onPress={addManualAllergy} color={colors.primary} />
+            {allergyList.map((a) => (
+              <View key={a.name} style={styles.allergyRow}>
+                <Text style={styles.body}>{a.name}{a.note ? ` — ${a.note}` : ''}</Text>
+                <Pressable accessibilityRole="button" onPress={() => setAllergyList((prev) => prev.filter((x) => x.name !== a.name))}>
+                  <Text style={styles.editLink}>Remove</Text>
+                </Pressable>
+              </View>
+            ))}
+          </ProfileModalShell>
+
+          <ProfileModalShell
+            visible={mealPrefOpen}
+            animate={slideFor(mealPrefOpen)}
+            title="Meal preferences"
+            subtitle="Choose the meals you enjoy and the ingredients to avoid."
+            onClose={() => setMealPrefOpen(false)}
+            footer={<AppButton title="Save" onPress={saveMealPref} color={colors.action} style={styles.modalSave} />}
+          >
+            <Text style={styles.inputGroupLabel}>Preferred categories</Text>
+            <View style={styles.chipWrap}>
+              {MEAL_CATEGORY_PRESETS.map((category) => (
+                <Chip
+                  key={category}
+                  label={category}
+                  active={mealCategories.includes(category)}
+                  onPress={() => setMealCategories((prev) => (
+                    prev.includes(category) ? prev.filter((item) => item !== category) : [...prev, category]
+                  ))}
+                />
+              ))}
+            </View>
+            <Text style={styles.inputGroupLabel}>Disliked ingredients</Text>
+            <View style={styles.chipWrap}>
+              {dislikedList.map((ingredient) => (
+                <Pressable
+                  key={ingredient}
+                  accessibilityRole="button"
+                  onPress={() => setDislikedList((prev) => prev.filter((item) => item !== ingredient))}
+                  style={styles.dislikedChip}
+                >
+                  <Text style={styles.dislikedText}>{ingredient} ×</Text>
+                </Pressable>
+              ))}
+            </View>
+            <AppInput
+              label="Add an ingredient to avoid"
+              value={ingredientDraft}
+              onChangeText={setIngredientDraft}
+              onSubmitEditing={addDislikedIngredient}
+            />
+          </ProfileModalShell>
+
+          <ProfileModalShell
+            visible={nutritionOpen}
+            animate={slideFor(nutritionOpen)}
+            title="Nutritional preferences"
+            subtitle={profile.accountFor === 'family' ? 'Choose what matters for the meal recipient.' : 'Choose what matters for your meals.'}
+            onClose={() => setNutritionOpen(false)}
+            footer={<AppButton title="Save" onPress={saveNutrition} color={colors.action} style={styles.modalSave} />}
+          >
+            {profile.accountFor === 'family' ? (
+              <Text style={styles.familyNote}>
+                For a Family Member account, these options are shown for the meal recipient.
+              </Text>
+            ) : null}
+            {NUTRITIONAL_OPTIONS.map((opt) => {
+              const selected = nutritionChoice.includes(opt.id);
+              return (
+                <View key={opt.id} style={[styles.choiceCard, selected && styles.choiceCardOn]}>
+                  <Checkbox
+                    checked={selected}
+                    onToggle={() => setNutritionChoice((prev) => (
+                      prev.includes(opt.id) ? prev.filter((id) => id !== opt.id) : [...prev, opt.id]
+                    ))}
+                  >
+                    {opt.label}
+                  </Checkbox>
+                  <Text style={styles.choiceDetail}>{NUTRITION_OPTION_DETAILS[opt.id]}</Text>
+                </View>
+              );
+            })}
+            <AppInput label="Daily calories (optional)" value={targetCalories} onChangeText={setTargetCalories} keyboardType="number-pad" />
+            <AppInput label="Daily protein (g) (optional)" value={targetProtein} onChangeText={setTargetProtein} keyboardType="number-pad" />
+            <AppInput label="Daily fat limit (g) (optional)" value={targetFat} onChangeText={setTargetFat} keyboardType="number-pad" />
+          </ProfileModalShell>
+
+          <ProfileModalShell
+            visible={guardianOpen}
+            animate={slideFor(guardianOpen)}
+            title={profile.guardian ? 'Edit guardian' : 'Add guardian'}
+            subtitle={profile.guardian ? 'Update the saved details.' : 'Name, relationship and contact number.'}
+            onClose={() => setGuardianOpen(false)}
+            footer={(
+              <>
+                <AppButton
+                  title={profile.guardian ? 'Save' : 'Add guardian'}
+                  onPress={saveGuardianForm}
+                  color={colors.action}
+                  style={styles.modalSave}
+                />
+                {profile.guardian ? (
+                  <AppButton title="Remove guardian" variant="outline" onPress={() => setConfirmRemoveGuardian(true)} color={colors.danger} style={styles.modalCancel} />
+                ) : null}
+              </>
+            )}
+          >
+            {profile.guardian ? (
+              <View style={styles.guardianSummary}>
+                <Text style={styles.body}>{profile.guardian.name}</Text>
+                <Text style={styles.mutedLine}>{profile.guardian.relationship}</Text>
+                <Text style={styles.mutedLine}>{profile.guardian.contactNumber}</Text>
+              </View>
+            ) : (
+              <Text style={styles.mutedLine}>{MSG.noGuardian}</Text>
+            )}
+            <FormMessage messages={guardianMessages} />
+            <AppInput label="Name" value={guardianForm.name} onChangeText={(v) => setGuardianForm((f) => ({ ...f, name: v }))} />
+            <AppInput label="Relationship" value={guardianForm.relationship} onChangeText={(v) => setGuardianForm((f) => ({ ...f, relationship: v }))} />
+            <AppInput label="Contact number" value={guardianForm.contactNumber} keyboardType="phone-pad" onChangeText={(v) => setGuardianForm((f) => ({ ...f, contactNumber: v }))} />
+          </ProfileModalShell>
+          <InlineDialog visible={discardPersonal}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Discard unsaved changes?</Text>
+                <AppButton title="Keep editing" onPress={() => setDiscardPersonal(false)} color={colors.primary} />
+                <AppButton title="Discard" variant="outline" onPress={() => {
+                  if (user?.id) cancelPendingContactChange(user!.id as string);
+                  setDiscardPersonal(false);
+                  setPersonalOpen(false);
+                }} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+          <InlineDialog visible={discardRecipient}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Discard unsaved changes?</Text>
+                <AppButton title="Keep editing" onPress={() => setDiscardRecipient(false)} color={colors.primary} />
+                <AppButton title="Discard" variant="outline" onPress={() => {
+                  setDiscardRecipient(false);
+                  setRecipientOpen(false);
+                }} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+
+          <InlineDialog visible={enableBioOpen}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Turn on biometric unlock</Text>
+                <Text style={styles.confirmBody}>Enter your current password to confirm.</Text>
+                <FormMessage messages={enableBioMessages} />
+                <AppInput
+                  label="Password"
+                  value={enableBioPassword}
+                  secureTextEntry
+                  onChangeText={setEnableBioPassword}
+                />
+                <AppButton title="Confirm" onPress={onConfirmEnableBio} color={colors.primary} />
+                <AppButton title="Cancel" variant="outline" onPress={() => setEnableBioOpen(false)} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+
+          <InlineDialog visible={unlockBioOpen}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Confirm it&apos;s you</Text>
+                <FormMessage messages={unlockBioMessages} />
+                {unlockNeedsPassword ? (
+                  <>
+                    <Text style={styles.confirmBody}>Use your password to continue.</Text>
+                    <AppInput
+                      label="Password"
+                      value={unlockBioPassword}
+                      secureTextEntry
+                      onChangeText={setUnlockBioPassword}
+                    />
+                    <AppButton title="Continue with password" onPress={onUnlockWithPassword} color={colors.primary} />
+                  </>
+                ) : (
+                  <AppButton title="Try biometric again" onPress={onTryBiometricUnlock} color={colors.primary} />
+                )}
+                <AppButton title="Cancel" variant="outline" onPress={() => setUnlockBioOpen(false)} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+
+          <InlineDialog visible={confirmRemoveGuardian}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Remove guardian</Text>
+                <Text style={styles.confirmBody}>{MSG.removeGuardianConfirm}</Text>
+                <AppButton title="Yes" onPress={() => { setConfirmRemoveGuardian(false); onRemoveGuardian(); }} color={colors.primary} />
+                <AppButton title="No" variant="outline" onPress={() => setConfirmRemoveGuardian(false)} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+
+          <InlineDialog visible={deleteOpen}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Delete account</Text>
+                {deleteMessage ? <FormMessage messages={deleteMessage} /> : null}
+                {profile?.accountFor === 'family' && profile.mealRecipient ? (
+                  <Text style={styles.confirmBody}>Meal recipient: {recipientDisplayName(profile.mealRecipient)}</Text>
+                ) : null}
+                {deleteMessage === MSG.orderInProgress ? null : (
+                  <>
+                    <Text style={styles.confirmBody}>{MSG.deleteWarning}</Text>
+                    {user?.id && isGoogleOnlyAccount(getUser(String(user.id))) && !deleteReady ? (
+                      <AppButton title="Sign in with Google again" onPress={() => setDeleteReady(true)} color={colors.primary} />
+                    ) : (
+                      <AppInput label="Password" value={deletePassword} onChangeText={setDeletePassword} secure />
+                    )}
+                    <AppButton title="Yes" onPress={onDeleteYes} color={colors.danger} />
+                  </>
+                )}
+                <AppButton title="No" variant="outline" onPress={() => setDeleteOpen(false)} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
+
+          <InlineDialog visible={confirmLogout}>
+            <View style={styles.backdrop}>
+              <View style={styles.sheet}>
+                <Text style={styles.confirmTitle} accessibilityRole="header">Log out</Text>
+                <Text style={styles.confirmBody}>{MSG.logoutConfirm}</Text>
+                <AppButton title="Yes" onPress={onLogoutYes} color={colors.primary} />
+                <AppButton title="No" variant="outline" onPress={() => setConfirmLogout(false)} color={colors.primary} style={styles.confirmNo} />
+              </View>
+            </View>
+          </InlineDialog>
         </View>
-      </Modal>
+      </AppModal>
     </AppPageShell>
   );
 }
@@ -1356,6 +1414,7 @@ const PAGE = {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  layerHost: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   emptyState: { fontFamily: fonts.regular, marginTop: spacing.xl, fontSize: font.body, lineHeight: 24, color: PAGE.body },
   identityCard: {
@@ -1381,38 +1440,14 @@ const styles = StyleSheet.create({
   menuCard: {
     ...card,
     marginTop: spacing.lg,
-    paddingVertical: spacing.sm,
     overflow: 'hidden',
   },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touch.min,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: PAGE.border,
-  },
-  menuIconWrap: { width: 28, alignItems: 'center' },
-  menuLabel: { fontFamily: fonts.semibold, flex: 1, fontSize: font.body, color: PAGE.title },
-  menuLabelDanger: { color: colors.danger },
   moreCard: {
     ...card,
     marginTop: spacing.md,
     marginBottom: spacing.lg,
-    paddingVertical: spacing.sm,
+    overflow: 'hidden',
   },
-  moreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touch.min,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: spacing.md,
-  },
-  moreLabel: { fontFamily: fonts.regular, flex: 1, fontSize: font.body, color: PAGE.body },
-  moreDanger: { fontFamily: fonts.semibold, color: colors.danger },
   profileCard: {
     marginTop: spacing.lg,
     backgroundColor: colors.white,
@@ -1428,16 +1463,26 @@ const styles = StyleSheet.create({
   fieldRow: { marginBottom: spacing.md },
   fieldLabel: { fontFamily: fonts.regular, fontSize: font.sm, color: PAGE.muted, marginBottom: 4 },
   fieldValue: { fontFamily: fonts.semibold, fontSize: font.lg, color: PAGE.title, lineHeight: 26 },
-  cardLinks: { marginTop: spacing.sm, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: PAGE.border, gap: spacing.xs },
-  cardLinkHit: { minHeight: 40, justifyContent: 'center' },
-  cardLink: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
+  rowsCard: { ...card, marginTop: spacing.lg, overflow: 'hidden' },
+  rowsHeading: {
+    fontFamily: fonts.bold,
+    fontSize: font.sm,
+    color: colors.muted,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
   lastUpdated: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.sm, color: PAGE.muted },
   body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text },
-  acceptedMeta: { color: colors.muted },
   mutedLine: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.xs },
   editHit: { minHeight: touch.min, justifyContent: 'center', paddingHorizontal: spacing.sm },
   editLink: { fontFamily: fonts.bold, fontSize: font.body, color: colors.action },
-  biometricWrap: { marginTop: spacing.md },
+  biometricWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: PAGE.border,
+  },
   biometricRow: {
     flexDirection: 'row',
     alignItems: 'center',

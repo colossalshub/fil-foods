@@ -3,18 +3,21 @@ import { Pressable, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { openHelp } from '../navigation/openHelp';
+import { useModalHelp } from './AppModal';
 import { colors, font, fonts, radius } from '../theme/theme';
 
 /** Labelled Help pill from the design guide (USR-26: Help is reachable on every screen). */
 function HelpButton({ color = colors.primary }: { color?: string }) {
   const navigation = useNavigation();
+  // Inside a modal, navigating would open Help behind it; show Help on top instead.
+  const modalHelp = useModalHelp();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Help"
       accessibilityHint="Opens help, the FAQ and the app guide"
       hitSlop={4}
-      onPress={() => openHelp(navigation)}
+      onPress={() => (modalHelp ? modalHelp() : openHelp(navigation))}
       style={({ pressed }) => [
         styles.pill,
         { borderColor: color },

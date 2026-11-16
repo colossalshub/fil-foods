@@ -5,6 +5,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   View,
@@ -13,7 +14,8 @@ import {
   type ViewProps,
   type ViewStyle,
 } from 'react-native';
-import { Edge, SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
+import { useInModal } from './AppModal';
 import AuthBackgroundDecor from './AuthBackgroundDecor';
 import { useTabScrollInset } from '../hooks/useTabScrollInset';
 import { colors, spacing } from '../theme/theme';
@@ -66,9 +68,11 @@ function withStickyFooterInset(node: ReactNode, inset: number): ReactNode {
   );
   if (scrollIndex < 0) return node;
 
+  // Only a View *below* the ScrollView is a footer. A header above it (e.g. the
+  // BackPageShell back row) must never get the tab-bar padding: that padding made a
+  // large empty band under every sub-page title that scrolled content clipped against.
   let footerIndex = -1;
-  for (let i = items.length - 1; i >= 0; i -= 1) {
-    if (i === scrollIndex) continue;
+  for (let i = items.length - 1; i > scrollIndex; i -= 1) {
     const child = items[i];
     if (isValidElement(child) && child.type === View) {
       footerIndex = i;
@@ -88,17 +92,39 @@ function withStickyFooterInset(node: ReactNode, inset: number): ReactNode {
   });
 }
 
+/**
+ * Safe-area padding from the nearest SafeAreaProvider (the app root, or the modal's own
+ * provider inside AppModal). Unlike the native SafeAreaView, these insets are known on the
+ * first frame, so headers never start under the status bar on a first open.
+ */
+export function useSafeAreaPadding(edges: Edge[]): ViewStyle {
+  const insets = useSafeAreaInsets();
+  return {
+    paddingTop: edges.includes('top') ? insets.top : 0,
+    paddingBottom: edges.includes('bottom') ? insets.bottom : 0,
+    paddingLeft: edges.includes('left') ? insets.left : 0,
+    paddingRight: edges.includes('right') ? insets.right : 0,
+  };
+}
+
 export default function AppPageShell({ children, edges = ['top'], contentStyle }: AppPageShellProps) {
-  const tabInset = useTabScrollInset();
+  const inModal = useInModal();
+  const tabScrollInset = useTabScrollInset();
+  const tabInset = inModal ? 0 : tabScrollInset;
+  const safePadding = useSafeAreaPadding(edges);
   const content = withStickyFooterInset(withTabScrollInset(children, tabInset), tabInset);
 
   return (
     <View style={styles.page}>
       <View style={styles.root}>
         <AuthBackgroundDecor />
-        <SafeAreaView edges={edges} style={[styles.safe, contentStyle]}>
-          {content}
-        </SafeAreaView>
+        <View style={[styles.safe, safePadding]}>
+          {/* Expo apps are edge-to-edge on Android, so the window no longer resizes for the
+              keyboard: "padding" on every platform keeps focused inputs above it. */}
+          <KeyboardAvoidingView behavior="padding" style={styles.safe}>
+            <View style={[styles.safe, contentStyle]}>{content}</View>
+          </KeyboardAvoidingView>
+        </View>
       </View>
     </View>
   );

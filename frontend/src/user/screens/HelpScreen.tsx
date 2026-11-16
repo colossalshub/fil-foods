@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
-import {
-  View, Text, Pressable, StyleSheet, Linking, Modal,
-} from 'react-native';
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
+import AppModal from '../components/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../components/AppButton';
 import BackPageShell from '../components/BackPageShell';
@@ -134,7 +133,7 @@ export default function HelpScreen({ navigation, route }: {
         </View>
       </BackPageShell>
 
-      <Modal visible={guideOpen} animationType="slide" onRequestClose={closeGuide}>
+      <AppModal visible={guideOpen} animationType="slide" onRequestClose={closeGuide} onCloseAll={closeGuide}>
         <BackPageShell
           title={GUIDE_COPY.appGuideTitle}
           onBack={closeGuide}
@@ -150,7 +149,7 @@ export default function HelpScreen({ navigation, route }: {
             onDismiss={closeGuide}
           />
         </BackPageShell>
-      </Modal>
+      </AppModal>
     </>
   );
 }

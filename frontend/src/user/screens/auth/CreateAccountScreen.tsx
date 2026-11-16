@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppInput from '../../components/AppInput';
@@ -69,7 +69,7 @@ export default function CreateAccountScreen({ navigation }: {
     <View style={styles.page}>
       <SafeAreaView style={styles.column} edges={['top', 'bottom']}>
         <AuthBackgroundDecor />
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.flex} behavior="padding">
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <View style={styles.helpRow}>
               <HelpButton />

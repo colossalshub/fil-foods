@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import HelpButton from '../../components/HelpButton';
@@ -45,7 +45,7 @@ export default function ForgotPasswordScreen({ navigation }: {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <View style={styles.helpRow}>

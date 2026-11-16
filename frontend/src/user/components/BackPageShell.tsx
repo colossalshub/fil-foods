@@ -3,8 +3,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -29,6 +27,7 @@ type BackPageShellProps = {
   trailing?: ReactNode;
   /** Hide the Help control (only for the Help page itself). */
   showHelp?: boolean;
+  /** @deprecated AppPageShell now avoids the keyboard on every page. */
   avoidKeyboard?: boolean;
 };
 
@@ -49,7 +48,6 @@ export default function BackPageShell({
   footer,
   trailing,
   showHelp = true,
-  avoidKeyboard = false,
 }: BackPageShellProps) {
   const scrollBody = (
     <ScrollView
@@ -72,14 +70,8 @@ export default function BackPageShell({
 
   const body = scroll ? scrollBody : staticBody;
 
-  const wrapped = avoidKeyboard ? (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {body}
-    </KeyboardAvoidingView>
-  ) : body;
+  // Keyboard avoidance lives in AppPageShell for every page.
+  const wrapped = body;
 
   return (
     <AppPageShell edges={edges} contentStyle={styles.shell}>

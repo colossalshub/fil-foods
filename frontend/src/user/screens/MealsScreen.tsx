@@ -147,6 +147,15 @@ export default function MealsScreen({ navigation }: {
           onBack={() => navigation.goBack()}
         />
 
+        {hasGoals ? (
+          <Checkbox checked={useGoals} onToggle={() => setUseGoals((on) => !on)}>
+            {NUTRITION_GOALS_LABEL}
+          </Checkbox>
+        ) : (
+          <Text style={styles.hint}>Save nutritional preferences in Account to filter the menu with them.</Text>
+        )}
+
+
         <AppInput
           value={query}
           onChangeText={setQuery}
@@ -157,14 +166,6 @@ export default function MealsScreen({ navigation }: {
           returnKeyType="search"
           style={styles.search}
         />
-
-        {hasGoals ? (
-          <Checkbox checked={useGoals} onToggle={() => setUseGoals((on) => !on)}>
-            {NUTRITION_GOALS_LABEL}
-          </Checkbox>
-        ) : (
-          <Text style={styles.hint}>Save nutritional preferences in Account to filter the menu with them.</Text>
-        )}
 
         {!searching ? (
           <View style={styles.slots}>

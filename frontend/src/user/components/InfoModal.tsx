@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
-import { Modal, View, Text, ScrollView, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, type ScrollViewInstance } from 'react-native';
+import AppModal from './AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from './AppButton';
 import { colors, radius, font, spacing, touch, fonts } from '../theme/theme';
@@ -20,7 +21,7 @@ export default function InfoModal({
   contentScrollRef?: Ref<ScrollViewInstance>;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <AppModal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
@@ -33,7 +34,7 @@ export default function InfoModal({
           {footer || <AppButton title="Close" onPress={onClose} />}
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

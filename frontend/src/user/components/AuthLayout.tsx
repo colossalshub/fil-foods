@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, Image, ScrollView, KeyboardAvoidingView, StyleSheet } from 'react-native';
 
 declare const require: (id: string) => number;
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ export default function AuthLayout({ variant, title, subtitle, onBack, backgroun
         {backgroundFrame ? <AuthBackgroundDecor /> : null}
         <AuthHeader variant="back" title={title} onBack={onBack} framed={backgroundFrame} />
         <SafeAreaView edges={['bottom']} style={{ flex: 1 }}>
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <ScrollView contentContainerStyle={styles.backScroll} keyboardShouldPersistTaps="handled">
               <View style={styles.card}>{children}</View>
             </ScrollView>
@@ -33,7 +33,7 @@ export default function AuthLayout({ variant, title, subtitle, onBack, backgroun
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Image
             source={require('../../../assets/images/fil-foods-logo.png')}

@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Modal, View, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import AppModal from './AppModal';
+import { useSafeAreaPadding } from './AppPageShell';
 import { useAuth } from '../context/AuthContext';
 import AppGuideExperience from './AppGuideExperience';
 import AuthBackgroundDecor from './AuthBackgroundDecor';
@@ -31,10 +33,10 @@ export default function HelpGuideGate() {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={dismiss}>
+    <AppModal visible={visible} animationType="slide" onRequestClose={dismiss}>
       <View style={styles.wrap}>
         <AuthBackgroundDecor />
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <GuideSafeArea>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <AppGuideExperience
               initialPhase="welcome"
@@ -42,9 +44,9 @@ export default function HelpGuideGate() {
               onDismiss={dismiss}
             />
           </ScrollView>
-        </SafeAreaView>
+        </GuideSafeArea>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -53,3 +55,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
 });
+/** Pads the guide with the modal's own safe-area insets (see AppModal). */
+function GuideSafeArea({ children }: { children: ReactNode }) {
+  const padding = useSafeAreaPadding(['top', 'bottom']);
+  return <View style={[styles.safe, padding]}>{children}</View>;
+}

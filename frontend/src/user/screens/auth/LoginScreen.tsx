@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppInput from '../../components/AppInput';
@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }: {
       <View style={styles.root}>
         <AuthBackgroundDecor />
         <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
-          <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <KeyboardAvoidingView style={styles.flex} behavior="padding">
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
               <View style={styles.header}>
                 <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityLabel="F.I.L Foods meal logo" />
