@@ -8,6 +8,18 @@ const STAFF_ROLE: Record<StaffRole, string> = {
   delivery: 'delivery_staff',
 };
 
+const STAFF_PROFILE_ROLES = new Set<string>([
+  'owner_admin',
+  'dietitian_staff',
+  'kitchen_staff',
+  'delivery_staff',
+]);
+
+/** Supabase `profiles.role` values used for staff panels — not the client app. */
+export function isStaffProfileRole(role: string | null | undefined) {
+  return typeof role === 'string' && STAFF_PROFILE_ROLES.has(role);
+}
+
 export function supabaseRoleForStaff(role: StaffRole): string {
   return STAFF_ROLE[role];
 }

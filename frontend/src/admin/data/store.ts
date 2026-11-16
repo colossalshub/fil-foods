@@ -10,13 +10,13 @@ import type { AppDatabase, AuditEvent } from '../../user/types';
 import { appendAuditEvent, comparePasswordSync, hashPasswordSync, verifyAuditChain } from '../../user/services/securityService.js';
 import { COPY, DEMO_PASSWORD } from '../copy.js';
 import { formatWhen, isValidEmail, parsePrice, peso, splitList } from '../domain/format.js';
+import { computeDashboardMetrics } from '../domain/dashboardMetrics.js';
 import { searchOrders } from '../domain/search.js';
 import type {
   Actor,
   AdminOrder,
   AuditRow,
   Customer,
-  DashboardMetrics,
   FieldChange,
   MenuDraft,
   MenuItem,
@@ -57,7 +57,6 @@ interface AdminDb {
   customers: Customer[];
   notices: StaffNotice[];
   settings: { kitchen: RoleNotificationSetting; delivery: RoleNotificationSetting };
-  metrics: DashboardMetrics;
   auditLog: AuditEvent[];
   resets: ResetLink[];
   pendingSetup: { name: string; email: string; token: string } | null;
@@ -87,6 +86,7 @@ const STATUSES: OrderStatus[] = [
   'For Dietitian Review',
   'Awaiting Payment',
   'Paid',
+  'Confirmed',
   'Preparing',
   'Ready for Delivery',
   'Out for Delivery',
@@ -259,17 +259,6 @@ function build(): AdminDb {
       kitchen: { enabled: true, types: { newOrder: true, menuUpdated: true } },
       delivery: { enabled: true, types: { readyForPickup: true, menuUpdated: false } },
     },
-    metrics: {
-      totalOrders: 124,
-      ordersDelta: 0.12,
-      totalSales: 8750,
-      salesDelta: 0.15,
-      totalCustomers: 892,
-      customersDelta: 0.08,
-      menuDelta: 0.02,
-      weekSales: [820, 640, 910, 700, 1240, 1560, 2880],
-      monthSales: null,
-    },
     auditLog: [],
     resets: [],
     pendingSetup: null,
@@ -346,7 +335,7 @@ export function adminView() {
     customers: db.customers,
     notices: db.notices,
     settings: db.settings,
-    metrics: db.metrics,
+    metrics: computeDashboardMetrics(db.orders, db.menu),
     plans: PLANS,
     categories: CATEGORIES,
     staff: db.staff.filter((person) => !person.deleted).map(toPublic),
@@ -383,9 +372,20 @@ export function loginAdmin(email: string, password: string) {
   return { ok: true as const, account: toPublic(account) };
 }
 
+const PANEL_FOR_ROLE: Record<StaffRole, string> = {
+  admin: 'Admin',
+  dietitian: 'Dietitian',
+  kitchen: 'Kitchen',
+  delivery: 'Delivery',
+};
+
 export function authorizePanel(account: StaffPublic, panel: StaffRole) {
   if (account.role !== panel) {
-    return { ok: false as const, title: COPY.notAuthorized, detail: COPY.noSession };
+    return {
+      ok: false as const,
+      title: COPY.notAuthorized,
+      detail: `This account is for the ${PANEL_FOR_ROLE[account.role]} panel. Go back, choose ${PANEL_FOR_ROLE[account.role]}, and sign in again.`,
+    };
   }
   return { ok: true as const };
 }

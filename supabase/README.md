@@ -56,6 +56,15 @@ and synced to the current app menu (pastries, lunch/dinner plates, search fixtur
 Each row stores a `client_meal_key` that matches the frontend meal id used at checkout.
 Apply all migrations with `supabase db push` before testing order placement or staff menu views.
 
+Staff panels need Auth users with `profiles.role` (`dietitian_staff`, etc.). Migrations do not create them. After push, from the repo root:
+
+```powershell
+$env:SUPABASE_SERVICE_ROLE_KEY = "paste-from-dashboard-api-settings"
+node scripts/seed-staff-users.mjs
+```
+
+Details: [`seed/STAFF_AUTH.md`](./seed/STAFF_AUTH.md). Staff demo password: `Admin@2026`.
+
 Deploy the username login function separately:
 
 ```bash

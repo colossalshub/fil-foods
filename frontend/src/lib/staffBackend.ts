@@ -1,4 +1,4 @@
-import type { AdminOrder, Customer, MenuItem, StaffRole } from '../admin/types';
+import type { AdminOrder, Customer, MenuItem, OrderStatus, StaffRole } from '../admin/types';
 import {
   CLIENT_ORDER_STATUS,
   clientStatusFromDb,
@@ -249,7 +249,7 @@ export async function upsertMealOnBackend(
   return { ok: true as const, id: data.id as string };
 }
 
-export function statusesForStaffRole(role: StaffRole): ClientOrderStatus[] {
+export function statusesForStaffRole(role: StaffRole): OrderStatus[] {
   switch (role) {
     case 'dietitian':
       return [

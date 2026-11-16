@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signOutStaffFromSupabase } from '../lib/staffAuth.js';
+import { forgetSession, isSupabaseConfigured } from '../lib/supabaseClient.js';
 import { findPublic } from './data/store.js';
 import { translate } from './i18n.js';
 import { lightPalette, paletteFor, resolvedMode, type Palette } from './theme.js';
@@ -22,8 +24,8 @@ interface AdminContextValue {
   flash: string | null;
   showFlash: (message: string) => void;
   clearFlash: () => void;
-  highlighted: StaffRole;
-  setHighlighted: (role: StaffRole) => void;
+  highlighted: StaffRole | null;
+  setHighlighted: (role: StaffRole | null) => void;
   prefs: Preferences;
   colors: Palette;
   t: (key: string) => string;
@@ -52,7 +54,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<AdminSession | null>(null);
   const [prefs, setPrefs] = useState<Preferences>({ language: 'en', appearance: 'light' });
-  const [highlighted, setHighlighted] = useState<StaffRole>('admin');
+  const [highlighted, setHighlighted] = useState<StaffRole | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
 
@@ -123,7 +125,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       setSession(null);
       setPrefs({ language: 'en', appearance: 'light' });
+      setHighlighted(null);
       await AsyncStorage.removeItem(KEY);
+      if (isSupabaseConfigured) {
+        await signOutStaffFromSupabase();
+        await forgetSession();
+      }
     },
     applyPrefs: (preferences) => setPrefs(preferences),
     patchSession: (patch) => setSession((current) => (current ? { ...current, ...patch } : current)),

@@ -40,7 +40,7 @@ function screen(component: ComponentType<never>) {
 }
 
 const ICONS = {
-  Dashboard: 'grid-outline',
+  Dashboard: 'home-outline',
   Orders: 'cart-outline',
   Menu: 'list-outline',
   Staff: 'people-outline',
@@ -48,7 +48,7 @@ const ICONS = {
 } as const;
 
 const ACTIVE = {
-  Dashboard: 'grid',
+  Dashboard: 'home',
   Orders: 'cart',
   Menu: 'list',
   Staff: 'people',

@@ -134,11 +134,14 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
     const backend = await signInStaffToSupabase(account.email, password, role);
     await signIn(account, remember);
     if (backend.ok && !backend.skipped) {
-      await syncStaffDataFromBackend();
+      const sync = await syncStaffDataFromBackend();
+      if (!sync.ok && sync.message) showFlash(sync.message);
+      else showFlash(COPY.loggedIn);
     } else if (backend.ok === false) {
-      showFlash('Signed in locally. Create this staff user in Supabase Auth to sync live orders.');
+      showFlash(backend.message || 'Signed in locally only. Run scripts/seed-staff-users.mjs to sync live orders.');
+    } else {
+      showFlash(COPY.loggedIn);
     }
-    showFlash(COPY.loggedIn);
     navigation.reset({ index: 0, routes: [{ name: account.role === 'admin' ? 'AdminApp' : 'RoleHome' }] });
   };
 

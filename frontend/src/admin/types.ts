@@ -1,15 +1,9 @@
+import type { ClientOrderStatus } from '../lib/orderStatus.js';
+
 export type StaffRole = 'admin' | 'dietitian' | 'kitchen' | 'delivery';
 
-export type OrderStatus =
-  | 'For Dietitian Review'
-  | 'Awaiting Payment'
-  | 'Paid'
-  | 'Preparing'
-  | 'Ready for Delivery'
-  | 'Out for Delivery'
-  | 'Ready for Pickup'
-  | 'Completed'
-  | 'Cancelled';
+/** Staff-facing labels; kept in sync with Supabase / client order status. */
+export type OrderStatus = ClientOrderStatus;
 
 export type Appearance = 'light' | 'dark' | 'system';
 
@@ -143,6 +137,8 @@ export interface DashboardMetrics {
   customersDelta: number;
   menuDelta: number;
   weekSales: number[];
+  /** Four weekly totals for the Sales Overview line chart (ADM-10). */
+  salesOverviewWeeks: number[];
   monthSales: number[] | null;
 }
 

@@ -21,7 +21,7 @@ import {
   GreenHeader,
   PhoneFrame,
   PrimaryButton,
-  StatusBadge,
+  AdminListStatusBadge,
   useStoreRevision,
 } from '../components.js';
 
@@ -93,7 +93,7 @@ export function OrdersScreen({ navigation }: ScreenProps) {
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{order.when}</Text>
             </View>
             <View style={styles.side}>
-              <StatusBadge status={order.status} />
+              <AdminListStatusBadge status={order.status} />
               <Text style={[styles.price, { color: colors.text }]}>{peso(order.price)}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
@@ -137,7 +137,7 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
             <Text style={{ color: colors.muted }}>{order.when}</Text>
             <Text style={[styles.price, { color: colors.text }]}>{peso(order.price)}</Text>
           </View>
-          <StatusBadge status={order.status} />
+          <AdminListStatusBadge status={order.status} />
         </View>
         {order.lines.map((line) => (
           <Text key={line.name} style={{ color: colors.text }}>{line.name} · {peso(line.price)}</Text>

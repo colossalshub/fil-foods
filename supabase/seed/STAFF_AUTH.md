@@ -15,31 +15,33 @@ Required order:
 3. `20261115143000_sync_user5_menu_catalog.sql`
 4. `20261115150000_help_feedback.sql`
 
-## 2. Create Auth users (Dashboard → Authentication → Users)
+## 2. Bootstrap staff (recommended)
 
-Create one user per staff email you use in the app, for example:
+From the **repo root**, with the **default Secret** key (never in the Expo app):
 
-| Email | `profiles.role` after step 3 |
+1. **Settings → API Keys** → row **default**
+2. Copy **Secret** (`sb_secret_...`) — not the publishable key
+3. If you only see legacy keys, use **Legacy** tab → **service_role** (`eyJ...`)
+
+```powershell
+cd E:\Documents\Projects\fil-foods
+$env:SUPABASE_SERVICE_ROLE_KEY = "sb_secret_...."
+node scripts/seed-staff-users.mjs
+```
+
+This creates/updates Auth users for the demo staff emails, password `Admin@2026`, and sets `profiles.role`:
+
+| Email | Role |
 |---|---|
 | `admin@filfoods.ph` | `owner_admin` |
 | `maria.santos@filfoods.ph` | `dietitian_staff` |
 | `juan.delacruz@filfoods.ph` | `kitchen_staff` |
+| `ana.reyes@filfoods.ph` | `delivery_staff` |
 | `mark.peralta@filfoods.ph` | `delivery_staff` |
 
-Use the same passwords you use in the staff login screen (demo default is documented in admin copy).
+## 3. Manual alternative
 
-## 3. Set `profiles.role` (SQL editor)
-
-Replace UUIDs with each Auth user's id:
-
-```sql
-update public.profiles set role = 'owner_admin' where email = 'admin@filfoods.ph';
-update public.profiles set role = 'dietitian_staff' where email = 'maria.santos@filfoods.ph';
-update public.profiles set role = 'kitchen_staff' where email = 'juan.delacruz@filfoods.ph';
-update public.profiles set role = 'delivery_staff' where email = 'mark.peralta@filfoods.ph';
-```
-
-New Google or email sign-ups default to `client` until you run an update.
+Create users in **Authentication → Users**, then run [`staff_roles_by_email.sql`](./staff_roles_by_email.sql) in the SQL editor.
 
 ## 4. End-to-end check
 

@@ -47,7 +47,10 @@ test('money format and dietitian panel title', () => {
   assert.equal(panelTitle('dietitian'), 'Dietitian Panel');
   assert.equal(panelTitle('admin'), 'Admin Panel');
   assert.equal(adminView().menu.length, 24);
-  assert.equal(adminView().metrics.totalOrders, 124);
+  const metrics = adminView().metrics;
+  assert.equal(metrics.totalOrders, 5);
+  assert.equal(metrics.totalSales, 539);
+  assert.equal(metrics.totalCustomers, 5);
 });
 
 test('order search follows the admin examples', () => {

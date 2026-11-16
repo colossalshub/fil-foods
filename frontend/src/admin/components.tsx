@@ -2,8 +2,10 @@ import { useEffect, useState, type ComponentProps, type ReactNode } from 'react'
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COPY } from './copy.js';
 import { subscribeAdmin } from './data/store.js';
 import { useAdmin } from './context.js';
+import { adminListStatusLabel } from './domain/orderDisplay.js';
 import type { OrderStatus } from './types';
 
 const GREEN = '#146B38';
@@ -20,9 +22,20 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
 export function FlashBanner() {
   const { flash, clearFlash, colors } = useAdmin();
   if (!flash) return null;
+  const success = flash === COPY.loggedIn;
   return (
-    <Pressable onPress={clearFlash} style={[styles.banner, { backgroundColor: colors.green }]}>
-      <Text style={styles.bannerText}>{flash}</Text>
+    <Pressable
+      onPress={clearFlash}
+      accessibilityRole="button"
+      style={[
+        styles.banner,
+        success
+          ? { backgroundColor: colors.mint, borderWidth: 1, borderColor: '#B8DFC3', flexDirection: 'row', alignItems: 'center', gap: 8 }
+          : { backgroundColor: colors.green },
+      ]}
+    >
+      {success ? <Ionicons name="checkmark-circle" size={20} color={colors.primary} /> : null}
+      <Text style={[styles.bannerText, success && { color: colors.primary, flex: 1, textAlign: 'left' }]}>{flash}</Text>
     </Pressable>
   );
 }
@@ -253,6 +266,7 @@ const BADGE: Record<OrderStatus, { bg: string; fg: string }> = {
   'For Dietitian Review': { bg: '#FFDDBF', fg: '#8A4B12' },
   'Awaiting Payment': { bg: '#FFE8A3', fg: '#7A5B00' },
   Paid: { bg: '#CDE9FF', fg: '#1456A0' },
+  Confirmed: { bg: '#B8E0CF', fg: '#0D5C36' },
   Preparing: { bg: '#D8F3DC', fg: '#146B38' },
   'Ready for Delivery': { bg: '#C8E8FF', fg: '#0F4F8C' },
   'Out for Delivery': { bg: '#C8E8FF', fg: '#0F4F8C' },
@@ -261,11 +275,31 @@ const BADGE: Record<OrderStatus, { bg: string; fg: string }> = {
   Cancelled: { bg: '#D76566', fg: '#FFFFFF' },
 };
 
+const FALLBACK_BADGE = { bg: '#E8ECE9', fg: '#2A3B30' };
+
+const LIST_BADGE: Record<string, { bg: string; fg: string }> = {
+  Pending: { bg: '#FFDDBF', fg: '#8A4B12' },
+  Preparing: { bg: '#D8F3DC', fg: '#146B38' },
+  Delivered: { bg: '#1C773A', fg: '#FFFFFF' },
+  Cancelled: { bg: '#D76566', fg: '#FFFFFF' },
+};
+
 export function StatusBadge({ status }: { status: OrderStatus }) {
-  const tone = BADGE[status];
+  const tone = BADGE[status] ?? FALLBACK_BADGE;
   return (
     <View style={[styles.badge, { backgroundColor: tone.bg }]}>
       <Text style={{ color: tone.fg, fontSize: 12, fontWeight: '700' }}>{status}</Text>
+    </View>
+  );
+}
+
+/** ADM-10 / ADM-11 list badges: Pending, Preparing, Delivered, Cancelled. */
+export function AdminListStatusBadge({ status }: { status: OrderStatus }) {
+  const label = adminListStatusLabel(status);
+  const tone = LIST_BADGE[label] ?? BADGE[status] ?? FALLBACK_BADGE;
+  return (
+    <View style={[styles.badge, { backgroundColor: tone.bg }]}>
+      <Text style={{ color: tone.fg, fontSize: 12, fontWeight: '700' }}>{label}</Text>
     </View>
   );
 }

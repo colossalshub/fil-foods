@@ -24,6 +24,7 @@ import AboutScreen from '../screens/visitor/AboutScreen';
 import HelpGuideGate from '../components/HelpGuideGate';
 import StaffNavigator from '../../admin/navigation';
 import { colors } from '../theme/theme';
+import { isStaffProfileRole } from '../../lib/staffAuth.js';
 import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
@@ -46,17 +47,24 @@ export default function RootNavigator() {
             ? await getCurrentSupabaseProfile()
             : null;
           if (!cancelled && profile && restoredSession?.access_token) {
-            setSession(restoredSession);
-            setUser({
-              ...profile,
-              verified: profile.is_verified,
-              profileComplete: profile.profile_complete,
-              inactive: !profile.is_active,
-              accessToken: restoredSession.access_token,
-              refreshToken: restoredSession.refresh_token,
-              expiresAt: restoredSession.expires_at,
-            });
-            setKeepLoggedIn(true);
+            if (isStaffProfileRole(profile.role as string)) {
+              // Staff panel sign-in uses the same Supabase session store; do not open the client app.
+              setSession(null);
+              setUser(null);
+              setKeepLoggedIn(false);
+            } else {
+              setSession(restoredSession);
+              setUser({
+                ...profile,
+                verified: profile.is_verified,
+                profileComplete: profile.profile_complete,
+                inactive: !profile.is_active,
+                accessToken: restoredSession.access_token,
+                refreshToken: restoredSession.refresh_token,
+                expiresAt: restoredSession.expires_at,
+              });
+              setKeepLoggedIn(true);
+            }
             if (!cancelled) setBooting(false);
             return;
           }
