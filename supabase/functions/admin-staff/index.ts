@@ -59,7 +59,8 @@ Deno.serve(async (request) => {
     return fetch(`${url}${path}`, { ...init, headers });
   };
   const audit = (eventType: string, details: Record<string, unknown>) =>
-    asCaller('/rest/v1/rpc/append_audit_event', {
+    // Admin-only wrapper; append_audit_event itself is not callable by signed-in users.
+    asCaller('/rest/v1/rpc/admin_audit_event', {
       method: 'POST',
       body: JSON.stringify({ p_event_type: eventType, p_details: details }),
     });

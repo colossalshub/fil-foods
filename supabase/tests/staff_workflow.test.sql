@@ -41,8 +41,9 @@ begin
   execute p_sql;
   raise exception 'expected error containing "%" from: %', p_fragment, p_sql;
 exception when others then
-  if position(p_fragment in sqlerrm) = 0 and position(p_fragment in coalesce(sqlerrm, '')) = 0 then
-    if sqlerrm like 'expected error%' then raise; end if;
+  -- The "expected error" raised above also contains the fragment, so check for it first.
+  if sqlerrm like 'expected error%' then raise; end if;
+  if position(p_fragment in coalesce(sqlerrm, '')) = 0 then
     raise exception 'expected "%" but got "%" from: %', p_fragment, sqlerrm, p_sql;
   end if;
 end $$;
@@ -233,11 +234,14 @@ commit;
 update auth.users set email = 'Maria.New@filfoods.ph' where id = (select id from public.profiles where email = 'maria.santos@filfoods.ph');
 select pg_temp.check(exists (select 1 from public.profiles where email = 'maria.new@filfoods.ph'), 'auth email change syncs to profiles');
 -- DIT-17: the client cannot delete a condition directly; adding one is allowed ----------------
+begin;
+set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
 select pg_temp.expect_error($$delete from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'condition'$$, 'condition_removal_requires_review');
 select pg_temp.expect_error($$update public.client_health_items set value = 'Nothing' where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'condition'$$, 'condition_removal_requires_review');
 insert into public.client_health_items (client_id, item_type, value) values ('00000000-0000-0000-0000-0000000000c1', 'condition', 'Gout');
 delete from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'allergy' and value = 'Shellfish';
+commit;
 select pg_temp.check(exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Gout')
   and not exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Shellfish'),
   'clients add conditions and edit allergies freely');

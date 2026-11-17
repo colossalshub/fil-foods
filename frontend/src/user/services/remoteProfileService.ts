@@ -285,6 +285,14 @@ export async function saveRemotePersonal(userId: string, input: PersonalInfoInpu
   if (!validated.ok) return validated;
   const gate = await withClient();
   if (!gate.ok) return gate;
+  // The login email changes only through Supabase's confirmation email; a trigger then copies it
+  // to the profile (the profile email cannot be rewritten directly).
+  const { data: current } = await gate.client.auth.getUser(gate.token);
+  const nextEmail = String(validated.values.email || '').trim().toLowerCase();
+  if (nextEmail && current?.user?.email && current.user.email.toLowerCase() !== nextEmail) {
+    const changed = await gate.client.auth.updateUser({ email: nextEmail });
+    if (changed.error) return failed(changed.error);
+  }
   const saved = await gate.client
     .from('profiles')
     .update({
@@ -293,7 +301,6 @@ export async function saveRemotePersonal(userId: string, input: PersonalInfoInpu
       last_name: validated.values.lastName,
       suffix: validated.values.suffix || null,
       contact_number: validated.values.contactNumber || null,
-      email: validated.values.email,
       address: validated.values.address || null,
       updated_at: new Date().toISOString(),
     })

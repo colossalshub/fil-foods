@@ -5,7 +5,12 @@ boundaries (60 checks): client submit → Dietitian review (DIT-15) → payment 
 (KIT-11–KIT-13) → Admin assignment (ADM-12) → Delivery (DEL-15–DEL-17), plus ADM-21 notification
 settings, DIT-17 condition-removal requests, audit log reads (ADM-20) and deactivated staff (ADM-16).
 
-It runs against a **local, throwaway** Postgres 15+ database. `supabase_shim.sql` stands in for the
+`auth_privacy.test.sql` checks the live sign-up functions (USR-01/04/33) and the privacy review
+fixes (`docs/privacy-review.md`): no role self-promotion, anon sees no personal rows, health data
+minimised for Kitchen/Delivery, RLS on every table and `search_path` pinned on every SECURITY
+DEFINER function. `run-local.sh` runs both files.
+
+They run against a **local, throwaway** Postgres 15+ database. `supabase_shim.sql` stands in for the
 parts of Supabase the migrations use (`auth.users`, `auth.uid()`, roles, `extensions` schema,
 `supabase_realtime` publication).
 
