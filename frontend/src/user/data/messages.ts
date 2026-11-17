@@ -32,6 +32,12 @@ export const MSG = {
   tooManyWrong: 'Too many incorrect attempts. Please request a new code.',
   sendFailed: 'We could not send the code. Please try again or use the other method.',
   tooManyCodeRequests: 'Too many code requests. Please try again in an hour.',
+  // Email-link confirmation (Supabase default emails, no custom SMTP). Not quoted in the stories:
+  // checkEmailLink was given by the owner; the other link messages are new wording.
+  checkEmailLink: 'Check your email and tap the link to confirm your account.',
+  checkEmailResetLink: 'Check your email and tap the link to reset your password.',
+  linkResent: 'We sent a new link to your email.',
+  linkExpired: 'This link has expired or was already used. Please request a new one.',
   profileUpdated: 'Profile updated successfully.',
   healthSaved: 'Health information saved.',
   dietarySaved: 'Dietary restrictions saved.',

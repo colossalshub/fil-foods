@@ -112,7 +112,12 @@ applies the fixes in [`docs/privacy-review.md`](../docs/privacy-review.md) — m
 no longer change their own `role` (P0).
 
 Supabase dashboard settings the sign-up flow needs (Authentication):
-- **Email Templates → Confirm signup** and **Reset password**: include `{{ .Token }}` (the 6-digit code the app asks for).
+- **URL Configuration → Redirect URLs**: add `filfoods://**` (APK / development build), `exp://**` (Expo Go)
+  and the web app URL (e.g. `http://localhost:8081/**`; add the hosted URL too, or set `EXPO_PUBLIC_AUTH_REDIRECT_URL`).
+  The default emails carry a link; it returns to the app, which signs the user in (sign-up) or opens New password (reset).
+  If a link lands elsewhere (the Site URL), the email is still confirmed and "I've confirmed, continue" signs in.
+- Optional, with custom SMTP: put `{{ .Token }}` in **Confirm signup** and **Reset password** so emails also carry
+  the 6-digit code; the app keeps that path under "Have a code?".
 - **Providers → Email**: "Confirm email" ON; email OTP expiry 600 seconds (USR-33: 10 minutes).
 - **SMTP**: a custom SMTP sender for real users (the built-in one is rate-limited and for testing only).
 - SMS codes need an SMS provider; until then "Send code by SMS" shows the USR-33 "could not send" message.

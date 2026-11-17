@@ -9,6 +9,32 @@ import { isValidContact, isValidEmail, trim, validateRegistration } from '../dom
 type AuthErrorLike = { message?: string; code?: string; status?: number } | null | undefined;
 
 export const LIVE_MAX_WRONG = 5;
+
+// Where the email link returns to. RootNavigator sets it at start-up (see lib/authRedirect.ts);
+// this file stays free of React Native imports so node:test can load it.
+let emailRedirectTo: string | undefined;
+export function configureAuthRedirect(url: string | undefined) {
+  emailRedirectTo = url || undefined;
+}
+export function currentAuthRedirect() {
+  return emailRedirectTo;
+}
+
+// The password typed on Create Account, kept in memory only (never stored) so "I've confirmed,
+// continue" can sign the new user in after they confirm by email link.
+let pendingSignup: { email: string; password: string } | null = null;
+export function rememberPendingSignup(email: string, password: string) {
+  pendingSignup = { email: email.toLowerCase(), password };
+}
+export function pendingSignupFor(email: string | undefined) {
+  return pendingSignup && email && pendingSignup.email === email.toLowerCase() ? pendingSignup : null;
+}
+export function anyPendingSignup() {
+  return pendingSignup;
+}
+export function clearPendingSignup() {
+  pendingSignup = null;
+}
 export const LIVE_RESEND_SECONDS = 60;
 
 export function waitMessage(seconds: number) {
@@ -150,6 +176,7 @@ export async function signUpLive(input: RegistrationInput): Promise<ServiceResul
         terms_version: TERMS_VERSION,
         auth_provider: 'password',
       },
+      emailRedirectTo,
     },
   });
   if (error) {
@@ -162,6 +189,7 @@ export async function signUpLive(input: RegistrationInput): Promise<ServiceResul
   if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     return { ok: false, messages: [MSG.duplicateEmail], fields: { email: MSG.duplicateEmail } };
   }
+  rememberPendingSignup(email, String(input.password ?? ''));
   return { ok: true, pending: { email, contactNumber, firstName: trim(input.firstName) } };
 }
 
@@ -172,8 +200,8 @@ export async function sendLiveCode(purpose: 'account' | 'reset', channel: string
   if (channel !== 'email' || !email) return { ok: false, message: MSG.sendFailed };
   const client = requireSupabase();
   const { error } = purpose === 'account'
-    ? await client.auth.resend({ type: 'signup', email })
-    : await client.auth.resetPasswordForEmail(email);
+    ? await client.auth.resend({ type: 'signup', email, options: { emailRedirectTo } })
+    : await client.auth.resetPasswordForEmail(email, { redirectTo: emailRedirectTo });
   if (error) return { ok: false, message: authErrorMessage(error, 'send') };
   return { ok: true };
 }
@@ -197,7 +225,7 @@ export async function verifyLiveCode(purpose: 'account' | 'reset', email: string
 }
 
 /** Copies sign-up details into the profile when the server trigger has not done it (older schema). */
-async function finishLiveSignup(accessToken: string, meta: Record<string, unknown>) {
+export async function finishLiveSignup(accessToken: string, meta: Record<string, unknown>) {
   const client = requireSupabase();
   const auth = `Bearer ${accessToken}`;
   const { data: profile } = await client.from('profiles').select('*').setHeader('Authorization', auth).maybeSingle();

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AuthTokenSession, AuthUser, PublicUser } from '../types';
-import { AppState } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
@@ -27,10 +27,20 @@ import { colors } from '../theme/theme';
 import { isStaffProfileRole } from '../../lib/staffAuth.js';
 import { fetchRemoteMeals } from '../../lib/mealCatalogBackend.js';
 import { syncMealsWithRemoteMenu } from '../data/meals.js';
-import { liveUserFromProfile, loadLiveRecipient } from '../services/liveAuthService.js';
+import { configureAuthRedirect, liveUserFromProfile, loadLiveRecipient } from '../services/liveAuthService.js';
+import { completeAuthLink, type LinkOutcome } from '../services/emailLinkAuth.js';
+import { authRedirectUrl } from '../../lib/authRedirect';
+import { stripAuthParams } from '../../lib/authLink.js';
+import { setLoginNotice } from './loginNotice';
+import { recoveryModeActive, setRecoveryMode, subscribeRecoveryMode } from './recoveryMode';
+import { MSG } from '../data/messages';
 import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
+
+// Sign-up confirmation and password-reset emails link back here (USR-01/USR-04).
+if (isSupabaseConfigured) configureAuthRedirect(authRedirectUrl());
+
 const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } };
 
 export default function RootNavigator() {
@@ -38,7 +48,19 @@ export default function RootNavigator() {
   const [session, setSession] = useState<AuthTokenSession | null>(null);
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [recovery, setRecovery] = useState(recoveryModeActive());
   const lastActiveRef = useRef(0);
+  const handledLinks = useRef(new Set<string>());
+
+  useEffect(() => subscribeRecoveryMode(setRecovery), []);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   // ADM-17/18 → USR-16: staff menu edits (availability, price, allergens) reach the user menu.
   useEffect(() => {
@@ -153,6 +175,33 @@ export default function RootNavigator() {
     }
   }, [session]);
 
+  // Email links (confirm sign-up, reset password) open the app or the web page with auth parameters.
+  useEffect(() => {
+    if (booting || !isSupabaseConfigured) return undefined;
+    let alive = true;
+    const handle = async (url: string | null | undefined) => {
+      if (!url || handledLinks.current.has(url)) return;
+      handledLinks.current.add(url);
+      const outcome: LinkOutcome = await completeAuthLink(url)
+        .catch(() => ({ status: 'notice', message: MSG.linkExpired }) as LinkOutcome);
+      if (outcome.status !== 'none' && Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.history.replaceState(null, '', stripAuthParams(window.location.href));
+      }
+      if (!alive) return;
+      if (outcome.status === 'signed_in') await signIn(outcome.user, { session: outcome.session, keepLoggedIn: false });
+      else if (outcome.status === 'recovery') setRecoveryMode(true);
+      else if (outcome.status === 'notice') setLoginNotice(outcome.message);
+    };
+    Linking.getInitialURL().then(handle).catch(() => {});
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      void handle(url);
+    });
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, [booting, signIn]);
+
   const signOut = useCallback(async () => {
     setUser(null);
     setSession(null);
@@ -217,7 +266,9 @@ export default function RootNavigator() {
         }}
       >
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user && user.role !== 'visitor' ? (
+          {recovery ? (
+            <Stack.Screen name="NewPassword" component={NewPasswordScreen} initialParams={{ grantId: 'live', fromLink: true }} />
+          ) : user && user.role !== 'visitor' ? (
             user.profileComplete ? (
               termsUpdateRequired(user) ? (
                 <Stack.Screen name="TermsUpdate" component={TermsUpdateScreen} />

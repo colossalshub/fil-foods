@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Image, Pressable, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -11,7 +11,7 @@ import GoogleSignIn from '../../components/GoogleSignIn';
 import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
-import { consumeLoginNotice } from '../../navigation/loginNotice';
+import { consumeLoginNotice, subscribeLoginNotice } from '../../navigation/loginNotice';
 import type { FieldMap } from '../../types';
 import { colors, font, spacing, fonts } from '../../theme/theme';
 
@@ -34,6 +34,10 @@ export default function LoginScreen({ navigation }: {
     const notice = consumeLoginNotice();
     if (notice) setFormError(notice);
   }, []));
+
+  useEffect(() => subscribeLoginNotice((notice) => {
+    if (notice) setFormError(notice);
+  }), []);
 
   const onLogin = async () => {
     const e: FieldMap = {};

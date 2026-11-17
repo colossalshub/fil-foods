@@ -4,14 +4,25 @@ import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import FormMessage from '../../components/FormMessage';
 import { peekGrant, updatePassword } from '../../services/authService';
-import { updateLivePassword } from '../../services/liveAuthService';
+import { endLiveSession, updateLivePassword } from '../../services/liveAuthService';
+import { setRecoveryMode } from '../../navigation/recoveryMode';
 
 export default function NewPasswordScreen({ navigation, route }: {
   navigation: { replace: (name: string, params?: object) => void; navigate: (name: string, params?: object) => void };
-  route: { params?: { grantId?: string } };
+  route: { params?: { grantId?: string; fromLink?: boolean } };
 }) {
   const grantId = route.params?.grantId;
   const live = grantId === 'live';
+  // Opened from the reset email link: the navigator shows only this screen until we leave it.
+  const fromLink = Boolean(route.params?.fromLink);
+  const leave = () => {
+    if (fromLink) {
+      if (!done) void endLiveSession();
+      setRecoveryMode(false);
+      return;
+    }
+    navigation.navigate(done ? 'Login' : 'ForgotPassword');
+  };
   const [saving, setSaving] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -40,12 +51,12 @@ export default function NewPasswordScreen({ navigation, route }: {
   };
 
   return (
-    <AuthLayout variant="back" title="New password" onBack={() => navigation.navigate('ForgotPassword')}>
+    <AuthLayout variant="back" title="New password" onBack={leave}>
       <AppInput label="New password" value={password} onChangeText={setPassword} secure />
       <AppInput label="Re-type password" value={confirm} onChangeText={setConfirm} secure />
       <FormMessage messages={messages} tone={done ? 'ok' : 'error'} />
       {done ? (
-        <AppButton title="Log in" onPress={() => navigation.navigate('Login')} />
+        <AppButton title="Log in" onPress={leave} />
       ) : (
         <AppButton title="Update password" onPress={onSave} loading={saving} />
       )}
