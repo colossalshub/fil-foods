@@ -18,8 +18,10 @@ Required order:
 6. `20261117110000_profile_email_sync.sql` (confirmed staff email changes reach `profiles`)
 7. `20261117120000_guard_condition_removal.sql` (condition removals go through the Dietitian, DIT-17)
 8. `20261117130000_schema_audit.sql` (recipient privacy, plan prices, meal limits, notification wording, staff help)
+9. `20261117140000_live_signup.sql` (real user sign-up, email-code verification, password reset)
+10. `20261117150000_privacy_hardening.sql` (privacy review fixes, see docs/privacy-review.md)
 
-Then deploy the staff-management function: `npx supabase functions deploy admin-staff`.
+Then deploy the functions: `npx supabase functions deploy admin-staff` and `npx supabase functions deploy login-by-username`.
 
 ## 2. Bootstrap staff (recommended)
 

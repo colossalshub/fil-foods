@@ -101,10 +101,27 @@ fixes what the schema audit found against the module specs and the app:
 - `save_meal_recipient()` stores the Family Member's recipient and a profile can only point at its own recipient;
 - `help_feedback.topic` so staff Help & Support messages (DIT/KIT/DEL-08) are stored with their topic.
 
+[`migrations/20261117140000_live_signup.sql`](./migrations/20261117140000_live_signup.sql)
+makes user sign-up real on a live project (USR-01/02/04/33): the sign-up details sent as Supabase Auth
+metadata become the profile, a confirmed email code marks the account verified, and two anon RPCs
+(`check_signup_available`, `password_reset_status`) give the spec messages ("already registered",
+"No account found…", Google-only) without returning account data.
+
+[`migrations/20261117150000_privacy_hardening.sql`](./migrations/20261117150000_privacy_hardening.sql)
+applies the fixes in [`docs/privacy-review.md`](../docs/privacy-review.md) — most importantly, clients can
+no longer change their own `role` (P0).
+
+Supabase dashboard settings the sign-up flow needs (Authentication):
+- **Email Templates → Confirm signup** and **Reset password**: include `{{ .Token }}` (the 6-digit code the app asks for).
+- **Providers → Email**: "Confirm email" ON; email OTP expiry 600 seconds (USR-33: 10 minutes).
+- **SMTP**: a custom SMTP sender for real users (the built-in one is rate-limited and for testing only).
+- SMS codes need an SMS provider; until then "Send code by SMS" shows the USR-33 "could not send" message.
+
 Staff management (ADM-13–ADM-16) needs the service-role key, so it is an Edge Function:
 
 ```bash
 npx supabase functions deploy admin-staff
+npx supabase functions deploy login-by-username
 ```
 
 It uses the same `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY` secrets as `login-by-username`.
