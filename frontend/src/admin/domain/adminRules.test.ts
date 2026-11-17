@@ -48,9 +48,10 @@ test('money format and dietitian panel title', () => {
   assert.equal(panelTitle('admin'), 'Admin Panel');
   assert.equal(adminView().menu.length, 24);
   const metrics = adminView().metrics;
-  assert.equal(metrics.totalOrders, 5);
-  assert.equal(metrics.totalSales, 539);
-  assert.equal(metrics.totalCustomers, 5);
+  // Demo data: 10 orders for 8 customers; unpaid (#00350, #00356) and cancelled (#00347) are not sales.
+  assert.equal(metrics.totalOrders, 10);
+  assert.equal(metrics.totalSales, 949);
+  assert.equal(metrics.totalCustomers, 8);
 });
 
 test('order search follows the admin examples', () => {
@@ -65,7 +66,7 @@ test('order search follows the admin examples', () => {
   assert.deepEqual(names('Mria'), ['Maria Santos']);
   assert.deepEqual(names('carols'), ['Carlos Reyes']);
   assert.deepEqual(names('Villanueba'), ['Mark Villanueva']);
-  assert.deepEqual(names('Garcia Ana'), ['Ana Garcia']);
+  assert.deepEqual(names('Garcia Ana'), ['Ana Garcia', 'Ana Garcia']);
   assert.deepEqual(names('Mar'), ['Maria Santos', 'Mark Villanueva']);
   assert.deepEqual(names('00359'), []);
   assert.deepEqual(names('Jon'), []);

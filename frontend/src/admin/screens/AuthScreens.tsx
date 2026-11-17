@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COPY, DEMO_PASSWORD, demoEmail, panelTitle } from '../copy.js';
@@ -12,13 +13,15 @@ import {
   requestPasswordReset,
   resetPassword,
   setAdminOnline,
-  syncStaffDataFromBackend,
+  syncStaffData,
   tokenStatus,
 } from '../data/store.js';
 import { signInStaffToSupabase } from '../../lib/staffAuth.js';
+import { sendStaffPasswordReset } from '../../lib/staffBackend.js';
+import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { useAdmin } from '../context.js';
 import type { ScreenProps } from '../nav.js';
-import type { StaffRole } from '../types';
+import type { StaffPublic, StaffRole } from '../types';
 import {
   AdminField,
   ConfirmCard,
@@ -124,21 +127,18 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
   const [googleOpen, setGoogleOpen] = useState(false);
   const [offline, setOffline] = useState(!isAdminOnline());
   const [authError, setAuthError] = useState<{ title: string; detail: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const finish = async (account: { id: string; name: string; email: string; role: StaffRole; disabled: boolean; sessionVersion: number; preferences: { language: 'en' | 'fil'; appearance: 'light' | 'dark' | 'system' } }) => {
+  const finish = async (account: StaffPublic, backend: boolean) => {
     const gate = authorizePanel(account, role);
     if (!gate.ok) {
       setAuthError({ title: gate.title, detail: gate.detail });
       return;
     }
-    const backend = await signInStaffToSupabase(account.email, password, role);
-    await signIn(account, remember);
-    if (backend.ok && !backend.skipped) {
-      const sync = await syncStaffDataFromBackend();
-      if (!sync.ok && sync.message) showFlash(sync.message);
-      else showFlash(COPY.loggedIn);
-    } else if (backend.ok === false) {
-      showFlash(backend.message || 'Signed in locally only. Run scripts/seed-staff-users.mjs to sync live orders.');
+    await signIn(account, remember, backend);
+    if (backend) {
+      const sync = await syncStaffData({ id: account.id, name: account.name, email: account.email, role: account.role });
+      showFlash(!sync.ok && 'message' in sync && sync.message ? sync.message : COPY.loggedIn);
     } else {
       showFlash(COPY.loggedIn);
     }
@@ -149,6 +149,30 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
     setEmailError(null);
     setPasswordError(null);
     setFormError(null);
+    if (isSupabaseConfigured) {
+      if (!email.trim() || !password) {
+        setFormError(COPY.blank);
+        return;
+      }
+      if (!email.includes('@')) {
+        setEmailError(COPY.invalidEmail);
+        return;
+      }
+      setBusy(true);
+      const remote = await signInStaffToSupabase(email, password);
+      setBusy(false);
+      if (remote.ok && !remote.skipped) {
+        await finish(remote.account, true);
+        return;
+      }
+      if (!remote.ok) {
+        if (remote.reason === 'credentials') setPasswordError(COPY.wrongPassword);
+        else if (remote.reason === 'disabled') setFormError(COPY.disabledAccount);
+        else if (remote.reason === 'not_staff') setAuthError({ title: COPY.notAuthorized, detail: COPY.noSession });
+        else setFormError(COPY.offline);
+        return;
+      }
+    }
     const result = loginAdmin(email, password);
     if (!result.ok) {
       if (result.field === 'email') setEmailError(result.message);
@@ -156,7 +180,7 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
       else setFormError(result.message);
       return;
     }
-    await finish(result.account);
+    await finish(result.account, false);
   };
 
   const onGoogle = async (address: string) => {
@@ -166,7 +190,7 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
       setAuthError({ title: result.title, detail: result.detail });
       return;
     }
-    await finish(result.account);
+    await finish(result.account, false);
   };
 
   return (
@@ -204,7 +228,7 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
             </Pressable>
           </View>
           {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-          <PrimaryButton title="Log In" onPress={onLogin} />
+          <PrimaryButton title={busy ? "Signing in…" : "Log In"} onPress={onLogin} disabled={busy} />
           <View style={styles.orRow}>
             <View style={[styles.line, { backgroundColor: colors.border }]} />
             <Text style={{ color: colors.muted }}>or</Text>
@@ -259,13 +283,17 @@ export function ForgotPasswordScreen({ navigation }: ScreenProps) {
   const { colors } = useAdmin();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const submit = () => {
+  const submit = async () => {
     const result = requestPasswordReset(email);
     if (!result.ok) {
       setError(result.message);
       return;
     }
-    navigation.navigate('CheckEmail', { email: email.trim() });
+    if (isSupabaseConfigured) {
+      // Supabase sends the real reset email; the reply stays neutral either way.
+      await sendStaffPasswordReset(email);
+    }
+    navigation.navigate('CheckEmail', { email: email.trim(), sent: isSupabaseConfigured });
   };
   return (
     <PhoneFrame>
@@ -284,20 +312,25 @@ export function ForgotPasswordScreen({ navigation }: ScreenProps) {
   );
 }
 
-export function CheckEmailScreen({ navigation, route }: ScreenProps<{ email?: string }>) {
+export function CheckEmailScreen({ navigation, route }: ScreenProps<{ email?: string; sent?: boolean }>) {
   const { colors } = useAdmin();
   const email = route.params?.email ?? '';
+  const live = !!route.params?.sent;
   return (
     <PhoneFrame>
       <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
         <View style={styles.pad}>
           <Text style={[styles.roleTitle, { color: colors.text }]}>{COPY.checkEmail}</Text>
           <Text style={[styles.neutral, { color: colors.muted }]}>{COPY.checkEmailBody}</Text>
-          <PrimaryButton
-            title="Open reset link"
-            onPress={() => navigation.navigate('ResetPassword', { token: peekResetToken(email) ?? 'missing', email })}
-          />
-          <View style={{ height: 12 }} />
+          {live ? null : (
+            <>
+              <PrimaryButton
+                title="Open reset link"
+                onPress={() => navigation.navigate('ResetPassword', { token: peekResetToken(email) ?? 'missing', email })}
+              />
+              <View style={{ height: 12 }} />
+            </>
+          )}
           <PrimaryButton title="Back to login" variant="outline" onPress={() => navigation.goBack()} />
         </View>
       </SafeAreaView>

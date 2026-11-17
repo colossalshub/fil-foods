@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import type React from 'react';
+import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COPY } from '../copy.js';
-import { adminView, savePreferences, saveProfile, sendSupport } from '../data/store.js';
-import { avatarLetter, formatWhen, peso } from '../domain/format.js';
+import { adminView, noticesFor, savePreferences, saveProfileAsync, sendSupport } from '../data/store.js';
+import { avatarLetter, formatWhen } from '../domain/format.js';
+import { ROLE_TITLE } from '../domain/roleAccess.js';
 import { useAdmin } from '../context.js';
 import { openRoot, resetStaff, tabBarStyle, type ScreenProps } from '../nav.js';
+import { BrandCard } from '../ui/blocks.js';
 import type { Appearance, Preferences } from '../types';
 import {
   AdminField,
   ConfirmCard,
   FlashBanner,
   GreenHeader,
-  PhoneFrame,
   PrimaryButton,
-  StatusBadge,
   useStoreRevision,
 } from '../components.js';
 
@@ -23,56 +25,117 @@ function actorFrom(session: { id: string; name: string; email: string; role: 'ad
   return { id: session.id, name: session.name, email: session.email, role: session.role };
 }
 
+function SettingsRow({
+  icon,
+  label,
+  value,
+  onPress,
+  danger,
+  right,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  danger?: boolean;
+  right?: React.ReactNode;
+}) {
+  const { colors } = useAdmin();
+  const tint = danger ? colors.danger : colors.text;
+  return (
+    <Pressable accessibilityRole={onPress ? 'button' : undefined} disabled={!onPress} onPress={onPress} style={styles.setRow}>
+      <Ionicons name={icon} size={20} color={tint} />
+      <Text style={{ color: tint, fontSize: 15, flex: 1 }}>{label}</Text>
+      {value ? <Text style={{ color: colors.muted, fontSize: 13 }}>{value}</Text> : null}
+      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null)}
+    </Pressable>
+  );
+}
+
+/** ADM-06/07, DIT-06/07, KIT-06/07, DEL-06/07 (Figma "Settings"). */
 export function SettingsScreen({ navigation }: ScreenProps) {
-  const { session, colors, t, signOut } = useAdmin();
+  useStoreRevision();
+  const { session, prefs, colors, t, signOut, applyPrefs } = useAdmin();
   const [logout, setLogout] = useState(false);
   if (!session) return null;
-  const rows = [
-    { label: t('language'), onPress: () => navigation.navigate('Preferences') },
-    { label: t('appearance'), onPress: () => navigation.navigate('Preferences') },
-  ];
-  const system = [
-    { label: t('about'), onPress: () => navigation.navigate('About') },
-    { label: t('help'), onPress: () => navigation.navigate('Help') },
-  ];
+  const role = session.role;
+  const unread = noticesFor(role, session.id).filter((notice) => !notice.readBy.includes(session.id)).length;
+  const appearance = prefs.appearance === 'dark' ? 'Dark Mode' : prefs.appearance === 'system' ? 'Device setting' : 'Light Mode';
+  const notificationsOn = prefs.notifications !== false;
+  const group = (title: string, children: React.ReactNode) => (
+    <>
+      <Text style={[styles.groupTitle, { color: colors.text }]}>{title}</Text>
+      <View style={[styles.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>{children}</View>
+    </>
+  );
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-      <View style={styles.profile}>
-        <View style={[styles.avatar, { backgroundColor: colors.green }]}>
-          <Text style={styles.avatarText}>{avatarLetter(session.name)}</Text>
+    <View style={styles.flex}>
+      <GreenHeader
+        title={t('settings')}
+        onBack={() => navigation.navigate('Dashboard')}
+        right={(
+          <Pressable accessibilityLabel="Notifications" onPress={() => openRoot(navigation, 'Inbox')}>
+            <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+            {unread && notificationsOn ? <View style={styles.dot} /> : null}
+          </Pressable>
+        )}
+      />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.avatar, { backgroundColor: colors.greenDeep }]}>
+            <Text style={styles.avatarText}>{avatarLetter(session.name)}</Text>
+          </View>
+          <View style={styles.flex}>
+            <Text style={[styles.cardName, { color: colors.text }]} numberOfLines={2}>{session.name}</Text>
+            <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>{session.email}</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => navigation.navigate('EditProfile')} style={[styles.editBtn, { backgroundColor: colors.greenDeep }]}>
+            <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 13 }}>{t('editProfile')}</Text>
+          </Pressable>
         </View>
-        <Text style={[styles.name, { color: colors.text }]}>{session.name}</Text>
-        <Text style={{ color: colors.muted }}>{session.email}</Text>
-        <Pressable onPress={() => navigation.navigate('EditProfile')} style={styles.edit}>
-          <Text style={{ color: colors.green, fontWeight: '700' }}>{t('editProfile')}</Text>
-        </Pressable>
-      </View>
-      <Text style={[styles.group, { color: colors.muted }]}>{t('preferences')}</Text>
-      {rows.map((row) => (
-        <Pressable key={row.label} onPress={row.onPress} style={[styles.row, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.text, fontSize: 16 }}>{row.label}</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-        </Pressable>
-      ))}
-      <Text style={[styles.group, { color: colors.muted }]}>{t('records')}</Text>
-      <Pressable onPress={() => navigation.navigate('Customers')} style={[styles.row, { borderColor: colors.border }]}>
-        <Text style={{ color: colors.text, fontSize: 16 }}>{t('customers')}</Text>
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      </Pressable>
-      <Pressable onPress={() => navigation.navigate('Audit')} style={[styles.row, { borderColor: colors.border }]}>
-        <Text style={{ color: colors.text, fontSize: 16 }}>{t('audit')}</Text>
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      </Pressable>
-      <Text style={[styles.group, { color: colors.muted }]}>{t('systemSection')}</Text>
-      {system.map((row) => (
-        <Pressable key={row.label} onPress={row.onPress} style={[styles.row, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.text, fontSize: 16 }}>{row.label}</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-        </Pressable>
-      ))}
-      <Pressable onPress={() => setLogout(true)} style={[styles.row, { borderColor: colors.border }]}>
-        <Text style={{ color: colors.danger, fontSize: 16, fontWeight: '700' }}>{t('logout')}</Text>
-      </Pressable>
+
+        {group(t('preferences'), (
+          <>
+            {role === 'dietitian' ? (
+              <SettingsRow
+                icon="notifications-outline"
+                label={t('notifications')}
+                right={(
+                  <Switch
+                    accessibilityLabel="Notifications"
+                    value={notificationsOn}
+                    onValueChange={(on) => {
+                      const next = { ...prefs, notifications: on };
+                      savePreferences(actorFrom(session), next);
+                      applyPrefs(next);
+                    }}
+                    trackColor={{ true: colors.green, false: colors.border }}
+                  />
+                )}
+              />
+            ) : null}
+            <SettingsRow icon="globe-outline" label={t('language')} value={prefs.language === 'fil' ? t('filipino') : t('english')} onPress={() => navigation.navigate('Preferences')} />
+            <SettingsRow icon="moon-outline" label={t('appearance')} value={appearance} onPress={() => navigation.navigate('Preferences')} />
+          </>
+        ))}
+
+        {role === 'admin' ? group(t('records'), (
+          <>
+            <SettingsRow icon="people-outline" label={t('customers')} onPress={() => navigation.navigate('Customers')} />
+            <SettingsRow icon="notifications-circle-outline" label={t('staffNotifications')} onPress={() => openRoot(navigation, 'StaffNotifications')} />
+            <SettingsRow icon="document-text-outline" label={t('audit')} onPress={() => navigation.navigate('Audit')} />
+          </>
+        )) : null}
+
+        {group(t('systemSection'), (
+          <>
+            <SettingsRow icon="information-circle-outline" label={t('about')} onPress={() => navigation.navigate('About')} />
+            <SettingsRow icon="help-circle-outline" label={t('help')} onPress={() => navigation.navigate('Help')} />
+            <SettingsRow icon="log-out-outline" label={t('logout')} danger onPress={() => setLogout(true)} />
+          </>
+        ))}
+        <BrandCard role={role} />
+      </ScrollView>
       <ConfirmCard
         visible={logout}
         title={COPY.logoutTitle}
@@ -82,7 +145,6 @@ export function SettingsScreen({ navigation }: ScreenProps) {
         onCancel={() => setLogout(false)}
         onConfirm={async () => {
           setLogout(false);
-          const role = session.role;
           await signOut();
           resetStaff(navigation, {
             index: 1,
@@ -93,7 +155,7 @@ export function SettingsScreen({ navigation }: ScreenProps) {
           });
         }}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -135,11 +197,11 @@ export function EditProfileScreen({ navigation }: ScreenProps) {
         </View>
         <AdminField icon="person-outline" value={name} onChangeText={setName} placeholder="Name" />
         <AdminField icon="mail-outline" value={email} onChangeText={setEmail} placeholder="Email Address" keyboardType="email-address" error={error} />
-        <Text style={{ color: colors.muted, marginBottom: 12 }}>Admin · {COPY.roleLocked}</Text>
+        <Text style={{ color: colors.muted, marginBottom: 12 }}>{ROLE_TITLE[session.role]} · {COPY.roleLocked}</Text>
         <PrimaryButton
           title="Save"
-          onPress={() => {
-            const result = saveProfile(actorFrom(session), { name, email });
+          onPress={async () => {
+            const result = await saveProfileAsync(actorFrom(session), { name, email });
             if (!result.ok) {
               setError(result.message);
               return;
@@ -167,12 +229,16 @@ export function EditProfileScreen({ navigation }: ScreenProps) {
 }
 
 export function PreferencesScreen({ navigation }: ScreenProps) {
-  const { session, prefs, colors, t, applyPrefs } = useAdmin();
+  const { session, prefs, colors, t, applyPrefs, showFlash } = useAdmin();
   const [draft, setDraft] = useState<Preferences>(prefs);
   const save = () => {
     if (!session) return;
     const result = savePreferences(actorFrom(session), draft);
-    if (result.ok && result.preferences) applyPrefs(result.preferences);
+    if (result.ok && result.preferences) {
+      applyPrefs(result.preferences);
+      showFlash('Preferences saved');
+      navigation.goBack();
+    }
   };
   return (
     <View style={styles.flex}>
@@ -191,7 +257,8 @@ export function PreferencesScreen({ navigation }: ScreenProps) {
         ] as [Appearance, string][]).map(([appearance, label]) => (
           <Choice key={appearance} label={label} selected={draft.appearance === appearance} onPress={() => setDraft({ ...draft, appearance })} />
         ))}
-        <Text style={{ color: colors.muted, marginTop: 8 }}>{t('alwaysOn')}</Text>
+        {session?.role === 'admin' ? <Text style={{ color: colors.muted, marginTop: 8 }}>{t('alwaysOn')}</Text> : null}
+        {session?.role === 'kitchen' || session?.role === 'delivery' ? <Text style={{ color: colors.muted, marginTop: 8 }}>{t('adminControlled')}</Text> : null}
         <PrimaryButton title={t('apply')} onPress={save} />
       </ScrollView>
     </View>
@@ -209,7 +276,7 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 }
 
 export function HelpScreen({ navigation }: ScreenProps) {
-  const { session, showFlash, colors } = useAdmin();
+  const { session, showFlash } = useAdmin();
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   return (
@@ -274,68 +341,15 @@ export function AuditScreen({ navigation }: ScreenProps) {
   );
 }
 
-export function CustomersScreen({ navigation }: ScreenProps) {
-  useStoreRevision();
-  const { colors, t } = useAdmin();
-  return (
-    <View style={styles.flex}>
-      <GreenHeader title={t('customers')} onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {adminView().customers.map((customer) => (
-          <Pressable key={customer.id} onPress={() => openRoot(navigation, 'CustomerDetail', { id: customer.id })} style={[styles.row, { borderColor: colors.border }]}>
-            <View>
-              <Text style={{ color: colors.text, fontWeight: '800' }}>{customer.name}</Text>
-              <Text style={{ color: colors.muted }}>{customer.email}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-export function CustomerDetailScreen({ navigation, route }: ScreenProps<{ id?: string }>) {
-  const { colors } = useAdmin();
-  const customer = adminView().customers.find((row) => row.id === route.params?.id);
-  return (
-    <PhoneFrame>
-      <GreenHeader title="Customer" onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 8 }}>
-        {!customer ? <Text style={{ color: colors.text }}>Customer not found.</Text> : (
-          <>
-            <Text style={[styles.name, { color: colors.text }]}>{customer.name}</Text>
-            <Text style={{ color: colors.muted }}>{customer.email}</Text>
-            <Text style={[styles.group, { color: colors.text }]}>Allergies</Text>
-            <Text style={{ color: colors.text }}>{customer.allergies.length ? customer.allergies.join(' and ') : 'No allergies recorded.'}</Text>
-            <Text style={[styles.group, { color: colors.text }]}>Nutrition preferences</Text>
-            {customer.nutrition.length ? customer.nutrition.map((row) => (
-              <Text key={row.label} style={{ color: colors.text }}>{row.label}: {row.value}</Text>
-            )) : <Text style={{ color: colors.muted }}>No nutrition preferences recorded.</Text>}
-            {customer.sodiumConflict ? (
-              <View style={[styles.audit, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <Text style={{ color: colors.text, fontWeight: '800' }}>Sodium · unresolved source conflict</Text>
-                {customer.sodiumConflict.map((value) => <Text key={value} style={{ color: colors.text }}>{value}</Text>)}
-              </View>
-            ) : null}
-            <Text style={[styles.group, { color: colors.text }]}>Order History</Text>
-            {customer.history.map((row) => (
-              <View key={`${row.name}-${row.price}`} style={[styles.row, { borderColor: colors.border }]}>
-                <Text style={{ color: colors.text, flex: 1 }}>{row.name}</Text>
-                <StatusBadge status={row.status} />
-                <Text style={{ color: colors.text, fontWeight: '700' }}>{peso(row.price)}</Text>
-              </View>
-            ))}
-            <Text style={{ color: colors.muted }}>Read only</Text>
-          </>
-        )}
-      </ScrollView>
-    </PhoneFrame>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingHorizontal: 14 },
+  groupTitle: { fontSize: 17, fontWeight: '600', marginTop: 18, marginBottom: 8 },
+  groupCard: { borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
+  profileCard: { borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardName: { fontSize: 16, fontWeight: '600' },
+  editBtn: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  dot: { position: 'absolute', top: -2, right: -2, width: 9, height: 9, borderRadius: 5, backgroundColor: '#FFB347' },
   profile: { alignItems: 'center', paddingTop: 28, paddingBottom: 8 },
   avatar: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FFFFFF', fontSize: 28, fontWeight: '800' },

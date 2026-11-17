@@ -6,6 +6,12 @@ export interface SearchableOrder {
   customerName: string;
   status: string;
   placedAt: string;
+  orderNo?: number | null;
+}
+
+/** Digits searched for an order: the #00000 number when the order has one (KIT-11 #1). */
+function orderDigits(order: SearchableOrder) {
+  return typeof order.orderNo === 'number' ? String(order.orderNo).padStart(5, '0') : order.id;
 }
 
 /** Ignore capital letters, accents and extra spaces (ADM-11). */
@@ -33,13 +39,23 @@ export function searchOrders<T extends SearchableOrder>(
   query: string,
   status: 'All' | OrderStatus,
 ) {
-  const statused = orders.filter((order) => status === 'All' || order.status === status);
+  return searchOrdersWhere(orders, query, (order) => status === 'All' || order.status === status);
+}
+
+/** Same search with any filter (staff buckets). Only `customerName` is searched, so callers pass
+ * first names for Kitchen and Delivery Staff (KIT-11 #3). */
+export function searchOrdersWhere<T extends SearchableOrder>(
+  orders: T[],
+  query: string,
+  keep: (order: T) => boolean,
+) {
+  const statused = orders.filter(keep);
   const folded = fold(query);
   if (folded.length < 2) return [...statused].sort(newest);
 
   const compact = folded.replace(/[#\s]/g, '');
   if (/^\d+$/.test(compact)) {
-    return statused.filter((order) => order.id.includes(compact)).sort(newest);
+    return statused.filter((order) => orderDigits(order).includes(compact)).sort(newest);
   }
 
   const words = folded.split(' ').filter(Boolean);

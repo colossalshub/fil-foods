@@ -1,5 +1,6 @@
-import { isSupabaseConfigured, rememberSession, requireSupabase } from './supabaseClient.js';
-import type { StaffRole } from '../admin/types';
+import { ensureSession, isSupabaseConfigured, rememberSession, requireSupabase } from './supabaseClient.js';
+import { fetchOwnStaffProfile, staffRoleFromDb } from './staffBackend.js';
+import type { StaffPublic, StaffRole } from '../admin/types';
 
 const STAFF_ROLE: Record<StaffRole, string> = {
   admin: 'owner_admin',
@@ -8,55 +9,65 @@ const STAFF_ROLE: Record<StaffRole, string> = {
   delivery: 'delivery_staff',
 };
 
-const STAFF_PROFILE_ROLES = new Set<string>([
-  'owner_admin',
-  'dietitian_staff',
-  'kitchen_staff',
-  'delivery_staff',
-]);
-
 /** Supabase `profiles.role` values used for staff panels — not the client app. */
 export function isStaffProfileRole(role: string | null | undefined) {
-  return typeof role === 'string' && STAFF_PROFILE_ROLES.has(role);
+  return staffRoleFromDb(role) !== null;
 }
 
 export function supabaseRoleForStaff(role: StaffRole): string {
   return STAFF_ROLE[role];
 }
 
-export async function signInStaffToSupabase(
-  email: string,
-  password: string,
-  panelRole?: StaffRole,
-) {
-  if (!isSupabaseConfigured) return { ok: true as const, skipped: true };
+export type StaffSignIn =
+  | { ok: true; skipped: true }
+  | { ok: true; skipped?: false; account: StaffPublic }
+  | { ok: false; reason: 'credentials' | 'not_staff' | 'disabled' | 'network'; message: string };
+
+/**
+ * Backend-first staff sign-in: the Supabase profile decides the role. The caller checks the
+ * panel with `authorizePanel` so a wrong-panel login shows the same message as the local store.
+ */
+export async function signInStaffToSupabase(email: string, password: string): Promise<StaffSignIn> {
+  if (!isSupabaseConfigured) return { ok: true, skipped: true };
   const client = requireSupabase();
-  const { data, error } = await client.auth.signInWithPassword({ email: email.trim(), password });
-  if (error || !data.session?.access_token) {
-    return { ok: false as const, message: error?.message || 'Staff sign-in to the backend failed.' };
+  let data;
+  try {
+    const result = await client.auth.signInWithPassword({ email: email.trim(), password });
+    if (result.error || !result.data.session?.access_token) {
+      const message = result.error?.message || '';
+      if (/fetch|network/i.test(message)) return { ok: false, reason: 'network', message };
+      return { ok: false, reason: 'credentials', message };
+    }
+    data = result.data;
+  } catch (error) {
+    return { ok: false, reason: 'network', message: (error as Error).message };
   }
   await rememberSession(data.session);
-  const userId = data.session.user.id;
-  const appRole = await client
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .maybeSingle();
-  const backendRole = appRole.data?.role as string | undefined;
-  const expected = panelRole ? supabaseRoleForStaff(panelRole) : null;
-  if (
-    expected
-    && backendRole
-    && backendRole !== expected
-    && backendRole !== 'owner_admin'
-  ) {
-    await client.auth.signOut();
-    return {
-      ok: false as const,
-      message: `This account is not authorized for the ${panelRole} panel.`,
-    };
+  const profile = await fetchOwnStaffProfile(data.session.user.id);
+  if (!profile.ok || !profile.value) {
+    await signOutStaffFromSupabase();
+    return { ok: false, reason: 'not_staff', message: profile.ok ? '' : profile.message };
   }
-  return { ok: true as const, userId, backendRole };
+  if (profile.value.disabled) {
+    await signOutStaffFromSupabase();
+    return { ok: false, reason: 'disabled', message: '' };
+  }
+  return { ok: true, account: profile.value };
+}
+
+/** Restores a remembered Supabase staff session (refreshing the token when needed). */
+export async function restoreStaffSession(): Promise<StaffPublic | null> {
+  if (!isSupabaseConfigured) return null;
+  try {
+    const session = await ensureSession();
+    const userId = session?.user?.id;
+    if (!userId) return null;
+    const profile = await fetchOwnStaffProfile(userId);
+    if (!profile.ok || !profile.value || profile.value.disabled) return null;
+    return profile.value;
+  } catch {
+    return null;
+  }
 }
 
 export async function signOutStaffFromSupabase() {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { COPY } from '../copy.js';
-import { adminView, saveRoleNotifications } from '../data/store.js';
+import { adminView, saveRoleNotificationsAsync } from '../data/store.js';
 import { useAdmin } from '../context.js';
 import type { ScreenProps } from '../nav.js';
 import type { NotificationTypes } from '../types';
@@ -33,9 +34,9 @@ export function StaffNotificationsScreen({ navigation }: ScreenProps) {
   const [pending, setPending] = useState<{ role: 'kitchen' | 'delivery'; types: NotificationTypes; label: string } | null>(null);
   const allowed = session?.role === 'admin';
 
-  const apply = (role: 'kitchen' | 'delivery', types: NotificationTypes) => {
+  const apply = async (role: 'kitchen' | 'delivery', types: NotificationTypes) => {
     if (!session) return;
-    const result = saveRoleNotifications(
+    const result = await saveRoleNotificationsAsync(
       { id: session.id, name: session.name, email: session.email, role: session.role },
       role,
       types,

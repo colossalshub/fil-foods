@@ -1,17 +1,21 @@
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
-import {
-  fetchStaffCustomersFromBackend,
-  fetchStaffMenuFromBackend,
-  fetchStaffOrdersFromBackend,
-  transitionOrderOnBackend,
-  upsertMealOnBackend,
-} from '../../lib/staffBackend.js';
+import * as remote from '../../lib/staffBackend.js';
 import type { AppDatabase, AuditEvent } from '../../user/types';
 import { appendAuditEvent, comparePasswordSync, hashPasswordSync, verifyAuditChain } from '../../user/services/securityService.js';
 import { COPY, DEMO_PASSWORD } from '../copy.js';
 import { formatWhen, isValidEmail, parsePrice, peso, splitList } from '../domain/format.js';
 import { computeDashboardMetrics } from '../domain/dashboardMetrics.js';
-import { searchOrders } from '../domain/search.js';
+import { searchOrdersWhere } from '../domain/search.js';
+import { can } from '../domain/roleAccess.js';
+import {
+  BUCKET_FILTERS,
+  canSeeOrder,
+  isValidTransition,
+  roleMayTransition,
+  shapeOrderForRole,
+  staffBucket,
+  type BucketFilter,
+} from '../domain/roleAccess.js';
 import type {
   Actor,
   AdminOrder,
@@ -21,8 +25,10 @@ import type {
   MenuDraft,
   MenuItem,
   OrderStatus,
+  DietaryInfo,
   PlanOffer,
   Preferences,
+  RemovalRequest,
   RoleNotificationSetting,
   StaffNotice,
   StaffPublic,
@@ -61,6 +67,9 @@ interface AdminDb {
   resets: ResetLink[];
   pendingSetup: { name: string; email: string; token: string } | null;
   support: { id: string; from: string; message: string; at: string }[];
+  removalRequests: RemovalRequest[];
+  /** Rows from `admin_audit_log` when signed in to Supabase. */
+  remoteAudit: AuditRow[] | null;
 }
 
 export const CATEGORIES = [
@@ -99,8 +108,10 @@ const RESET_TTL = 30 * 60 * 1000;
 let demoHash: string | null = null;
 let online = true;
 let seq = 100;
-let db = build();
+// Built at the end of this module, after the seed tables are initialised.
+let db = undefined as unknown as AdminDb;
 let backendSynced = false;
+let backendViewer: Actor | null = null;
 const listeners = new Set<() => void>();
 const BACKEND_ORDER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -186,6 +197,124 @@ function menuItem(id: string, name: string, category: string, price: number, ing
   };
 }
 
+
+const ADDRESSES: Record<string, string> = {
+  juan: '12 Mabini St., Brgy. San Antonio, Pasig City',
+  maria: '88 Katipunan Ave., Loyola Heights, Quezon City',
+  carlos: '5 Jupiter St., Bel-Air, Makati City',
+  ana: 'Unit 4B, 21 Scout Tobias St., Quezon City',
+  mark: '301 Shaw Blvd., Mandaluyong City',
+  rosa: '9 Sampaguita St., Marikina Heights, Marikina City',
+  ben: '45 Aguirre Ave., BF Homes, Parañaque City',
+  elena: '17 Ortigas Ave. Ext., Cainta, Rizal',
+};
+
+function flags(partial: Partial<DietaryInfo['nutrition']>): DietaryInfo['nutrition'] {
+  return { supplied: true, lowerCalories: false, higherProtein: false, lowerSodium: false, lowerSugar: false, ...partial };
+}
+
+const NONE: DietaryInfo = {
+  allergies: [],
+  conditions: [],
+  restrictions: [],
+  nutrition: { supplied: false, lowerCalories: false, higherProtein: false, lowerSodium: false, lowerSugar: false },
+  updatedAt: null,
+};
+
+const SEED_CUSTOMERS: Omit<Customer, 'history'>[] = [
+  {
+    id: 'customer-ana',
+    name: 'Ana Garcia',
+    firstName: 'Ana',
+    accountHolderName: 'Ana Garcia',
+    email: 'anagarcia@gmail.com',
+    allergies: ['Peanuts', 'Dairy'],
+    nutrition: [],
+    sodiumConflict: ['≤400 mg', '≤2.00 mg', '≤2g'],
+    dietary: {
+      allergies: [{ value: 'Peanuts', note: 'Severe: carries an EpiPen' }, { value: 'Dairy', note: null }],
+      conditions: ['Hypertension', 'Type 2 Diabetes'],
+      restrictions: ['Low-sugar', 'Halal'],
+      nutrition: flags({ lowerSodium: true, lowerSugar: true, higherProtein: true }),
+      updatedAt: '2026-10-28T10:00:00+08:00',
+    },
+  },
+  { id: 'customer-juan', name: 'Juan Dela Cruz', firstName: 'Juan', accountHolderName: 'Juan Dela Cruz', email: 'juan.delacruz@gmail.com', allergies: ['Shellfish'], nutrition: [], sodiumConflict: null, dietary: { allergies: [{ value: 'Shellfish', note: null }], conditions: ['High cholesterol'], restrictions: [], nutrition: flags({ lowerCalories: true }), updatedAt: '2026-10-20T08:00:00+08:00' } },
+  { id: 'customer-maria', name: 'Maria Santos', firstName: 'Maria', accountHolderName: 'Pedro Santos', email: 'maria.santos@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, dietary: { ...NONE, restrictions: ['Vegetarian'], nutrition: flags({ higherProtein: true }) } },
+  { id: 'customer-carlos', name: 'Carlos Reyes', firstName: 'Carlos', accountHolderName: 'Carlos Reyes', email: 'carlos.reyes@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, dietary: NONE },
+  { id: 'customer-mark', name: 'Mark Villanueva', firstName: 'Mark', accountHolderName: 'Mark Villanueva', email: 'mark.villanueva@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, dietary: { ...NONE, conditions: ['Hypertension'], nutrition: flags({ lowerSodium: true }) } },
+  { id: 'customer-rosa', name: 'Rosa Lim', firstName: 'Rosa', accountHolderName: 'Rosa Lim', email: 'rosa.lim@gmail.com', allergies: ['Eggs'], nutrition: [], sodiumConflict: null, dietary: { allergies: [{ value: 'Eggs', note: 'Hives' }], conditions: ['Gout'], restrictions: ['Low-purine'], nutrition: flags({ lowerCalories: true }), updatedAt: '2026-10-25T09:00:00+08:00' } },
+  { id: 'customer-ben', name: 'Ben Torres', firstName: 'Ben', accountHolderName: 'Lilia Torres', email: 'ben.torres@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, dietary: { ...NONE, conditions: ['Chronic kidney disease'], nutrition: flags({ lowerSodium: true }) } },
+  { id: 'customer-elena', name: 'Elena Cruz', firstName: 'Elena', accountHolderName: 'Elena Cruz', email: 'elena.cruz@gmail.com', allergies: ['Fish'], nutrition: [], sodiumConflict: null, dietary: { ...NONE, allergies: [{ value: 'Fish', note: null }] } },
+];
+
+type SeedOrder = [string, string, OrderStatus, number, string, string, string, Partial<AdminOrder>?];
+
+const SEED_ORDERS: SeedOrder[] = [
+  ['00350', 'customer-juan', 'For Dietitian Review', 120, '2026-10-29T20:45:00+08:00', 'wrap', 'Fried Chicken', { specialInstructions: 'Less oil, please.' }],
+  ['00349', 'customer-maria', 'Preparing', 99, '2026-10-29T20:30:00+08:00', 'salad', 'Garden Bowl'],
+  ['00348', 'customer-carlos', 'Completed', 180, '2026-10-29T19:50:00+08:00', 'salmon', 'Salmon Teriyaki'],
+  ['00347', 'customer-ana', 'Cancelled', 85, '2026-10-29T19:15:00+08:00', 'omelette', 'Egg White Omelette', { wasPaid: false }],
+  ['00346', 'customer-mark', 'Completed', 140, '2026-10-29T18:35:00+08:00', 'bangus', 'Grilled Bangus'],
+  ['00352', 'customer-rosa', 'Paid', 130, '2026-10-30T10:05:00+08:00', 'wrap', 'Chicken Adobo', { specialInstructions: 'Gate code 4471.' }],
+  ['00353', 'customer-ana', 'Ready for Delivery', 195, '2026-10-30T11:00:00+08:00', 'salad', 'Spring Salad', { assigneeId: 'staff-ana', assigneeName: 'Ana Reyes', specialInstructions: 'Leave with the guard if no one answers.' }],
+  ['00354', 'customer-ben', 'Out for Delivery', 95, '2026-10-30T09:30:00+08:00', 'salad', 'Pinakbet', { assigneeId: 'staff-ana', assigneeName: 'Ana Reyes' }],
+  ['00355', 'customer-elena', 'Preparing', 110, '2026-10-30T12:15:00+08:00', 'bangus', 'Chicken Tinola', { fulfillment: 'pick_up' }],
+  ['00356', 'customer-ben', 'Awaiting Payment', 160, '2026-10-30T14:00:00+08:00', 'wrap', 'Beef Caldereta'],
+];
+
+const PAID_STAGES: OrderStatus[] = ['Paid', 'Confirmed', 'Preparing', 'Ready for Delivery', 'Ready for Pickup', 'Out for Delivery', 'Completed'];
+
+function seedOrder([id, clientId, status, price, placedAt, photo, meal, extra]: SeedOrder): AdminOrder {
+  const customer = SEED_CUSTOMERS.find((row) => row.id === clientId)!;
+  const first = customer.firstName || customer.name.split(' ')[0];
+  const fulfillment = extra?.fulfillment ?? 'delivery';
+  const phone = `+63 917 555 0${id.slice(-3)}`;
+  return {
+    id,
+    orderNo: Number(id),
+    trackingNumber: `TRK-2026-${id.slice(-4)}`,
+    clientId,
+    customerName: customer.name,
+    firstName: first,
+    accountHolderName: customer.accountHolderName ?? customer.name,
+    customerEmail: customer.email,
+    status,
+    fulfillment,
+    price,
+    placedAt,
+    when: formatWhen(placedAt),
+    photo,
+    lines: [{ name: meal, price }],
+    items: [{ name: meal, quantity: 1, unitPrice: price, mealKey: null }],
+    dietary: customer.dietary ?? NONE,
+    delivery: fulfillment === 'delivery'
+      ? { firstName: first, contactNumber: phone, address: ADDRESSES[clientId.replace('customer-', '')] ?? null, notes: extra?.specialInstructions ?? null }
+      : null,
+    specialInstructions: null,
+    reviewDecision: PAID_STAGES.includes(status) || status === 'Awaiting Payment' ? 'approved' : null,
+    reviewReason: null,
+    wasPaid: PAID_STAGES.includes(status),
+    assigneeId: null,
+    assigneeName: null,
+    updates: [],
+    ...extra,
+  };
+}
+
+function historyFor(orders: AdminOrder[], clientId: string) {
+  return orders
+    .filter((order) => order.clientId === clientId)
+    .sort((a, b) => b.placedAt.localeCompare(a.placedAt))
+    .map((order) => ({
+      orderId: order.id,
+      at: order.when,
+      name: order.lines.map((line) => line.name).join(', ') || `Order #${order.id}`,
+      status: order.status,
+      price: order.price,
+    }));
+}
+
 function build(): AdminDb {
   const hash = demoPasswordHash();
   const prefs = (): Preferences => ({ ...DEFAULT_PREFS });
@@ -197,13 +326,7 @@ function build(): AdminDb {
       { id: 'staff-ana', name: 'Ana Reyes', email: 'ana.reyes@filfoods.ph', role: 'delivery', passwordHash: hash, googleSub: null, disabled: false, deleted: false, mustSetPassword: false, sessionVersion: 1, preferences: prefs() },
       { id: 'staff-mark', name: 'Mark Peralta', email: 'mark.peralta@filfoods.ph', role: 'delivery', passwordHash: hash, googleSub: null, disabled: false, deleted: false, mustSetPassword: false, sessionVersion: 1, preferences: prefs() },
     ],
-    orders: [
-      { id: '00350', trackingNumber: 'TRK-2026-0350', customerName: 'Juan Dela Cruz', status: 'For Dietitian Review', price: 120, placedAt: '2026-10-29T20:45:00+08:00', when: 'Oct 29, 2026 · 08:45 PM', photo: 'wrap', lines: [{ name: 'Fried Chicken', price: 120 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00349', trackingNumber: 'TRK-2026-0349', customerName: 'Maria Santos', status: 'Preparing', price: 99, placedAt: '2026-10-29T20:30:00+08:00', when: 'Oct 29, 2026 · 08:30 PM', photo: 'salad', lines: [{ name: 'Garden Bowl', price: 99 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00348', trackingNumber: 'TRK-2026-0348', customerName: 'Carlos Reyes', status: 'Completed', price: 180, placedAt: '2026-10-29T19:50:00+08:00', when: 'Oct 29, 2026 · 07:50 PM', photo: 'salmon', lines: [{ name: 'Salmon Teriyaki', price: 180 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00347', trackingNumber: 'TRK-2026-0347', customerName: 'Ana Garcia', status: 'Cancelled', price: 85, placedAt: '2026-10-29T19:15:00+08:00', when: 'Oct 29, 2026 · 07:15 PM', photo: 'omelette', lines: [{ name: 'Egg White Omelette', price: 85 }], assigneeId: null, assigneeName: null, updates: [] },
-      { id: '00346', trackingNumber: 'TRK-2026-0346', customerName: 'Mark Villanueva', status: 'Completed', price: 140, placedAt: '2026-10-29T18:35:00+08:00', when: 'Oct 29, 2026 · 06:35 PM', photo: 'bangus', lines: [{ name: 'Grilled Bangus', price: 140 }], assigneeId: null, assigneeName: null, updates: [] },
-    ],
+    orders: SEED_ORDERS.map(seedOrder),
     menu: [
       menuItem('menu-1', 'Ensaymada', 'Breakfast · Pastries', 45, 'flour, butter, sugar, cheese', 'Dairy, Gluten'),
       menuItem('menu-2', 'Spanish Bread', 'Breakfast · Pastries', 35, 'flour, butter, sugar', 'Gluten, Dairy'),
@@ -230,30 +353,13 @@ function build(): AdminDb {
       menuItem('menu-23', 'Ginataang Gulay', 'Dinner · Vegetable', 100, 'coconut milk, squash, string beans', ''),
       menuItem('menu-24', 'Tortang Talong', 'Dinner · Vegetable', 80, 'eggplant, egg', 'Eggs'),
     ],
-    customers: [
-      {
-        id: 'customer-ana',
-        name: 'Ana Garcia',
-        email: 'anagarcia@gmail.com',
-        allergies: ['Peanuts', 'Dairy'],
-        nutrition: [
-          { label: 'Sugar', value: '≤5g' },
-          { label: 'Calories', value: '400–600' },
-          { label: 'Protein', value: '≥25g' },
-        ],
-        sodiumConflict: ['≤400 mg', '≤2.00 mg', '≤2g'],
-        history: [
-          { name: 'Spring Salad', status: 'Completed', price: 100 },
-          { name: 'Order #00347', status: 'Cancelled', price: 85 },
-        ],
-      },
-      { id: 'customer-juan', name: 'Juan Dela Cruz', email: 'juan.delacruz@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Fried Chicken', status: 'For Dietitian Review', price: 120 }] },
-      { id: 'customer-maria', name: 'Maria Santos', email: 'maria.santos@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Garden Bowl', status: 'Preparing', price: 99 }] },
-      { id: 'customer-carlos', name: 'Carlos Reyes', email: 'carlos.reyes@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Salmon Teriyaki', status: 'Completed', price: 180 }] },
-      { id: 'customer-mark', name: 'Mark Villanueva', email: 'mark.villanueva@gmail.com', allergies: [], nutrition: [], sodiumConflict: null, history: [{ name: 'Grilled Bangus', status: 'Completed', price: 140 }] },
-    ],
+    customers: SEED_CUSTOMERS.map((row) => ({ ...row, history: [] })),
     notices: [
       { id: 'note-350', audience: 'admin', title: 'Order #00350 is pending', orderId: '00350', readBy: [], createdAt: '2026-10-29T20:45:00+08:00' },
+      { id: 'note-350d', audience: 'dietitian', title: 'New order for review', body: 'Order #00350 from Juan is waiting for your review.', kind: 'order_review', orderId: '00350', readBy: [], createdAt: '2026-10-29T20:45:00+08:00' },
+      { id: 'note-rr1', audience: 'dietitian', title: 'Health condition removal request', body: 'Ana Garcia asked to remove Hypertension.', kind: 'removal_request', requestId: 'rr-1', readBy: [], createdAt: '2026-10-30T09:10:00+08:00' },
+      { id: 'note-352k', audience: 'kitchen', title: 'New paid order', body: 'Order #00352 is paid and ready to prepare.', kind: 'new_order', orderId: '00352', readBy: [], createdAt: '2026-10-30T10:05:00+08:00' },
+      { id: 'note-353d', audience: 'delivery', recipientId: 'staff-ana', title: 'Order ready for pickup', body: 'Order #00353 is ready for pickup at the kitchen.', kind: 'ready_for_pickup', orderId: '00353', readBy: [], createdAt: '2026-10-30T11:20:00+08:00' },
     ],
     settings: {
       kitchen: { enabled: true, types: { newOrder: true, menuUpdated: true } },
@@ -263,7 +369,16 @@ function build(): AdminDb {
     resets: [],
     pendingSetup: null,
     support: [],
+    removalRequests: [
+      { id: 'rr-1', clientId: 'customer-ana', recipientName: 'Ana Garcia', condition: 'Hypertension', reason: 'My doctor cleared me after my last check-up.', requestedBy: 'Ana Garcia', requestedAt: '2026-10-30T09:10:00+08:00', status: 'pending', decisionReason: null, decidedAt: null, decidedBy: null },
+      { id: 'rr-2', clientId: 'customer-rosa', recipientName: 'Rosa Lim', condition: 'Gout', reason: null, requestedBy: 'Rosa Lim', requestedAt: '2026-10-30T13:40:00+08:00', status: 'pending', decisionReason: null, decidedAt: null, decidedBy: null },
+      { id: 'rr-0', clientId: 'customer-ana', recipientName: 'Ana Garcia', condition: 'Anemia', reason: 'Recovered.', requestedBy: 'Ana Garcia', requestedAt: '2026-10-27T08:00:00+08:00', status: 'approved', decisionReason: null, decidedAt: '2026-10-28T10:00:00+08:00', decidedBy: 'Dr. Maria Santos' },
+    ],
+    remoteAudit: null,
   };
+  next.customers.forEach((customer) => {
+    customer.history = historyFor(next.orders, customer.id);
+  });
   logAuditOn(next, {
     action: 'dietitian.health_condition_removal',
     userId: 'staff-maria',
@@ -290,6 +405,8 @@ export function subscribeAdmin(listener: () => void) {
 
 export function resetAdminDb() {
   online = true;
+  backendViewer = null;
+  backendSynced = false;
   db = build();
   touch();
 }
@@ -331,6 +448,7 @@ export function adminView() {
   }));
   return {
     orders: db.orders,
+    removalRequests: db.removalRequests,
     menu: db.menu,
     customers: db.customers,
     notices: db.notices,
@@ -340,8 +458,8 @@ export function adminView() {
     categories: CATEGORIES,
     staff: db.staff.filter((person) => !person.deleted).map(toPublic),
     pendingSetup: db.pendingSetup,
-    audit,
-    intact: isAuditIntact(),
+    audit: db.remoteAudit ?? audit,
+    intact: db.remoteAudit ? true : isAuditIntact(),
   };
 }
 
@@ -473,7 +591,7 @@ export function resetPassword(token: string, nextPassword: string, confirm: stri
   return { ok: true as const, message: COPY.passwordUpdated };
 }
 
-function emit(audience: StaffRole, title: string, orderId?: string) {
+function emit(audience: StaffRole, title: string, orderId?: string, extra: Partial<StaffNotice> = {}) {
   db.notices.unshift({
     id: nid('note'),
     audience,
@@ -481,123 +599,273 @@ function emit(audience: StaffRole, title: string, orderId?: string) {
     orderId,
     readBy: [],
     createdAt: new Date().toISOString(),
+    ...extra,
   });
 }
 
-function notifyOrder(order: AdminOrder, title: string) {
-  emit('admin', title, order.id);
-  if (db.settings.kitchen.enabled && db.settings.kitchen.types.newOrder) {
-    emit('kitchen', title, order.id);
+function orderLabel(order: AdminOrder) {
+  return typeof order.orderNo === 'number' ? `#${String(order.orderNo).padStart(5, '0')}` : `#${order.id}`;
+}
+
+/** Same audiences as the `orders_notify_staff` trigger. */
+function notifyTransition(order: AdminOrder, status: OrderStatus) {
+  const no = orderLabel(order);
+  const first = order.firstName || order.customerName.split(' ')[0];
+  if (status === 'For Dietitian Review') {
+    emit('dietitian', 'New order for review', order.id, { kind: 'reviewRequest', body: `Order ${no} from ${first} is waiting for your review.` });
+    emit('admin', `Order ${no} is pending`, order.id, { kind: 'newOrder' });
   }
-  if (db.settings.delivery.enabled && db.settings.delivery.types.readyForPickup) {
-    emit('delivery', title, order.id);
+  if (status === 'Paid') {
+    if (db.settings.kitchen.enabled && db.settings.kitchen.types.newOrder) {
+      emit('kitchen', 'New paid order', order.id, { kind: 'newOrder', body: `Order ${no} is paid and ready to prepare.` });
+    }
+    emit('admin', `Order ${no} was paid`, order.id, { kind: 'orderPaid' });
   }
+  if (status === 'Ready for Delivery') {
+    emit('admin', `Order ${no} is ready for pickup`, order.id, { kind: 'readyForPickup' });
+    if (order.assigneeId && db.settings.delivery.enabled && db.settings.delivery.types.readyForPickup) {
+      emit('delivery', 'Order ready for pickup', order.id, {
+        kind: 'readyForPickup',
+        recipientId: order.assigneeId,
+        body: `Order ${no} is ready for pickup at the kitchen.`,
+      });
+    }
+  }
+  if (status === 'Ready for Pickup') emit('admin', `Order ${no} is ready for customer pickup`, order.id, { kind: 'readyForPickup' });
+  if (status === 'Completed') emit('admin', `Order ${no} was completed`, order.id, { kind: 'orderCompleted' });
 }
 
 function notifyMenu(title: string) {
-  emit('admin', title);
-  if (db.settings.kitchen.enabled && db.settings.kitchen.types.menuUpdated) emit('kitchen', title);
-  if (db.settings.delivery.enabled && db.settings.delivery.types.menuUpdated) emit('delivery', title);
+  if (db.settings.kitchen.enabled && db.settings.kitchen.types.menuUpdated) emit('kitchen', title, undefined, { kind: 'menuUpdated' });
+  if (db.settings.delivery.enabled && db.settings.delivery.types.menuUpdated) emit('delivery', title, undefined, { kind: 'menuUpdated' });
 }
 
-export function searchStaffOrders(query: string, status: 'All' | OrderStatus) {
-  return searchOrders(db.orders, query, status);
-}
-
-export async function syncStaffDataFromBackend() {
-  if (!isSupabaseConfigured) return { ok: true as const, skipped: true as const };
-  try {
-    const [orders, menu] = await Promise.all([
-      fetchStaffOrdersFromBackend(),
-      fetchStaffMenuFromBackend(),
-    ]);
-    if (orders.length) db.orders = orders;
-    if (menu.length) db.menu = menu;
-    const clientIds = orders.map((order) => order.clientId).filter(Boolean) as string[];
-    if (clientIds.length) {
-      const remoteCustomers = await fetchStaffCustomersFromBackend(clientIds);
-      remoteCustomers.forEach((remote) => {
-        const idx = db.customers.findIndex((row) => row.id === remote.id || row.email === remote.email);
-        if (idx >= 0) {
-          db.customers[idx] = { ...db.customers[idx], ...remote, history: db.customers[idx].history };
-        } else {
-          db.customers.push(remote);
-        }
-      });
-    }
-    backendSynced = true;
-    touch();
-    return { ok: true as const };
-  } catch (error) {
-    return { ok: false as const, message: (error as { message?: string }).message || COPY.offline };
+function bucketOrStatus(status: 'All' | BucketFilter | OrderStatus | 'Cancelled') {
+  if (status === 'All') return () => true;
+  if ((BUCKET_FILTERS as readonly string[]).includes(status) || status === 'Cancelled') {
+    return (order: AdminOrder) => staffBucket(order.status) === status;
   }
+  return (order: AdminOrder) => order.status === status;
+}
+
+/** Admin search: full names, any status bucket (ADM-11). */
+export function searchStaffOrders(query: string, status: 'All' | BucketFilter | OrderStatus | 'Cancelled') {
+  return searchOrdersWhere(db.orders, query, bucketOrStatus(status));
+}
+
+/** Orders a staff member may see, shaped for their role (names, prices, address). */
+export function ordersFor(actor: Pick<Actor, 'id' | 'role'>) {
+  return db.orders
+    .filter((order) => canSeeOrder(actor.role, actor.id, order))
+    .map((order) => shapeOrderForRole(actor.role, order));
+}
+
+export function orderFor(actor: Pick<Actor, 'id' | 'role'>, orderId: string) {
+  return ordersFor(actor).find((order) => order.id === orderId) ?? null;
+}
+
+/** KIT-11 / DEL-11: Kitchen and Delivery search first names and order numbers only. */
+export function searchRoleOrders(
+  actor: Pick<Actor, 'id' | 'role'>,
+  query: string,
+  status: 'All' | BucketFilter | OrderStatus | 'Cancelled',
+) {
+  return searchOrdersWhere(ordersFor(actor), query, bucketOrStatus(status));
+}
+
+export function backendActive() {
+  return isSupabaseConfigured && backendViewer !== null;
+}
+
+export function endBackendSession() {
+  backendViewer = null;
+  backendSynced = false;
+}
+
+function recordFromPublic(person: StaffPublic): StaffRecord {
+  const existing = db.staff.find((row) => row.id === person.id);
+  return {
+    id: person.id,
+    name: person.name,
+    email: person.email,
+    role: person.role,
+    passwordHash: null,
+    googleSub: null,
+    disabled: person.disabled,
+    deleted: false,
+    mustSetPassword: false,
+    sessionVersion: 1,
+    preferences: existing?.preferences ?? { ...DEFAULT_PREFS },
+  };
+}
+
+/** Loads everything the signed-in role may see from Supabase into the cache. */
+export async function syncStaffData(actor: Actor) {
+  if (!isSupabaseConfigured) return { ok: true as const, skipped: true as const };
+  backendViewer = actor;
+  const [orders, menu, notices] = await Promise.all([
+    remote.fetchStaffOrders(),
+    remote.fetchMenu(),
+    remote.fetchStaffNotices(actor.role, actor.id),
+  ]);
+  if (!orders.ok) return { ok: false as const, message: orders.message };
+  db.orders = orders.value;
+  if (menu.ok) db.menu = menu.value;
+  if (notices.ok) db.notices = notices.value;
+  if (actor.role === 'admin' || actor.role === 'dietitian') {
+    const customers = await remote.fetchStaffCustomers();
+    if (customers.ok) db.customers = customers.value;
+  } else {
+    db.customers = [];
+  }
+  if (actor.role === 'admin') {
+    const [staff, audit, settings] = await Promise.all([
+      remote.fetchStaffDirectory(),
+      remote.fetchAuditLog(),
+      remote.fetchNotificationSettings(),
+    ]);
+    if (staff.ok) {
+      const self = staff.value.some((row) => row.id === actor.id);
+      const people = self ? staff.value : [...staff.value, { id: actor.id, name: actor.name, email: actor.email, role: actor.role, disabled: false, sessionVersion: 1, preferences: { ...DEFAULT_PREFS } }];
+      db.staff = people.map(recordFromPublic);
+    }
+    if (audit.ok) db.remoteAudit = audit.value;
+    if (settings.ok && settings.value) {
+      db.settings = {
+        kitchen: settings.value.kitchen ?? db.settings.kitchen,
+        delivery: settings.value.delivery ?? db.settings.delivery,
+      };
+    }
+  }
+  if (actor.role === 'dietitian') {
+    const requests = await remote.fetchRemovalRequests(null);
+    if (requests.ok) db.removalRequests = requests.value;
+  }
+  backendSynced = true;
+  touch();
+  return { ok: true as const };
+}
+
+/** Fetches the role-shaped detail (dietary info, address, history) for one order. */
+export async function loadOrderDetail(orderId: string) {
+  if (!backendActive()) return { ok: true as const };
+  const detail = await remote.fetchStaffOrderDetail(orderId);
+  if (!detail.ok) return detail;
+  const index = db.orders.findIndex((row) => row.id === orderId);
+  if (index >= 0) db.orders[index] = { ...db.orders[index], ...detail.value };
+  else db.orders.push(detail.value);
+  touch();
+  return { ok: true as const };
+}
+
+export async function loadCustomerDetail(clientId: string) {
+  if (!backendActive()) return { ok: true as const };
+  const detail = await remote.fetchStaffCustomerDetail(clientId);
+  if (!detail.ok) return detail;
+  const index = db.customers.findIndex((row) => row.id === clientId);
+  if (index >= 0) db.customers[index] = { ...db.customers[index], ...detail.value };
+  else db.customers.push(detail.value);
+  touch();
+  return { ok: true as const };
+}
+
+/** Customer details a role may open (KIT-14 / DEL-13 are limited to customers on visible orders). */
+export function customerFor(actor: Pick<Actor, 'id' | 'role'>, clientId: string): Customer | null {
+  const visible = actor.role === 'admin' || actor.role === 'dietitian'
+    || ordersFor(actor).some((order) => order.clientId === clientId);
+  if (!visible) return null;
+  const customer = db.customers.find((row) => row.id === clientId);
+  const order = db.orders.find((row) => row.clientId === clientId);
+  if (!customer && !order) return null;
+  const base: Customer = customer ?? {
+    id: clientId,
+    name: order!.customerName,
+    firstName: order!.firstName,
+    email: order!.customerEmail ?? '',
+    dietary: order!.dietary ?? null,
+    allergies: [],
+    nutrition: [],
+    sodiumConflict: null,
+    history: [],
+  };
+  if (actor.role === 'kitchen' || actor.role === 'delivery') {
+    const first = base.firstName || base.name.split(' ')[0];
+    return { ...base, name: first, accountHolderName: null, history: [] };
+  }
+  return base;
 }
 
 export function staffBackendSynced() {
   return backendSynced;
 }
 
-function canManageOrders(actor: Actor) {
-  return actor.role === 'admin' || actor.role === 'dietitian' || actor.role === 'kitchen' || actor.role === 'delivery';
+/** @deprecated kept for older callers; use syncStaffData(actor). */
+export async function syncStaffDataFromBackend() {
+  if (!backendViewer) return { ok: true as const, skipped: true as const };
+  return syncStaffData(backendViewer);
+}
+
+const BACKEND_ID = BACKEND_ORDER_ID;
+
+function closed(order: AdminOrder) {
+  return order.status === 'Completed' || order.status === 'Cancelled';
+}
+
+function transitionDenied(actor: Actor, order: AdminOrder, status: OrderStatus) {
+  if (!STATUSES.includes(status)) return 'Choose a valid status.';
+  if (closed(order)) return COPY.readOnlyOrder;
+  if (!isValidTransition(order, status)) return 'That status change is not allowed for this order.';
+  if (!roleMayTransition(actor.role, actor.id, order, status)) {
+    return actor.role === 'delivery' && order.assigneeId !== actor.id
+      ? 'This order is not assigned to you.'
+      : 'This status change is not allowed for your role.';
+  }
+  return null;
 }
 
 function applyLocalOrderStatus(actor: Actor, order: AdminOrder, status: OrderStatus) {
   const from = order.status;
   order.status = status;
+  if (status === 'Paid') order.wasPaid = true;
   const at = new Date().toISOString();
   order.updates.push({ at, by: actor.name, summary: `${from} → ${status}` });
   auditChange(actor, 'order.status', order.id, {
     summary: `Status ${from} → ${status}`,
-    targetLabel: `Order #${order.trackingNumber || order.id}`,
+    targetLabel: `Order ${orderLabel(order)}`,
     oldValue: from,
     newValue: status,
   });
-  notifyOrder(order, `Order #${order.trackingNumber || order.id} is ${status.toLowerCase()}`);
+  notifyTransition(order, status);
+  const customer = db.customers.find((row) => row.id === order.clientId);
+  if (customer) customer.history = historyFor(db.orders, customer.id);
   touch();
 }
 
+/** One status step for any role (ADM-12, KIT-13, DEL-17). Server rules apply when signed in. */
 export async function setOrderStatusAsync(actor: Actor, orderId: string, status: OrderStatus) {
-  if (!canManageOrders(actor)) return { ok: false as const, message: COPY.notAuthorized };
-  if (!STATUSES.includes(status)) return { ok: false as const, message: 'Choose a valid status.' };
   const order = db.orders.find((row) => row.id === orderId);
   if (!order) return { ok: false as const, message: COPY.noOrders };
-  if (order.status === 'Completed' || order.status === 'Cancelled') {
-    return { ok: false as const, message: COPY.readOnlyOrder };
-  }
   if (order.status === status) return { ok: true as const, message: '', unchanged: true };
-
-  if (isSupabaseConfigured && BACKEND_ORDER_ID.test(orderId)) {
-    const remote = await transitionOrderOnBackend(orderId, status);
-    if (!remote.ok) return { ok: false as const, message: remote.message || COPY.offline };
-    await syncStaffDataFromBackend();
-    return { ok: true as const, message: 'Status saved' };
+  const denied = transitionDenied(actor, order, status);
+  if (denied) return { ok: false as const, message: denied };
+  if (backendActive() && BACKEND_ID.test(orderId)) {
+    const result = await remote.transitionOrder(orderId, status);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    await loadOrderDetail(orderId);
+    return { ok: true as const, message: `Status changed to ${status}` };
   }
-
   applyLocalOrderStatus(actor, order, status);
-  return { ok: true as const, message: 'Status saved' };
+  return { ok: true as const, message: `Status changed to ${status}` };
 }
 
 export function setOrderStatus(actor: Actor, orderId: string, status: OrderStatus) {
-  if (!canManageOrders(actor)) return { ok: false as const, message: COPY.notAuthorized };
-  if (!STATUSES.includes(status)) return { ok: false as const, message: 'Choose a valid status.' };
   const order = db.orders.find((row) => row.id === orderId);
   if (!order) return { ok: false as const, message: COPY.noOrders };
-  if (order.status === 'Completed' || order.status === 'Cancelled') {
-    return { ok: false as const, message: COPY.readOnlyOrder };
-  }
   if (order.status === status) return { ok: true as const, message: '', unchanged: true };
-  const from = order.status;
-  order.status = status;
-  const at = new Date().toISOString();
-  order.updates.push({ at, by: actor.name, summary: `${from} → ${status}` });
-  auditChange(actor, 'order.status', order.id, {
-    summary: `Status ${from} → ${status}`,
-    targetLabel: `Order #${order.id}`,
-    oldValue: from,
-    newValue: status,
-  });
-  notifyOrder(order, `Order #${order.id} is ${status.toLowerCase()}`);
-  touch();
+  const denied = transitionDenied(actor, order, status);
+  if (denied) return { ok: false as const, message: denied };
+  applyLocalOrderStatus(actor, order, status);
   return { ok: true as const, message: 'Status saved' };
 }
 
@@ -605,9 +873,8 @@ export function assignDelivery(actor: Actor, orderId: string, staffId: string) {
   if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
   const order = db.orders.find((row) => row.id === orderId);
   if (!order) return { ok: false as const, message: COPY.noOrders };
-  if (order.status === 'Completed' || order.status === 'Cancelled') {
-    return { ok: false as const, message: COPY.readOnlyOrder };
-  }
+  if (closed(order)) return { ok: false as const, message: COPY.readOnlyOrder };
+  if (order.fulfillment === 'pick_up') return { ok: false as const, message: 'Pickup orders are not assigned to Delivery Staff.' };
   const person = db.staff.find((row) => row.id === staffId && row.role === 'delivery' && !row.deleted && !row.disabled);
   if (!person) return { ok: false as const, message: COPY.chooseDelivery };
   const from = order.assigneeName ?? 'Unassigned';
@@ -617,13 +884,127 @@ export function assignDelivery(actor: Actor, orderId: string, staffId: string) {
   order.updates.push({ at, by: actor.name, summary: `Assigned to ${person.name}` });
   auditChange(actor, 'order.assign', order.id, {
     summary: `Assigned ${person.name}`,
-    targetLabel: `Order #${order.id}`,
+    targetLabel: `Order ${orderLabel(order)}`,
     oldValue: from,
     newValue: person.name,
   });
-  notifyOrder(order, `Order #${order.id} is assigned to ${person.name}`);
+  if (db.settings.delivery.enabled && db.settings.delivery.types.readyForPickup) {
+    emit('delivery', 'New delivery assigned', order.id, {
+      kind: 'readyForPickup',
+      recipientId: person.id,
+      body: `Order ${orderLabel(order)} was assigned to you.`,
+    });
+  }
   touch();
   return { ok: true as const, message: 'Delivery assigned' };
+}
+
+export async function assignDeliveryAsync(actor: Actor, orderId: string, staffId: string) {
+  if (backendActive() && BACKEND_ID.test(orderId)) {
+    if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+    const result = await remote.assignDeliveryStaff(orderId, staffId);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    await loadOrderDetail(orderId);
+    return { ok: true as const, message: 'Delivery assigned' };
+  }
+  return assignDelivery(actor, orderId, staffId);
+}
+
+/** DIT-15: approve moves to Awaiting Payment; return cancels with the Dietitian's reason. */
+export async function reviewOrderAsync(actor: Actor, orderId: string, approve: boolean, reason: string) {
+  if (actor.role !== 'dietitian' && actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  const order = db.orders.find((row) => row.id === orderId);
+  if (!order) return { ok: false as const, message: COPY.noOrders };
+  if (order.status !== 'For Dietitian Review') return { ok: false as const, message: 'This order has already been reviewed.' };
+  const note = reason.trim();
+  if (!approve && !note) return { ok: false as const, message: 'Please enter a reason for returning this order.' };
+  if (backendActive() && BACKEND_ID.test(orderId)) {
+    const result = await remote.reviewOrder(orderId, approve, note || null);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    await loadOrderDetail(orderId);
+  } else {
+    const target: OrderStatus = approve ? 'Awaiting Payment' : 'Cancelled';
+    order.reviewDecision = approve ? 'approved' : 'returned';
+    order.reviewReason = approve ? (note || null) : note;
+    const from = order.status;
+    order.status = target;
+    order.updates.push({ at: new Date().toISOString(), by: actor.name, summary: approve ? 'Approved by the Dietitian' : `Returned: ${note}` });
+    auditChange(actor, 'order.review', order.id, {
+      summary: approve ? 'Dietitian approved an order' : 'Dietitian returned an order',
+      targetLabel: `Order ${orderLabel(order)}`,
+      oldValue: from,
+      newValue: approve ? 'approved' : `returned: ${note}`,
+    });
+    const customer = db.customers.find((row) => row.id === order.clientId);
+    if (customer) customer.history = historyFor(db.orders, customer.id);
+    touch();
+  }
+  return { ok: true as const, message: approve ? 'Order approved. The customer can now pay.' : 'Order returned to the customer.' };
+}
+
+export function removalRequests(status: 'pending' | 'decided' | 'all' = 'pending') {
+  const rows = db.removalRequests.filter((row) => (
+    status === 'all' ? true : status === 'pending' ? row.status === 'pending' : row.status !== 'pending'
+  ));
+  return [...rows].sort((a, b) => (
+    status === 'pending' ? a.requestedAt.localeCompare(b.requestedAt) : b.requestedAt.localeCompare(a.requestedAt)
+  ));
+}
+
+export function removalRequest(id: string) {
+  const row = db.removalRequests.find((request) => request.id === id);
+  if (!row) return null;
+  const customer = db.customers.find((person) => person.id === row.clientId);
+  return { ...row, dietary: row.dietary ?? customer?.dietary ?? null };
+}
+
+export async function loadRemovalRequest(id: string) {
+  if (!backendActive()) return { ok: true as const };
+  const detail = await remote.fetchRemovalRequestDetail(id);
+  if (!detail.ok) return detail;
+  const index = db.removalRequests.findIndex((row) => row.id === id);
+  if (index >= 0) db.removalRequests[index] = detail.value;
+  else db.removalRequests.push(detail.value);
+  touch();
+  return { ok: true as const };
+}
+
+/** DIT-17: only the Dietitian decides; rejecting needs a reason. */
+export async function decideRemovalAsync(actor: Actor, id: string, approve: boolean, reason: string) {
+  if (actor.role !== 'dietitian') return { ok: false as const, message: COPY.notAuthorized };
+  const request = db.removalRequests.find((row) => row.id === id);
+  if (!request) return { ok: false as const, message: 'This request is no longer available.' };
+  if (request.status !== 'pending') return { ok: false as const, message: 'This request has already been decided.' };
+  const note = reason.trim();
+  if (!approve && !note) return { ok: false as const, message: 'Please enter a reason for rejecting this request.' };
+  if (backendActive()) {
+    const result = await remote.decideRemoval(id, approve, note || null);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    return { ok: true as const, message: approve ? 'Request approved. The condition was removed.' : 'Request rejected.' };
+  }
+  request.status = approve ? 'approved' : 'rejected';
+  request.decisionReason = note || null;
+  request.decidedAt = new Date().toISOString();
+  request.decidedBy = actor.name;
+  if (approve) {
+    const drop = (info: DietaryInfo | null | undefined) => {
+      if (info) info.conditions = info.conditions.filter((condition) => condition !== request.condition);
+    };
+    const customer = db.customers.find((row) => row.id === request.clientId);
+    drop(customer?.dietary);
+    db.orders.filter((order) => order.clientId === request.clientId).forEach((order) => drop(order.dietary));
+  }
+  auditChange(actor, 'health_condition_removal.decided', request.clientId, {
+    summary: 'Decided a health-condition removal request',
+    targetLabel: `${request.recipientName} · ${request.condition}`,
+    oldValue: 'requested',
+    newValue: approve ? 'approved' : `rejected: ${note}`,
+  });
+  touch();
+  return { ok: true as const, message: approve ? 'Request approved. The condition was removed.' : 'Request rejected.' };
 }
 
 export function deliveryStaff() {
@@ -677,20 +1058,43 @@ export function menuChanges(id: string, draft: MenuDraft): FieldChange[] {
 }
 
 export async function saveMenuAsync(actor: Actor, id: string | null, draft: MenuDraft) {
-  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
   const parsed = draftMenu(draft);
   if (!parsed.ok) return parsed;
-  if (isSupabaseConfigured) {
-    const remote = await upsertMealOnBackend(id && BACKEND_ORDER_ID.test(id) ? id : null, parsed.value);
-    if (!remote.ok) return { ok: false as const, message: remote.message || COPY.offline };
-    await syncStaffDataFromBackend();
+  if (backendActive()) {
+    if (id && !menuChanges(id, draft).length) return { ok: false as const, message: COPY.nothingChanged };
+    const result = await remote.upsertMeal(id, parsed.value);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
     return { ok: true as const, message: id ? 'Menu item updated' : 'Menu item added' };
   }
   return saveMenu(actor, id, draft);
 }
 
+export async function setMenuAvailabilityAsync(actor: Actor, id: string, available: boolean) {
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
+  if (backendActive()) {
+    const result = await remote.setMealAvailability(id, available);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    return { ok: true as const, message: available ? 'Menu item updated' : COPY.notSelectable };
+  }
+  return setMenuAvailability(actor, id, available);
+}
+
+export async function deleteMenuAsync(actor: Actor, id: string) {
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
+  if (backendActive()) {
+    const result = await remote.deleteMeal(id);
+    if (!result.ok) return { ok: false as const, message: result.message };
+    await syncStaffData(actor);
+    return { ok: true as const, message: result.value === 'retired' ? COPY.menuRetired : COPY.menuDeleted };
+  }
+  return deleteMenu(actor, id);
+}
+
 export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {
-  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
   const parsed = draftMenu(draft);
   if (!parsed.ok) return parsed;
   if (!id) {
@@ -721,7 +1125,7 @@ export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {
 }
 
 export function setMenuAvailability(actor: Actor, id: string, available: boolean) {
-  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
   const item = db.menu.find((row) => row.id === id);
   if (!item || item.available === available) return { ok: true as const, message: '' };
   const from = item.available ? 'Available' : 'Unavailable';
@@ -742,7 +1146,7 @@ export function setMenuAvailability(actor: Actor, id: string, available: boolean
 }
 
 export function deleteMenu(actor: Actor, id: string) {
-  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
   const index = db.menu.findIndex((row) => row.id === id);
   if (index < 0) return { ok: false as const, message: 'Menu item not found.' };
   const [item] = db.menu.splice(index, 1);
@@ -855,6 +1259,45 @@ export function deleteStaff(actor: Actor, id: string) {
   return { ok: true as const, message: COPY.staffDeleted };
 }
 
+function splitName(name: string) {
+  return name.trim();
+}
+
+export async function addStaffAsync(actor: Actor, draft: { name: string; email: string; role: StaffRole }) {
+  if (!backendActive()) return addStaff(actor, draft);
+  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  const cleaned = cleanStaff(draft.name, draft.email, draft.role);
+  if (!cleaned.ok) return cleaned;
+  if (findEmail(cleaned.value.email)) return { ok: false as const, message: COPY.duplicateEmail };
+  const result = await remote.manageStaff({ action: 'create', fullName: splitName(cleaned.value.name), email: cleaned.value.email, role: cleaned.value.role });
+  if (!result.ok) return { ok: false as const, message: result.message };
+  await syncStaffData(actor);
+  // The Edge Function sends the set-password invite (ADM-14 #3).
+  return { ok: true as const, message: COPY.staffAdded, token: null };
+}
+
+export async function updateStaffAsync(actor: Actor, id: string, draft: { name: string; email: string; role: StaffRole }) {
+  if (!backendActive()) return updateStaff(actor, id, draft);
+  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  const preview = previewStaff(id, draft);
+  if (!preview.ok) return preview;
+  if (!preview.changes.length) return { ok: false as const, message: COPY.nothingChanged };
+  const result = await remote.manageStaff({ action: 'update', id, fullName: splitName(draft.name), email: draft.email.trim(), role: draft.role });
+  if (!result.ok) return { ok: false as const, message: result.message };
+  await syncStaffData(actor);
+  return { ok: true as const, message: COPY.staffUpdated };
+}
+
+export async function deleteStaffAsync(actor: Actor, id: string) {
+  if (!backendActive()) return deleteStaff(actor, id);
+  if (actor.role !== 'admin') return { ok: false as const, message: COPY.notAuthorized };
+  if (actor.id === id) return { ok: false as const, message: COPY.cannotDeleteSelf };
+  const result = await remote.manageStaff({ action: 'delete', id });
+  if (!result.ok) return { ok: false as const, message: result.message };
+  await syncStaffData(actor);
+  return { ok: true as const, message: COPY.staffDeleted };
+}
+
 const TYPE_LABELS: Record<string, string> = {
   newOrder: 'New order',
   menuUpdated: 'Menu updated',
@@ -901,8 +1344,27 @@ export function saveRoleNotifications(
   return { ok: true as const, message: COPY.notificationsSaved };
 }
 
-export function noticesFor(role: StaffRole) {
-  return db.notices.filter((notice) => notice.audience === role);
+export async function saveRoleNotificationsAsync(
+  actor: Actor,
+  role: 'kitchen' | 'delivery',
+  nextTypes: { newOrder?: boolean; menuUpdated?: boolean; readyForPickup?: boolean },
+) {
+  if (actor.role !== 'admin') return { ok: false as const, message: COPY.deniedNotifications };
+  if (!backendActive()) return saveRoleNotifications(actor, role, nextTypes);
+  const types = { ...db.settings[role].types, ...nextTypes };
+  const enabled = Object.values(types).some(Boolean);
+  const result = await remote.saveNotificationSettings(role, enabled, types as Record<string, boolean>);
+  if (!result.ok) return { ok: false as const, message: result.message };
+  db.settings[role] = { enabled, types };
+  await syncStaffData(actor);
+  return { ok: true as const, message: COPY.notificationsSaved };
+}
+
+/** Notices for one role; Delivery notices only reach the assigned staff member. */
+export function noticesFor(role: StaffRole, viewerId?: string) {
+  return db.notices.filter((notice) => (
+    notice.audience === role && (!notice.recipientId || !viewerId || notice.recipientId === viewerId)
+  ));
 }
 
 export function markNoticeRead(accountId: string, noticeId: string) {
@@ -910,6 +1372,15 @@ export function markNoticeRead(accountId: string, noticeId: string) {
   if (!notice || notice.readBy.includes(accountId)) return;
   notice.readBy.push(accountId);
   touch();
+  if (backendActive()) void remote.markStaffNoticeRead(noticeId);
+}
+
+export function markAllNoticesRead(role: StaffRole, accountId: string) {
+  noticesFor(role, accountId).forEach((notice) => {
+    if (!notice.readBy.includes(accountId)) notice.readBy.push(accountId);
+  });
+  touch();
+  if (backendActive()) void remote.markStaffNoticeRead(null);
 }
 
 export function saveProfile(actor: Actor, draft: { name: string; email: string }) {
@@ -937,9 +1408,37 @@ export function saveProfile(actor: Actor, draft: { name: string; email: string }
   return { ok: true as const, message: COPY.profileUpdated, account: toPublic(record) };
 }
 
+export async function saveProfileAsync(actor: Actor, draft: { name: string; email: string }) {
+  if (!backendActive()) return saveProfile(actor, draft);
+  const name = draft.name.trim();
+  const email = draft.email.trim();
+  if (!name || !email) return { ok: false as const, message: COPY.staffRequired };
+  if (!isValidEmail(email)) return { ok: false as const, message: COPY.badProfileEmail };
+  const emailChanged = email.toLowerCase() !== actor.email.toLowerCase();
+  if (name === actor.name && !emailChanged) return { ok: false as const, message: COPY.nothingChanged };
+  if (name !== actor.name) {
+    const result = await remote.updateOwnStaffName(actor.id, name);
+    if (!result.ok) return { ok: false as const, message: result.message };
+  }
+  if (emailChanged) {
+    const result = await remote.requestOwnEmailChange(email);
+    if (!result.ok) return { ok: false as const, message: result.message };
+  }
+  const record = db.staff.find((person) => person.id === actor.id);
+  if (record) record.name = name;
+  touch();
+  return {
+    ok: true as const,
+    message: emailChanged ? COPY.confirmNewEmail : COPY.profileUpdated,
+    // The sign-in email changes only after the confirmation link is opened.
+    account: { id: actor.id, name, email: actor.email, role: actor.role, disabled: false, sessionVersion: 1, preferences: record?.preferences ?? { ...DEFAULT_PREFS } },
+  };
+}
+
 export function savePreferences(actor: Actor, preferences: Preferences) {
   const record = db.staff.find((person) => person.id === actor.id && !person.deleted);
-  if (!record) return { ok: false as const, message: 'Account not found.' };
+  // Signed in through Supabase without a local record: the app keeps prefs per account on the device.
+  if (!record) return { ok: true as const, message: 'Preferences saved', preferences: { ...preferences } };
   const from = `${record.preferences.language}/${record.preferences.appearance}`;
   const to = `${preferences.language}/${preferences.appearance}`;
   record.preferences = { ...preferences };
@@ -978,3 +1477,5 @@ export function activeOrders() {
 }
 
 export { formatWhen };
+
+db = build();

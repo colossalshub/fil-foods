@@ -9,8 +9,11 @@ function parsePlacedAt(iso: string) {
 }
 
 /** Orders that contribute to sales totals (excludes cancelled). */
+/** Sales count money actually taken: unpaid (review / awaiting payment) and cancelled orders are left out. */
+const UNPAID: AdminOrder['status'][] = ['Cancelled', 'For Dietitian Review', 'Awaiting Payment'];
+
 export function ordersForSales(orders: AdminOrder[]) {
-  return orders.filter((order) => order.status !== 'Cancelled');
+  return orders.filter((order) => !UNPAID.includes(order.status));
 }
 
 function uniqueCustomersWithOrders(orders: AdminOrder[]) {

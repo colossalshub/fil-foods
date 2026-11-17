@@ -1,227 +1,446 @@
-import type { AdminOrder, Customer, MenuItem, OrderStatus, StaffRole } from '../admin/types';
-import {
-  CLIENT_ORDER_STATUS,
-  clientStatusFromDb,
-  dbStatusFromClient,
-  STAFF_WORKFLOW_STATUSES,
-  type ClientOrderStatus,
-} from './orderStatus.js';
+/**
+ * Supabase access for the staff app (ADM / DIT / KIT / DEL). Orders and customers come from the
+ * role-shaped RPCs in `20261117100000_staff_modules.sql`, so the server decides what each role
+ * receives; these mappers only translate rows into the staff app's types.
+ */
+import type {
+  AdminOrder,
+  AuditRow,
+  Customer,
+  DietaryInfo,
+  MenuItem,
+  RemovalRequest,
+  RoleNotificationSetting,
+  StaffNotice,
+  StaffPublic,
+  StaffRole,
+} from '../admin/types';
+import { clientStatusFromDb, dbStatusFromClient, type ClientOrderStatus } from './orderStatus.js';
+import { formatWhen as formatLocalWhen } from '../admin/domain/format.js';
 import { ensureSession, isSupabaseConfigured, requireSupabase } from './supabaseClient.js';
 
-interface BackendProfileRow {
-  id: string;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-}
+type Json = Record<string, unknown>;
 
-interface BackendHealthRow {
-  client_id: string;
-  item_type: string;
-  value: string;
-}
-
-interface BackendOrderRow {
-  id: string;
-  tracking_number: string;
-  status?: string;
-  created_at?: string;
-  total: number | string;
-  fulfillment_type?: string;
-  client_id?: string;
-  profiles?: { first_name?: string; last_name?: string } | null;
-  order_items?: Array<{
-    quantity: number;
-    unit_price: number | string;
-    meals?: { name?: string } | null;
-  }>;
-  order_status_history?: Array<{ status?: string; changed_at?: string; changed_by?: string }>;
-}
-
-interface BackendMealRow {
-  id: string;
-  name: string;
-  category: string;
-  ingredients?: string[];
-  allergens?: string[];
-  price: number | string;
-  is_available?: boolean;
-}
-
-const PHOTO_BY_NAME: Record<string, string> = {
-  'grilled chicken wrap': 'wrap',
-  'greek chickpea salad': 'salad',
-  'salmon teriyaki rice': 'salmon',
-  'egg white omelette': 'omelette',
-  'grilled bangus': 'bangus',
+export const BACKEND_ROLE: Record<StaffRole, string> = {
+  admin: 'owner_admin',
+  dietitian: 'dietitian_staff',
+  kitchen: 'kitchen_staff',
+  delivery: 'delivery_staff',
 };
 
-function photoKeyForMeal(name: string): string {
-  return PHOTO_BY_NAME[name.trim().toLowerCase()] || 'wrap';
+export function staffRoleFromDb(role: string | null | undefined): StaffRole | null {
+  switch (role) {
+    case 'owner_admin': return 'admin';
+    case 'dietitian_staff': return 'dietitian';
+    case 'kitchen_staff': return 'kitchen';
+    case 'delivery_staff': return 'delivery';
+    default: return null;
+  }
 }
 
-function formatWhen(iso: string | undefined): string {
-  if (!iso) return '';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
+/** Server error codes → the exact messages from the specs. */
+const MESSAGES: Record<string, string> = {
+  not_authorized: 'You do not have access to this page.',
+  not_authenticated: 'Your session has expired. Please log in again.',
+  already_decided: 'This request has already been decided.',
+  already_reviewed: 'This order has already been reviewed.',
+  not_assigned: 'This order is not assigned to you.',
+  role_cannot_transition: 'This status change is not allowed for your role.',
+  invalid_status_transition: 'That status change is not allowed for this order.',
+  not_delivery_staff: 'Choose a delivery staff member.',
+  pickup_order_not_assignable: 'Pickup orders are not assigned to Delivery Staff.',
+  order_closed: 'Delivered and cancelled orders are read-only.',
+  order_not_found: 'This order is no longer available.',
+  request_not_found: 'This request is no longer available.',
+  customer_not_found: 'This customer is no longer available.',
+};
+
+export function backendMessage(error: { message?: string } | string | null | undefined, reasonContext: 'order' | 'removal' = 'order') {
+  const raw = typeof error === 'string' ? error : error?.message || '';
+  if (raw.includes('reason_required')) {
+    return reasonContext === 'removal'
+      ? 'Please enter a reason for rejecting this request.'
+      : 'Please enter a reason for returning this order.';
+  }
+  const code = Object.keys(MESSAGES).find((key) => raw.includes(key));
+  if (code) return MESSAGES[code];
+  if (/network|fetch|failed to fetch/i.test(raw)) return 'Could not connect';
+  return raw || 'Could not connect';
 }
 
-export function mapBackendOrderToAdmin(row: BackendOrderRow): AdminOrder {
-  const profile = row.profiles;
-  const customerName = profile
-    ? [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || 'Customer'
-    : 'Customer';
-  const lines = (row.order_items || []).map((item) => ({
-    name: item.meals?.name || 'Meal',
-    price: Number(item.unit_price),
-  }));
-  const firstMeal = lines[0]?.name || '';
+const PHOTO_BY_KEY: [RegExp, string][] = [
+  [/salmon|fish|bangus|tuna/i, 'salmon'],
+  [/salad|vegetable|veggie|bowl|chop suey|pinakbet/i, 'salad'],
+  [/egg|omelet|breakfast|bread|pastr|pandesal/i, 'omelette'],
+  [/bangus|sinigang|tinola|soup/i, 'bangus'],
+];
+
+export function photoKeyFor(name: string) {
+  const hit = PHOTO_BY_KEY.find(([pattern]) => pattern.test(name));
+  return hit ? hit[1] : 'wrap';
+}
+
+function formatWhen(iso: string | undefined) {
+  return iso ? formatLocalWhen(iso) : '';
+}
+
+function text(value: unknown) {
+  return typeof value === 'string' ? value : value === null || value === undefined ? '' : String(value);
+}
+
+export function mapDietary(raw: unknown): DietaryInfo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Json;
+  const nutrition = (row.nutrition ?? {}) as Json;
   return {
-    id: row.id,
-    clientId: row.client_id || null,
-    trackingNumber: row.tracking_number,
-    customerName,
-    status: clientStatusFromDb(row.status),
-    price: Number(row.total),
-    placedAt: row.created_at || new Date().toISOString(),
-    when: formatWhen(row.created_at),
-    photo: photoKeyForMeal(firstMeal),
-    lines,
-    assigneeId: null,
-    assigneeName: null,
-    updates: (row.order_status_history || []).map((entry) => ({
-      at: entry.changed_at || '',
-      by: 'System',
-      summary: clientStatusFromDb(entry.status),
+    allergies: Array.isArray(row.allergies)
+      ? (row.allergies as Json[]).map((item) => ({ value: text(item.value), note: item.note ? text(item.note) : null }))
+      : [],
+    conditions: Array.isArray(row.conditions) ? (row.conditions as unknown[]).map(text) : [],
+    restrictions: Array.isArray(row.restrictions) ? (row.restrictions as unknown[]).map(text) : [],
+    nutrition: {
+      supplied: Boolean(nutrition.supplied),
+      lowerCalories: Boolean(nutrition.lower_calories),
+      higherProtein: Boolean(nutrition.higher_protein),
+      lowerSodium: Boolean(nutrition.lower_sodium),
+      lowerSugar: Boolean(nutrition.lower_sugar),
+    },
+    updatedAt: row.updated_at ? text(row.updated_at) : null,
+  };
+}
+
+export function mapStaffOrder(row: Json): AdminOrder {
+  const items = Array.isArray(row.items) ? (row.items as Json[]) : [];
+  const mappedItems = items.map((item) => ({
+    name: text(item.name) || 'Meal',
+    quantity: Number(item.quantity) || 1,
+    unitPrice: item.unit_price === undefined || item.unit_price === null ? null : Number(item.unit_price),
+    mealKey: item.meal_key ? text(item.meal_key) : null,
+  }));
+  const firstName = text(row.first_name) || 'Customer';
+  const created = text(row.created_at);
+  const delivery = row.delivery as Json | undefined;
+  const history = Array.isArray(row.history) ? (row.history as Json[]) : [];
+  return {
+    id: text(row.id),
+    orderNo: row.order_no === null || row.order_no === undefined ? null : Number(row.order_no),
+    clientId: row.client_id ? text(row.client_id) : null,
+    trackingNumber: row.tracking_number ? text(row.tracking_number) : undefined,
+    firstName,
+    customerName: text(row.customer_name) || firstName,
+    accountHolderName: row.account_holder_name ? text(row.account_holder_name) : null,
+    customerEmail: row.customer_email ? text(row.customer_email) : null,
+    status: clientStatusFromDb(text(row.status)),
+    fulfillment: row.fulfillment_type === 'pick_up' ? 'pick_up' : 'delivery',
+    price: row.total === undefined || row.total === null ? 0 : Number(row.total),
+    placedAt: created || new Date().toISOString(),
+    when: formatWhen(created),
+    photo: photoKeyFor(mappedItems[0]?.name || ''),
+    lines: mappedItems.map((item) => ({ name: item.name, price: (item.unitPrice ?? 0) * item.quantity })),
+    items: mappedItems,
+    assigneeId: row.assigned_delivery_id ? text(row.assigned_delivery_id) : null,
+    assigneeName: row.assignee_name ? text(row.assignee_name) : null,
+    reviewDecision: row.review_decision === 'approved' || row.review_decision === 'returned' ? row.review_decision : null,
+    reviewReason: row.review_reason ? text(row.review_reason) : null,
+    specialInstructions: row.special_instructions ? text(row.special_instructions) : null,
+    dietary: row.dietary ? mapDietary(row.dietary) : undefined,
+    delivery: delivery
+      ? {
+        firstName: text(delivery.first_name) || firstName,
+        contactNumber: delivery.contact_number ? text(delivery.contact_number) : null,
+        address: delivery.address ? text(delivery.address) : null,
+        notes: delivery.notes ? text(delivery.notes) : null,
+      }
+      : undefined,
+    wasPaid: true,
+    updates: history.map((entry) => ({
+      at: text(entry.changed_at),
+      by: text(entry.changed_by) || 'Customer',
+      summary: clientStatusFromDb(text(entry.status)),
     })),
   };
 }
 
-export function mapBackendMealToAdmin(row: BackendMealRow): MenuItem {
+export function mapCustomer(row: Json): Customer {
+  const history = Array.isArray(row.history) ? (row.history as Json[]) : [];
+  const first = text(row.first_name) || text(row.name).split(' ')[0] || 'Customer';
   return {
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    ingredients: row.ingredients || [],
-    allergens: row.allergens || [],
+    id: text(row.id),
+    name: text(row.name) || first,
+    firstName: first,
+    email: text(row.email),
+    accountHolderName: row.account_holder_name ? text(row.account_holder_name) : null,
+    dietary: mapDietary(row.dietary),
+    allergies: (mapDietary(row.dietary)?.allergies ?? []).map((item) => item.value),
+    nutrition: [],
+    sodiumConflict: null,
+    history: history.map((entry) => ({
+      orderId: text(entry.id),
+      at: formatWhen(text(entry.created_at)),
+      name: Array.isArray(entry.items) && entry.items.length ? (entry.items as unknown[]).map(text).join(', ') : text(entry.display_no),
+      status: clientStatusFromDb(text(entry.status)),
+      price: Number(entry.total) || 0,
+    })),
+  };
+}
+
+export function mapRemovalRequest(row: Json): RemovalRequest & { dietary?: DietaryInfo | null } {
+  return {
+    id: text(row.id),
+    clientId: text(row.client_id),
+    recipientName: text(row.recipient_name),
+    condition: text(row.condition),
+    reason: row.reason ? text(row.reason) : null,
+    requestedBy: text(row.requested_by),
+    requestedAt: text(row.requested_at),
+    status: row.status === 'approved' || row.status === 'rejected' ? row.status : 'pending',
+    decisionReason: row.decision_reason ? text(row.decision_reason) : null,
+    decidedAt: row.decided_at ? text(row.decided_at) : null,
+    decidedBy: row.decided_by ? text(row.decided_by) : null,
+    dietary: row.dietary ? mapDietary(row.dietary) : undefined,
+  };
+}
+
+const AUDIT_SUMMARY: Record<string, string> = {
+  order_created: 'Order created',
+  order_status_changed: 'Order status changed',
+  order_assigned: 'Delivery staff assigned',
+  order_reviewed: 'Dietitian reviewed an order',
+  'menu.insert': 'Menu item added',
+  'menu.update': 'Menu item updated',
+  'menu.delete': 'Menu item deleted',
+  'staff.create': 'Staff added',
+  'staff.update': 'Staff updated',
+  'staff.delete': 'Staff deleted',
+  'staff_notifications.updated': 'Notification settings changed',
+  'health_condition_removal.requested': 'Health condition removal requested',
+  'health_condition_removal.decided': 'Decided a health-condition removal request',
+};
+
+function stringify(value: unknown) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+export function mapAuditRow(row: Json): AuditRow {
+  const details = (row.details ?? {}) as Json;
+  const action = text(row.event_type);
+  const target = text(details.name) || text(details.recipient)
+    || (details.order_no ? `Order #${String(details.order_no).padStart(5, '0')}` : '')
+    || text(details.email) || text(details.role);
+  return {
+    id: text(row.id),
+    at: text(row.occurred_at),
+    action,
+    accountName: text(row.actor_name) || (row.actor_email ? text(row.actor_email) : 'System'),
+    accountEmail: text(row.actor_email),
+    summary: AUDIT_SUMMARY[action] || action,
+    target: details.condition ? `${target} · ${text(details.condition)}` : target,
+    setting: text(details.setting),
+    role: text(details.role) || text(row.actor_role),
+    oldValue: stringify(details.old_value ?? (action.endsWith('decided') ? 'requested' : '')),
+    newValue: stringify(details.new_value ?? details.decision ?? details.status ?? ''),
+  };
+}
+
+export function mapNotice(row: Json, role: StaffRole, viewerId: string): StaffNotice {
+  return {
+    id: text(row.id),
+    audience: role,
+    title: text(row.title),
+    body: text(row.body),
+    kind: text(row.kind),
+    orderId: row.order_id ? text(row.order_id) : undefined,
+    requestId: row.request_id ? text(row.request_id) : undefined,
+    readBy: row.read_at ? [viewerId] : [],
+    createdAt: text(row.created_at),
+  };
+}
+
+export function mapMeal(row: Json): MenuItem {
+  return {
+    id: text(row.id),
+    name: text(row.name),
+    category: text(row.category),
+    ingredients: Array.isArray(row.ingredients) ? (row.ingredients as unknown[]).map(text) : [],
+    allergens: Array.isArray(row.allergens) ? (row.allergens as unknown[]).map(text) : [],
     price: Number(row.price),
     available: row.is_available !== false,
   };
 }
 
-async function staffHeaders() {
+export function mapStaffProfile(row: Json): StaffPublic | null {
+  const role = staffRoleFromDb(text(row.role));
+  if (!role) return null;
+  return {
+    id: text(row.id),
+    name: `${text(row.first_name)} ${text(row.last_name)}`.trim() || text(row.email),
+    email: text(row.email),
+    role,
+    disabled: row.is_active === false,
+    sessionVersion: 1,
+    preferences: { language: 'en', appearance: 'light' },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Calls
+// ---------------------------------------------------------------------------
+
+type Result<T> = { ok: true; value: T } | { ok: false; message: string };
+
+async function authHeader() {
   const session = await ensureSession();
-  if (!session?.access_token) throw new Error('Staff backend session expired.');
-  return { Authorization: `Bearer ${session.access_token}` };
+  if (!session?.access_token) throw new Error('not_authenticated');
+  return `Bearer ${session.access_token}`;
 }
 
-export async function fetchStaffOrdersFromBackend(): Promise<AdminOrder[]> {
-  if (!isSupabaseConfigured) return [];
-  const headers = await staffHeaders();
-  const { data, error } = await requireSupabase()
-    .from('orders')
-    .select(`
-      id, tracking_number, status, created_at, total, fulfillment_type, client_id,
-      profiles:client_id (first_name, last_name),
-      order_items (quantity, unit_price, meals (name)),
-      order_status_history (status, changed_at, changed_by)
-    `)
-    .order('created_at', { ascending: false })
-    .setHeader('Authorization', headers.Authorization);
-  if (error) throw error;
-  return (data as BackendOrderRow[] || []).map(mapBackendOrderToAdmin);
+async function rpc<T>(name: string, args: Json = {}, context: 'order' | 'removal' = 'order'): Promise<Result<T>> {
+  if (!isSupabaseConfigured) return { ok: false, message: 'Backend not configured.' };
+  try {
+    const { data, error } = await requireSupabase().rpc(name, args).setHeader('Authorization', await authHeader());
+    if (error) return { ok: false, message: backendMessage(error, context) };
+    return { ok: true, value: data as T };
+  } catch (error) {
+    return { ok: false, message: backendMessage(error as Error, context) };
+  }
 }
 
-export async function fetchStaffCustomersFromBackend(clientIds: string[]): Promise<Customer[]> {
-  if (!isSupabaseConfigured || !clientIds.length) return [];
-  const headers = await staffHeaders();
-  const uniqueIds = [...new Set(clientIds.filter(Boolean))];
-  const { data: profiles, error: profileError } = await requireSupabase()
-    .from('profiles')
-    .select('id, email, first_name, last_name')
-    .in('id', uniqueIds)
-    .setHeader('Authorization', headers.Authorization);
-  if (profileError) throw profileError;
-  const { data: health, error: healthError } = await requireSupabase()
-    .from('client_health_items')
-    .select('client_id, item_type, value')
-    .in('client_id', uniqueIds)
-    .setHeader('Authorization', headers.Authorization);
-  if (healthError) throw healthError;
-  const allergiesByClient = new Map<string, string[]>();
-  const nutritionByClient = new Map<string, { label: string; value: string }[]>();
-  (health as BackendHealthRow[] || []).forEach((row) => {
-    if (row.item_type === 'allergy') {
-      const list = allergiesByClient.get(row.client_id) || [];
-      list.push(row.value);
-      allergiesByClient.set(row.client_id, list);
-    }
-    if (row.item_type === 'restriction' || row.item_type === 'condition') {
-      const list = nutritionByClient.get(row.client_id) || [];
-      list.push({
-        label: row.item_type === 'condition' ? 'Condition' : 'Restriction',
-        value: row.value,
-      });
-      nutritionByClient.set(row.client_id, list);
-    }
-  });
-  return (profiles as BackendProfileRow[] || []).map((profile) => ({
-    id: profile.id,
-    name: [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || 'Customer',
-    email: profile.email || '',
-    allergies: allergiesByClient.get(profile.id) || [],
-    nutrition: nutritionByClient.get(profile.id) || [],
-    sodiumConflict: null,
-    history: [],
-  }));
+export async function fetchStaffOrders() {
+  const result = await rpc<Json[]>('staff_orders');
+  return result.ok ? { ok: true as const, value: (result.value || []).map(mapStaffOrder) } : result;
 }
 
-export async function fetchStaffMenuFromBackend(): Promise<MenuItem[]> {
-  if (!isSupabaseConfigured) return [];
-  const headers = await staffHeaders();
-  const { data, error } = await requireSupabase()
+export async function fetchStaffOrderDetail(orderId: string) {
+  const result = await rpc<Json>('staff_order_detail', { p_order_id: orderId });
+  return result.ok ? { ok: true as const, value: mapStaffOrder(result.value) } : result;
+}
+
+export async function fetchStaffCustomers() {
+  const result = await rpc<Json[]>('staff_customers');
+  return result.ok ? { ok: true as const, value: (result.value || []).map(mapCustomer) } : result;
+}
+
+export async function fetchStaffCustomerDetail(clientId: string) {
+  const result = await rpc<Json>('staff_customer_detail', { p_client_id: clientId });
+  return result.ok ? { ok: true as const, value: mapCustomer(result.value) } : result;
+}
+
+export async function fetchAuditLog(limit = 200) {
+  const result = await rpc<Json[]>('admin_audit_log', { p_limit: limit });
+  return result.ok ? { ok: true as const, value: (result.value || []).map(mapAuditRow) } : result;
+}
+
+export async function fetchRemovalRequests(status: string | null = null) {
+  const result = await rpc<Json[]>('dietitian_removal_requests', { p_status: status });
+  return result.ok ? { ok: true as const, value: (result.value || []).map(mapRemovalRequest) } : result;
+}
+
+export async function fetchRemovalRequestDetail(id: string) {
+  const result = await rpc<Json>('dietitian_removal_request_detail', { p_id: id });
+  return result.ok ? { ok: true as const, value: mapRemovalRequest(result.value) } : result;
+}
+
+async function select<T>(build: () => PromiseLike<{ data: unknown; error: { message?: string } | null }>): Promise<Result<T>> {
+  if (!isSupabaseConfigured) return { ok: false, message: 'Backend not configured.' };
+  try {
+    const { data, error } = await build();
+    if (error) return { ok: false, message: backendMessage(error) };
+    return { ok: true, value: data as T };
+  } catch (error) {
+    return { ok: false, message: backendMessage(error as Error) };
+  }
+}
+
+export async function fetchMenu() {
+  const header = await authHeader().catch(() => '');
+  const result = await select<Json[]>(() => requireSupabase()
     .from('meals')
     .select('id, name, category, ingredients, allergens, price, is_available')
     .order('name')
-    .setHeader('Authorization', headers.Authorization);
-  if (error) throw error;
-  return (data as BackendMealRow[] || []).map(mapBackendMealToAdmin);
+    .setHeader('Authorization', header));
+  return result.ok ? { ok: true as const, value: (result.value || []).map(mapMeal) } : result;
 }
 
-export async function transitionOrderOnBackend(orderId: string, status: ClientOrderStatus) {
-  if (!isSupabaseConfigured) return { ok: false as const, message: 'Backend not configured.' };
-  const headers = await staffHeaders();
-  const dbStatus = dbStatusFromClient(status);
-  const { data, error } = await requireSupabase()
-    .rpc('transition_order_status', {
-      p_order_id: orderId,
-      p_new_status: dbStatus,
-    })
-    .setHeader('Authorization', headers.Authorization);
-  if (error) return { ok: false as const, message: error.message };
-  return { ok: true as const, row: data };
+export async function fetchStaffDirectory() {
+  const header = await authHeader().catch(() => '');
+  const result = await select<Json[]>(() => requireSupabase()
+    .from('profiles')
+    .select('id, first_name, last_name, email, role, is_active')
+    .in('role', ['owner_admin', 'dietitian_staff', 'kitchen_staff', 'delivery_staff'])
+    .eq('is_active', true)
+    .order('first_name')
+    .setHeader('Authorization', header));
+  return result.ok
+    ? { ok: true as const, value: (result.value || []).map(mapStaffProfile).filter((row): row is StaffPublic => !!row) }
+    : result;
 }
 
-export async function upsertMealOnBackend(
+export async function fetchStaffNotices(role: StaffRole, viewerId: string) {
+  const header = await authHeader().catch(() => '');
+  const result = await select<Json[]>(() => requireSupabase()
+    .from('staff_notifications')
+    .select('id, kind, title, body, order_id, request_id, read_at, created_at')
+    .order('created_at', { ascending: false })
+    .limit(100)
+    .setHeader('Authorization', header));
+  return result.ok ? { ok: true as const, value: (result.value || []).map((row) => mapNotice(row, role, viewerId)) } : result;
+}
+
+export async function fetchNotificationSettings() {
+  const header = await authHeader().catch(() => '');
+  const result = await select<Json[]>(() => requireSupabase()
+    .from('settings')
+    .select('key, value')
+    .eq('key', 'staff_notifications')
+    .setHeader('Authorization', header));
+  if (!result.ok) return result;
+  const value = (result.value?.[0]?.value ?? null) as { kitchen?: RoleNotificationSetting; delivery?: RoleNotificationSetting } | null;
+  return { ok: true as const, value };
+}
+
+export async function fetchOwnStaffProfile(userId: string) {
+  const header = await authHeader().catch(() => '');
+  const result = await select<Json[]>(() => requireSupabase()
+    .from('profiles')
+    .select('id, first_name, last_name, email, role, is_active')
+    .eq('id', userId)
+    .setHeader('Authorization', header));
+  if (!result.ok) return result;
+  const row = result.value?.[0];
+  return { ok: true as const, value: row ? mapStaffProfile(row) : null };
+}
+
+export function transitionOrder(orderId: string, status: ClientOrderStatus) {
+  return rpc<Json>('transition_order_status', { p_order_id: orderId, p_new_status: dbStatusFromClient(status) });
+}
+
+export function reviewOrder(orderId: string, approve: boolean, reason: string | null) {
+  return rpc<Json>('dietitian_review_order', { p_order_id: orderId, p_approve: approve, p_reason: reason });
+}
+
+export function assignDeliveryStaff(orderId: string, staffId: string) {
+  return rpc<Json>('assign_delivery_staff', { p_order_id: orderId, p_staff_id: staffId });
+}
+
+export function decideRemoval(id: string, approve: boolean, reason: string | null) {
+  return rpc<Json>('decide_health_condition_removal', { p_id: id, p_approve: approve, p_reason: reason }, 'removal');
+}
+
+export function markStaffNoticeRead(id: string | null) {
+  return rpc<number>('mark_staff_notification_read', { p_id: id });
+}
+
+export function saveNotificationSettings(role: 'kitchen' | 'delivery', enabled: boolean, types: Record<string, boolean>) {
+  return rpc<Json>('save_staff_notification_settings', { p_role: role, p_enabled: enabled, p_types: types });
+}
+
+export async function upsertMeal(
   id: string | null,
-  payload: {
-    name: string;
-    category: string;
-    ingredients: string[];
-    allergens: string[];
-    price: number;
-    available: boolean;
-  },
+  payload: { name: string; category: string; ingredients: string[]; allergens: string[]; price: number; available: boolean },
 ) {
-  if (!isSupabaseConfigured) return { ok: false as const, message: 'Backend not configured.' };
-  const headers = await staffHeaders();
+  const header = await authHeader().catch(() => '');
   const row = {
     name: payload.name,
     category: payload.category,
@@ -231,45 +450,80 @@ export async function upsertMealOnBackend(
     is_available: payload.available,
   };
   if (id) {
-    const { error } = await requireSupabase()
-      .from('meals')
-      .update(row)
-      .eq('id', id)
-      .setHeader('Authorization', headers.Authorization);
-    if (error) return { ok: false as const, message: error.message };
-    return { ok: true as const, id };
+    const result = await select<null>(() => requireSupabase().from('meals').update(row).eq('id', id).setHeader('Authorization', header));
+    return result.ok ? { ok: true as const, value: id } : result;
   }
-  const { data, error } = await requireSupabase()
-    .from('meals')
-    .insert(row)
-    .select('id')
-    .single()
-    .setHeader('Authorization', headers.Authorization);
-  if (error) return { ok: false as const, message: error.message };
-  return { ok: true as const, id: data.id as string };
+  const result = await select<Json>(() => requireSupabase().from('meals').insert(row).select('id').single().setHeader('Authorization', header));
+  return result.ok ? { ok: true as const, value: text(result.value?.id) } : result;
 }
 
-export function statusesForStaffRole(role: StaffRole): OrderStatus[] {
-  switch (role) {
-    case 'dietitian':
-      return [
-        CLIENT_ORDER_STATUS.AWAITING_PAYMENT,
-        CLIENT_ORDER_STATUS.CANCELLED,
-      ];
-    case 'kitchen':
-      return [
-        STAFF_WORKFLOW_STATUSES[2],
-        STAFF_WORKFLOW_STATUSES[3],
-        STAFF_WORKFLOW_STATUSES[4],
-        STAFF_WORKFLOW_STATUSES[6],
-      ];
-    case 'delivery':
-      return [
-        STAFF_WORKFLOW_STATUSES[4],
-        STAFF_WORKFLOW_STATUSES[5],
-        STAFF_WORKFLOW_STATUSES[7],
-      ];
-    default:
-      return STAFF_WORKFLOW_STATUSES;
+export async function setMealAvailability(id: string, available: boolean) {
+  const header = await authHeader().catch(() => '');
+  return select<null>(() => requireSupabase().from('meals').update({ is_available: available }).eq('id', id).setHeader('Authorization', header));
+}
+
+/** Deletes a meal; meals already on past orders are made unavailable instead (order history keeps them). */
+export async function deleteMeal(id: string): Promise<Result<'deleted' | 'retired'>> {
+  const header = await authHeader().catch(() => '');
+  const removed = await select<null>(() => requireSupabase().from('meals').delete().eq('id', id).setHeader('Authorization', header));
+  if (removed.ok) return { ok: true, value: 'deleted' };
+  if (!/foreign key|violates|23503/i.test(removed.message)) return removed;
+  const retired = await setMealAvailability(id, false);
+  return retired.ok ? { ok: true, value: 'retired' } : retired;
+}
+
+export async function manageStaff(body: Json): Promise<Result<Json>> {
+  if (!isSupabaseConfigured) return { ok: false, message: 'Backend not configured.' };
+  try {
+    const { data, error } = await requireSupabase().functions.invoke('admin-staff', {
+      body,
+      headers: { Authorization: await authHeader() },
+    });
+    if (error) {
+      const context = (error as { context?: Response }).context;
+      let message = error.message;
+      if (context && typeof context.json === 'function') {
+        try {
+          const payload = await context.json() as { message?: string };
+          if (payload?.message) message = payload.message;
+        } catch {
+          // keep the generic message
+        }
+      }
+      return { ok: false, message: backendMessage(message) };
+    }
+    return { ok: true, value: (data ?? {}) as Json };
+  } catch (error) {
+    return { ok: false, message: backendMessage(error as Error) };
+  }
+}
+
+export async function sendStaffPasswordReset(email: string) {
+  if (!isSupabaseConfigured) return { ok: false as const, message: 'Backend not configured.' };
+  const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim());
+  return error ? { ok: false as const, message: backendMessage(error) } : { ok: true as const };
+}
+
+export async function updateOwnStaffName(userId: string, fullName: string) {
+  const header = await authHeader().catch(() => '');
+  const parts = fullName.trim().split(/\s+/);
+  const first = parts.length > 1 ? parts.slice(0, -1).join(' ') : parts[0] || '';
+  const last = parts.length > 1 ? parts[parts.length - 1] : '';
+  return select<null>(() => requireSupabase()
+    .from('profiles')
+    .update({ first_name: first, last_name: last })
+    .eq('id', userId)
+    .setHeader('Authorization', header));
+}
+
+/** Own email change: Supabase emails a confirmation link; a DB trigger copies the confirmed email to `profiles`. */
+export async function requestOwnEmailChange(email: string) {
+  if (!isSupabaseConfigured) return { ok: false as const, message: 'Backend not configured.' };
+  try {
+    await ensureSession();
+    const { error } = await requireSupabase().auth.updateUser({ email: email.trim().toLowerCase() });
+    return error ? { ok: false as const, message: backendMessage(error) } : { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, message: backendMessage(error as Error) };
   }
 }

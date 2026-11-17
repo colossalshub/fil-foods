@@ -8,15 +8,19 @@ Source of truth:
 
 Cross-module map: [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). User client traceability: [`implementation-traceability.md`](./implementation-traceability.md).
 
-Status values: **Missing** — no usable implementation for the core workflow; **Partial** — some UI or local prototype exists but at least one acceptance criterion is unmet or lacks verification; **Blocked** — cannot satisfy without backend, provider, or cross-app integration called out below.
+Status values: **Done** — workflow implemented in the staff app and enforced by Supabase (RLS/RPC), covered by unit tests (`npm test`) and/or `supabase/tests/staff_workflow.test.sql`; **Missing** — no usable implementation for the core workflow; **Partial** — some UI or local prototype exists but at least one acceptance criterion is unmet or lacks verification; **Blocked** — cannot satisfy without backend, provider, or cross-app integration called out below.
 
 ## Shared staff implementation surface
 
 | Surface | Location | Notes |
 |---|---|---|
-| Staff app shell | `frontend/src/admin/` | Role picker, dashboards, local `store.ts` |
-| Sample staff auth | `frontend/src/admin/data/store.ts` | Demo accounts; not production Supabase staff auth |
-| User ↔ staff order gap | `docs/implementation-traceability.md` blockers section | Staff mock orders ≠ user Supabase orders |
+| Staff app shell | `frontend/src/admin/` | Role picker, per-role tabs, shared Orders / Order Details / Customer / Menu / Settings / Inbox screens (Poppins via `admin/ui/StaffText.tsx`) |
+| Role rules | `frontend/src/admin/domain/roleAccess.ts` (+ `roleAccess.test.ts`) | Tabs, capabilities, order visibility & shaping, status buckets, one-step actions, nutrition tiles — mirrors the SQL helpers |
+| Store / cache | `frontend/src/admin/data/store.ts` (+ `staffWorkflow.test.ts`) | Local demo data when Supabase is not configured; when signed in to Supabase it hydrates from the RPCs and every mutation goes to the server, then re-syncs |
+| Supabase access | `frontend/src/lib/staffBackend.ts` (+ `staffBackend.test.ts`), `frontend/src/lib/staffAuth.ts` | Role-shaped RPCs (`staff_orders`, `staff_order_detail`, `staff_customers`, `staff_customer_detail`, `admin_audit_log`, `assign_delivery_staff`, `dietitian_review_order`, `decide_health_condition_removal`, `save_staff_notification_settings`, `transition_order_status`) and the `admin-staff` Edge Function |
+| Database | `supabase/migrations/20261117100000_staff_modules.sql`, `supabase/functions/admin-staff/`, `supabase/tests/staff_workflow.test.sql` | Role helpers, RLS per role, order lifecycle, staff notifications, DIT-17 requests, audit triggers; 60 SQL checks |
+| Staff auth | `frontend/src/lib/staffAuth.ts`, `scripts/seed-staff-users.mjs` | Backend-first sign-in when `EXPO_PUBLIC_SUPABASE_*` is set (role from `profiles.role`), remembered sessions restored and re-checked; local demo accounts otherwise |
+| User ↔ staff order flow | `orders` + RPCs | One order record from the user app through Dietitian review, payment, Kitchen, Admin assignment and Delivery; status wording matches USR-21 |
 
 ## Story-level matrix (initial audit)
 
@@ -26,27 +30,27 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 
 | Story | Status | Evidence / gaps |
 |---|---|---|
-| ADM-01 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| ADM-02 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| ADM-03 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| ADM-04 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| ADM-05 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Home & Navigation; shared store not wired to user Supabase. |
-| ADM-06 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| ADM-07 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| ADM-08 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| ADM-09 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| ADM-10 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Dashboard; shared store not wired to user Supabase. |
-| ADM-11 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| ADM-12 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| ADM-13 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Staff Management; shared store not wired to user Supabase. |
-| ADM-14 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Staff Management; shared store not wired to user Supabase. |
-| ADM-15 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Staff Management; shared store not wired to user Supabase. |
-| ADM-16 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Staff Management; shared store not wired to user Supabase. |
-| ADM-17 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Menu Management; shared store not wired to user Supabase. |
-| ADM-18 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Menu Management; shared store not wired to user Supabase. |
-| ADM-19 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Customers; shared store not wired to user Supabase. |
-| ADM-20 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Security & Auditability; shared store not wired to user Supabase. |
-| ADM-21 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
+| ADM-01 | Done | Role picker → Admin login; Supabase password sign-in decides the role (`staffAuth.ts`); wrong panel shows the panel message; Google sign-in remains local-only (Partial for Google). |
+| ADM-02 | Done | Admin tabs Dashboard / Orders / Menu / Staff / Settings (`TABS.admin`); other roles never get Staff. |
+| ADM-03 | Done | Forgot password → neutral "Check your email"; with Supabase the real reset email is sent (`sendStaffPasswordReset`). |
+| ADM-04 | Partial | Remember me restores the Supabase session and re-checks the profile role/is_active; Google sign-in for staff is local demo only. |
+| ADM-05 | Done | Bell inbox (`InboxScreen.tsx`) lists only this role's `staff_notifications` (RLS: own rows), marks read via `mark_staff_notification_read`, empty state copy per spec. |
+| ADM-06 | Done | Settings matches Figma (profile card, Edit Profile, role locked). With Supabase the name is saved to `profiles`; a new email goes through Supabase's confirmation email and `sync_profile_email` copies it to `profiles` once confirmed. |
+| ADM-07 | Done | Language / Appearance with Apply, saved per account on the device; no Notifications switch for Admin. |
+| ADM-08 | Done | About and Help & Support screens; no ticket numbers. |
+| ADM-09 | Done | Log out confirm → Supabase signOut + stored session cleared. |
+| ADM-10 | Done | Four metrics computed from stored orders/menu (sales = paid stages only), recent orders, sales overview. |
+| ADM-11 | Done | Filters All / Pending / Preparing / Delivered (buckets), fuzzy name + order-number search, list badges per spec; `staff_orders` RPC for live data. |
+| ADM-12 | Done | Order Details: one-step status change or cancel (validated client + `transition_order_status`), assign / change Delivery Staff (`assign_delivery_staff`, delivery orders only), status history, audit. |
+| ADM-13 | Done | Staff list per role; add staff calls the `admin-staff` Edge Function (invite email, profile role); duplicate email message. |
+| ADM-14 | Done | Edit staff (name/email/role) with change preview; Edge Function updates auth email + profile. |
+| ADM-15 | Done | Delete staff with confirm; cannot delete self; Edge Function bans the auth user, deactivates the profile and unassigns open orders. |
+| ADM-16 | Done | Staff roles limited to Admin / Dietitian / Kitchen / Delivery; Admin role locked. |
+| ADM-17 | Done | Menu add/edit writes `meals` (RLS `meals_staff_write`); user menu reads the same table; audit + menuUpdated notifications by trigger. |
+| ADM-18 | Done | Availability switch and delete; meals already on past orders are made unavailable instead of hard-deleted. |
+| ADM-19 | Done | Customers directory + Customer Details via `staff_customers` / `staff_customer_detail` (allergies with notes, levels, conditions, history; recipient vs account holder). |
+| ADM-20 | Done | Audit log from `admin_audit_log` (append-only `audit_events`); covers staff, menu, order status/assignment/review, notification settings and DIT-17 decisions. |
+| ADM-21 | Done | Staff notifications screen for Kitchen/Delivery types via `save_staff_notification_settings` (admin-only, audited); all OFF ⇒ role disabled; delivery and kitchen inboxes honour it. |
 
 ### Dietitian Module (DIT-01–DIT-17)
 

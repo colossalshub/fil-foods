@@ -1,5 +1,6 @@
 import { useMemo, useState, type ComponentProps, type ReactNode } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COPY } from '../copy.js';

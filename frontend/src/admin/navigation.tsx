@@ -20,13 +20,13 @@ import { RoleHomeScreen } from './screens/RoleHomeScreen.js';
 import {
   AboutScreen,
   AuditScreen,
-  CustomerDetailScreen,
-  CustomersScreen,
   EditProfileScreen,
   HelpScreen,
   PreferencesScreen,
   SettingsScreen,
 } from './screens/SettingsScreen.js';
+import { CustomerDetailScreen, CustomersScreen } from './screens/CustomerScreens.js';
+import { NotificationsScreen as InboxScreen } from './screens/InboxScreen.js';
 import { StaffNotificationsScreen } from './screens/StaffNotificationsScreen.js';
 import { StaffFormScreen, StaffScreen } from './screens/StaffScreen.js';
 
@@ -37,9 +37,14 @@ function screen(component: ComponentType<never>) {
   return component as unknown as ComponentType<object>;
 }
 
+function useStackOptions() {
+  const { colors } = useAdmin();
+  return { headerShown: false, contentStyle: { backgroundColor: colors.page } };
+}
+
 function DashboardStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={useStackOptions()}>
       <Stack.Screen name="DashboardHome" component={screen(DashboardScreen)} />
       <Stack.Screen name="Notifications" component={screen(NotificationsScreen)} />
     </Stack.Navigator>
@@ -48,7 +53,7 @@ function DashboardStack() {
 
 function OrdersStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={useStackOptions()}>
       <Stack.Screen name="OrdersHome" component={screen(OrdersScreen)} />
     </Stack.Navigator>
   );
@@ -56,7 +61,7 @@ function OrdersStack() {
 
 function MenuStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={useStackOptions()}>
       <Stack.Screen name="MenuHome" component={screen(MenuScreen)} />
       <Stack.Screen name="MenuForm" component={screen(MenuFormScreen)} />
     </Stack.Navigator>
@@ -65,7 +70,7 @@ function MenuStack() {
 
 function StaffTabStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={useStackOptions()}>
       <Stack.Screen name="StaffHome" component={screen(StaffScreen)} />
       <Stack.Screen name="StaffForm" component={screen(StaffFormScreen)} />
     </Stack.Navigator>
@@ -74,7 +79,7 @@ function StaffTabStack() {
 
 function SettingsStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={useStackOptions()}>
       <Stack.Screen name="SettingsHome" component={screen(SettingsScreen)} />
       <Stack.Screen name="EditProfile" component={screen(EditProfileScreen)} />
       <Stack.Screen name="Preferences" component={screen(PreferencesScreen)} />
@@ -132,6 +137,7 @@ function StaffStack() {
       <Stack.Screen name="OrderDetail" component={screen(OrderDetailScreen)} />
       <Stack.Screen name="CustomerDetail" component={screen(CustomerDetailScreen)} />
       <Stack.Screen name="StaffNotifications" component={screen(StaffNotificationsScreen)} />
+      <Stack.Screen name="Inbox" component={screen(InboxScreen)} />
     </Stack.Navigator>
   );
 }

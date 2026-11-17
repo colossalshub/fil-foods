@@ -39,6 +39,7 @@ const en: Record<string, string> = {
   aboutBody: 'The staff app for menus, orders, and the people who prepare them.',
   alwaysOn: 'Notifications always arrive for Admin. There is no switch here.',
   preferencesHint: 'Language and appearance apply to this account after you tap Apply.',
+  adminControlled: 'Notifications arrive in the bell inbox as set by the Admin.',
 };
 
 const fil: Record<string, string> = {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { COPY } from '../copy.js';
 import { activeOrders, ordersForAssignee } from '../data/store.js';
 import { peso } from '../domain/format.js';

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { COPY } from '../copy.js';
 import {
   CATEGORIES,
   adminView,
-  deleteMenu,
+  deleteMenuAsync,
   menuChanges,
-  saveMenu,
-  setMenuAvailability,
+  saveMenuAsync,
+  setMenuAvailabilityAsync,
 } from '../data/store.js';
 import { peso } from '../domain/format.js';
 import { useAdmin } from '../context.js';
@@ -63,9 +64,9 @@ export function MenuScreen({ navigation }: ScreenProps) {
                     <Text style={[styles.price, { color: colors.text }]}>{peso(item.price)}</Text>
                     <Switch
                       value={item.available}
-                      onValueChange={(available) => {
+                      onValueChange={async (available) => {
                         if (!actor) return;
-                        const result = setMenuAvailability(actor, item.id, available);
+                        const result = await setMenuAvailabilityAsync(actor, item.id, available);
                         if (result.message) showFlash(result.message);
                       }}
                       trackColor={{ true: colors.green, false: colors.border }}
@@ -121,9 +122,9 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
     };
   }, [navigation, insets, colors]);
 
-  const save = () => {
+  const save = async () => {
     if (!actor) return;
-    const result = saveMenu(actor, existing?.id ?? null, draft);
+    const result = await saveMenuAsync(actor, existing?.id ?? null, draft);
     if (!result.ok) {
       setError(result.message);
       setConfirm(false);
@@ -185,9 +186,9 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
         confirmLabel={COPY.yesDelete}
         cancelLabel="Keep item"
         danger
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!actor || !existing) return;
-          const result = deleteMenu(actor, existing.id);
+          const result = await deleteMenuAsync(actor, existing.id);
           showFlash(result.message);
           navigation.goBack();
         }}

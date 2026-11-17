@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COPY } from '../copy.js';
-import { addStaff, adminView, deleteStaff, previewStaff, updateStaff } from '../data/store.js';
+import { avatarLetter } from '../domain/format.js';
+import { addStaffAsync, adminView, deleteStaffAsync, previewStaff, updateStaffAsync } from '../data/store.js';
 import { useAdmin } from '../context.js';
 import { openRoot, tabBarStyle, type ScreenProps } from '../nav.js';
 import type { FieldChange, StaffRole } from '../types';
@@ -39,22 +41,34 @@ export function StaffScreen({ navigation }: ScreenProps) {
   const [filter, setFilter] = useState('all');
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const data = adminView();
-  const people = data.staff.filter((person) => filter === 'all' || person.role === filter);
+  // ADM-13: Dietitian, Kitchen and Delivery accounts; the Admin account is managed in Settings.
+  const people = data.staff.filter((person) => person.role !== 'admin' && (filter === 'all' || person.role === filter));
   const actor = session ? { id: session.id, name: session.name, email: session.email, role: session.role } : null;
   return (
     <View style={styles.flex}>
-      <GreenHeader title={t('staff')} />
+      <GreenHeader
+        title="Staff Management"
+        right={(
+          <Pressable accessibilityLabel={t('addStaff')} onPress={() => navigation.navigate('StaffForm')}>
+            <Ionicons name="add" size={26} color="#FFFFFF" />
+          </Pressable>
+        )}
+      />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
         <FlashBanner />
-        <PrimaryButton title={t('staffNotifications')} variant="outline" onPress={() => openRoot(navigation, 'StaffNotifications')} />
-        <View style={{ height: 12 }} />
         <FilterChips options={FILTERS.map((item) => ({ ...item, label: item.id === 'all' ? t('all') : item.label }))} value={filter} onChange={setFilter} />
         <View style={{ height: 12 }} />
         {people.map((person) => (
           <View key={person.id} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.avatar, { backgroundColor: colors.greenDeep }]}>
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18 }}>{avatarLetter(person.name.replace(/^(Dr\.|Chef)\s+/, ''))}</Text>
+              <View style={[styles.online, { borderColor: colors.card }]} />
+            </View>
             <View style={styles.flex}>
               <Text style={[styles.name, { color: colors.text }]}>{person.name}</Text>
-              <Text style={{ color: colors.muted }}>{roleTitle(person.role)}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: colors.mint }]}>
+                <Text style={{ color: colors.green, fontSize: 12, fontWeight: '600' }}>{roleTitle(person.role)}</Text>
+              </View>
               <Text style={{ color: colors.muted, fontSize: 13 }}>{person.email}</Text>
             </View>
             <Pressable accessibilityLabel={`Edit ${person.name}`} onPress={() => navigation.navigate('StaffForm', { id: person.id })}>
@@ -71,7 +85,6 @@ export function StaffScreen({ navigation }: ScreenProps) {
             <PrimaryButton title="Set password" onPress={() => openRoot(navigation, 'ResetPassword', { token: data.pendingSetup?.token, email: data.pendingSetup?.email })} />
           </View>
         ) : null}
-        <PrimaryButton title={t('addStaff')} onPress={() => navigation.navigate('StaffForm')} />
       </ScrollView>
       <ConfirmCard
         visible={!!pendingDelete}
@@ -81,9 +94,9 @@ export function StaffScreen({ navigation }: ScreenProps) {
         cancelLabel={COPY.noKeep}
         danger
         onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!actor || !pendingDelete) return;
-          const result = deleteStaff(actor, pendingDelete);
+          const result = await deleteStaffAsync(actor, pendingDelete);
           setPendingDelete(null);
           showFlash(result.message);
         }}
@@ -111,11 +124,11 @@ export function StaffFormScreen({ navigation, route }: ScreenProps<{ id?: string
     return () => tabs?.setOptions({ tabBarStyle: tabBarStyle(insets, colors) });
   }, [navigation, insets, colors]);
 
-  const commit = () => {
+  const commit = async () => {
     if (!actor) return;
     const result = existing
-      ? updateStaff(actor, existing.id, { name, email, role })
-      : addStaff(actor, { name, email, role });
+      ? await updateStaffAsync(actor, existing.id, { name, email, role })
+      : await addStaffAsync(actor, { name, email, role });
     setChanges([]);
     if (!result.ok) {
       setError(result.message);
@@ -127,7 +140,7 @@ export function StaffFormScreen({ navigation, route }: ScreenProps<{ id?: string
 
   return (
     <View style={styles.flex}>
-      <GreenHeader title={existing ? 'Edit staff' : 'Add staff'} onBack={() => navigation.goBack()} />
+      <GreenHeader title={existing ? 'Edit Staff' : 'Add Staff'} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
         <AdminField icon="person-outline" value={name} onChangeText={setName} placeholder="Full name" />
         <AdminField icon="mail-outline" value={email} onChangeText={setEmail} placeholder="Email Address" keyboardType="email-address" error={error} />
@@ -145,7 +158,7 @@ export function StaffFormScreen({ navigation, route }: ScreenProps<{ id?: string
           ))}
         </View>
         <PrimaryButton
-          title={existing ? COPY.saveChanges : COPY.staffAdded.replace(' successfully', '')}
+          title={existing ? COPY.saveChanges : 'Create staff'}
           onPress={() => {
             if (!existing) {
               commit();
@@ -180,7 +193,10 @@ export function StaffFormScreen({ navigation, route }: ScreenProps<{ id?: string
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  name: { fontWeight: '800', fontSize: 16 },
+  name: { fontWeight: '700', fontSize: 16 },
+  avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  online: { position: 'absolute', right: 0, bottom: 2, width: 12, height: 12, borderRadius: 6, borderWidth: 2, backgroundColor: '#3CC46B' },
+  roleBadge: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginVertical: 3 },
   setup: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10, marginBottom: 12 },
   roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   role: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },

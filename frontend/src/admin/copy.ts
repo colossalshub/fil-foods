@@ -67,6 +67,11 @@ export const COPY = {
   cannotDeleteSelf: "You can't delete your own account.",
   nothingChanged: 'Nothing changed.',
   staffRequired: 'Full name, email, and role are required.',
+  menuRetired: 'This meal is on past orders, so it was made unavailable instead of deleted.',
+  confirmNewEmail: 'Profile updated. Open the link sent to your new email to finish changing it.',
+  noAccess: 'You do not have access to this page.',
+  reviewReasonRequired: 'Please enter a reason for returning this order.',
+  rejectReasonRequired: 'Please enter a reason for rejecting this request.',
 } as const;
 
 const PANELS: Record<StaffRole, string> = {
