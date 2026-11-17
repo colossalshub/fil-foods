@@ -16,7 +16,6 @@ import {
 import { DashboardScreen, NotificationsScreen } from './screens/DashboardScreen.js';
 import { MenuFormScreen, MenuScreen } from './screens/MenuScreen.js';
 import { OrderDetailScreen, OrdersScreen } from './screens/OrdersScreen.js';
-import { RoleHomeScreen } from './screens/RoleHomeScreen.js';
 import {
   AboutScreen,
   AuditScreen,
@@ -32,7 +31,7 @@ import {
   RemovalRequestScreen,
   RemovalRequestsScreen,
 } from './screens/DietitianScreens.js';
-import { KitchenDashboardScreen } from './screens/KitchenScreens.js';
+import { DeliveryDashboardScreen, KitchenDashboardScreen } from './screens/KitchenScreens.js';
 import { homeRouteFor, type ScreenProps } from './nav.js';
 import { NotificationsScreen as InboxScreen } from './screens/InboxScreen.js';
 import { StaffNotificationsScreen } from './screens/StaffNotificationsScreen.js';
@@ -124,6 +123,7 @@ function AdminTabs() {
 function RoleDashboardHome(props: ScreenProps) {
   const { session } = useAdmin();
   if (session?.role === 'kitchen') return <KitchenDashboardScreen {...props} />;
+  if (session?.role === 'delivery') return <DeliveryDashboardScreen {...props} />;
   return <DietitianDashboardScreen {...props} />;
 }
 
@@ -190,7 +190,6 @@ function StaffStack() {
       <Stack.Screen name="SignInRequired" component={screen(SignInRequiredScreen)} />
       <Stack.Screen name="AdminApp" component={AdminTabs} />
       <Stack.Screen name="RoleApp" component={RoleTabs} />
-      <Stack.Screen name="RoleHome" component={screen(RoleHomeScreen)} />
       <Stack.Screen name="RemovalRequests" component={screen(RemovalRequestsScreen)} />
       <Stack.Screen name="RemovalRequest" component={screen(RemovalRequestScreen)} />
       <Stack.Screen name="OrderDetail" component={screen(OrderDetailScreen)} />

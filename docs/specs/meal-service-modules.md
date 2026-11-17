@@ -49,9 +49,10 @@ After Dietitian approval and payment, Kitchen moves the order through preparatio
 
 These are planning notes, not new requirements. See staff traceability for story-level status.
 
-- The in-app staff console under `frontend/src/admin` uses a **local** store and simplified statuses (Pending, Preparing, Delivered, Cancelled) that do not yet match the PDF order workflow (Dietitian review, payment, assignment).
-- Supabase roles today: `client`, `owner_admin`, `kitchen_staff`, `delivery_staff` — **no `dietitian` role** in migrations; DIT stories are blocked until schema and RLS catch up.
-- User app Supabase orders and staff mock orders are **not** the same data path until integration work lands.
+- The staff console under `frontend/src/admin` reads and writes Supabase through role RPCs after a staff sign-in (local demo store only when Supabase is not configured). Statuses follow the PDF workflow: Dietitian review → payment → kitchen → admin assignment → delivery or pick-up; list badges group them as Pending, Preparing, Delivered, Cancelled.
+- Supabase roles: `client`, `owner_admin`, `dietitian_staff`, `kitchen_staff`, `delivery_staff`, each with RLS and RPC scopes.
+- User orders and staff orders are the same rows; the user menu follows staff menu edits for catalog items (new staff-created meals are not yet added to the curated user catalog).
+- Open: in-app delivery map (DEL-16) and staff Google sign-in.
 
 ## Traceability rules
 

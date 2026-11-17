@@ -136,9 +136,10 @@ test('nutrition tiles: goals map to levels; nothing saved reads Not supplied', (
   assert.equal(tiles[2].range, '≤ 400 mg');
 });
 
-test('each role lands on its own home after sign-in (DIT-05, KIT-10)', async () => {
+test('each role lands on its own home after sign-in (DIT-05, KIT-10, DEL-10)', async () => {
   const { homeRouteFor } = await import('../nav.js');
   assert.equal(homeRouteFor('admin'), 'AdminApp');
   assert.equal(homeRouteFor('dietitian'), 'RoleApp');
   assert.equal(homeRouteFor('kitchen'), 'RoleApp');
+  assert.equal(homeRouteFor('delivery'), 'RoleApp');
 });

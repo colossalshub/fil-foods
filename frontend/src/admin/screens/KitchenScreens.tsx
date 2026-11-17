@@ -3,6 +3,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { adminView, noticesFor, ordersFor } from '../data/store.js';
 import { peso } from '../domain/format.js';
+import { displayOrderNo } from '../domain/roleAccess.js';
 import { photoKeyFor } from '../../lib/staffBackend.js';
 import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
@@ -13,15 +14,29 @@ import { useActor, useRefresh } from './OrdersScreen.js';
 import { RoleDashboardHeader } from './DietitianScreens.js';
 
 /** KIT-10: shortcuts to Orders and Menu Management; no sales, customers or staff figures. */
-export function KitchenDashboardScreen({ navigation }: ScreenProps) {
+export function KitchenDashboardScreen(props: ScreenProps) {
+  return <ShiftDashboard {...props} role="kitchen" />;
+}
+
+/** DEL-10: same shortcuts, plus the assigned orders ready to collect. */
+export function DeliveryDashboardScreen(props: ScreenProps) {
+  return <ShiftDashboard {...props} role="delivery" />;
+}
+
+function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 'delivery' }) {
   useStoreRevision();
   const { colors, session } = useAdmin();
   const insets = useSafeAreaInsets();
   const actor = useActor();
   const { refreshing, onRefresh, enabled } = useRefresh();
   if (!actor) return null;
-  const unread = noticesFor('kitchen', session?.id).filter((notice) => !notice.readBy.includes(session?.id ?? '')).length;
-  const queue = ordersFor(actor).filter((order) => order.status === 'Paid' || order.status === 'Confirmed' || order.status === 'Preparing');
+  const kitchen = role === 'kitchen';
+  const unread = noticesFor(role, session?.id).filter((notice) => !notice.readBy.includes(session?.id ?? '')).length;
+  const mine = ordersFor(actor);
+  const queue = kitchen
+    ? mine.filter((order) => order.status === 'Paid' || order.status === 'Confirmed' || order.status === 'Preparing')
+    : mine.filter((order) => order.status === 'Ready for Delivery' || order.status === 'Out for Delivery');
+  const toCollect = kitchen ? [] : mine.filter((order) => order.status === 'Ready for Delivery');
   const menu = adminView().menu.slice(0, 5);
   const editItem = (id: string) => navigation.getParent()?.navigate('Menu', { screen: 'MenuForm', params: { id }, initial: false });
   return (
@@ -31,16 +46,16 @@ export function KitchenDashboardScreen({ navigation }: ScreenProps) {
       refreshControl={enabled ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
     >
       <RoleDashboardHeader
-        icon={<MaterialCommunityIcons name="chef-hat" size={38} color="#FFFFFF" />}
-        title="Kitchen Staff"
-        subtitle="Kitchen Panel"
+        icon={<MaterialCommunityIcons name={kitchen ? 'chef-hat' : 'moped'} size={38} color="#FFFFFF" />}
+        title={kitchen ? 'Kitchen Staff' : 'Delivery Staff'}
+        subtitle={kitchen ? 'Kitchen Panel' : 'Delivery Panel'}
         unread={unread}
         onBell={() => openRoot(navigation, 'Inbox')}
       />
       <View style={styles.body}>
         <FlashBanner />
         <View>
-          <Text style={[styles.greeting, { color: colors.green }]} accessibilityRole="header">Welcome back, Kitchen Staff!</Text>
+          <Text style={[styles.greeting, { color: colors.green }]} accessibilityRole="header">Welcome back, {kitchen ? 'Kitchen Staff' : 'Delivery Staff'}!</Text>
           <Text style={{ color: colors.muted }}>Here&apos;s what you can do today.</Text>
         </View>
         <Pressable
@@ -49,15 +64,38 @@ export function KitchenDashboardScreen({ navigation }: ScreenProps) {
           onPress={() => navigation.getParent()?.navigate('Orders')}
           style={[styles.hero, { backgroundColor: colors.mint, borderColor: colors.border }]}
         >
-          <MaterialCommunityIcons name="silverware-fork-knife" size={36} color={colors.text} />
+          <MaterialCommunityIcons name={kitchen ? 'silverware-fork-knife' : 'map-marker-path'} size={36} color={colors.text} />
           <View style={styles.flex}>
             <Text style={{ color: colors.text, fontSize: 20, fontWeight: '700' }}>View Orders</Text>
             <Text style={{ color: colors.muted, fontSize: 12 }}>
-              {queue.length ? `${queue.length} paid order${queue.length === 1 ? '' : 's'} to prepare` : 'No paid orders waiting'}
+              {kitchen
+                ? (queue.length ? `${queue.length} paid order${queue.length === 1 ? '' : 's'} to prepare` : 'No paid orders waiting')
+                : (queue.length ? `${queue.length} assigned deliver${queue.length === 1 ? 'y' : 'ies'}` : 'No deliveries assigned to you')}
             </Text>
           </View>
           <Ionicons name="arrow-forward" size={24} color={colors.text} />
         </Pressable>
+        {toCollect.length ? (
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Ready for Pickup</Text>
+            {toCollect.map((order) => (
+              <Pressable
+                key={order.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${order.customerName} ${displayOrderNo(order)}`}
+                onPress={() => openRoot(navigation, 'OrderDetail', { id: order.id })}
+                style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <OrderPhoto photo={order.photo} size={44} />
+                <View style={styles.flex}>
+                  <Text style={{ color: colors.text, fontWeight: '600' }}>{order.customerName} · {displayOrderNo(order)}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>{order.when}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         <View>
           <View style={styles.sectionHead}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Menu Management</Text>

@@ -70,7 +70,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | DIT-12 | Done | Preferred Nutritional Levels tiles (level + range, "n of m customers") with the spec footer; same tiles on Customer Details. Ranges derived from yes/no goals (see inconsistencies). |
 | DIT-13 | Done | Directory "Customer Preferences" / "Choose a customer"; Customer Details with allergies, tiles and full Order History (each row opens the order). No address or payment shown. |
 | DIT-14 | Done | Shared `MenuScreen` is view-only for the Dietitian (no add/edit/delete/availability); tapping an item shows the read-only review with "Use verified data before recommending." Server blocks writes (`meals_staff_write` RLS excludes the Dietitian). |
-| DIT-15 | Done | `ReviewPanel` on Order Details: order review details (meals, customizations, allergies, conditions, doctor restrictions), Approve (→ Awaiting Payment) and Return for changes with a required reason (`review_order` RPC, recorded in audit). |
+| DIT-15 | Done | `ReviewPanel` on Order Details: order review details (meals, customizations, allergies, conditions, doctor restrictions), Approve (→ Awaiting Payment) and Return for changes with a required reason (`dietitian_review_order` RPC, recorded in audit). |
 | DIT-16 | Done | No Staff tab or sales cards; direct links to staff-only screens show "You do not have access to this page."; RLS/RPCs reject other roles. |
 | DIT-17 | Done | Condition Removal Requests list (pending oldest first / decided), request detail with recipient context, Approve / Reject with reason, "already decided" guard. User profile edits now file a request instead of deleting the condition; DB trigger `guard_health_condition_removal` blocks direct client deletes. |
 
@@ -90,7 +90,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | KIT-10 | Done | `KitchenDashboardScreen`: "Kitchen Staff" / "Kitchen Panel", greeting, View Orders card (paid queue count), Menu Management with View All and five items with Edit. No sales or staff figures. |
 | KIT-11 | Done | Shared Orders list shaped for kitchen: first name, Order ID, date and bucket badge only; fuzzy first-name / exact-partial Order ID search combined with filters (`searchRoleOrders`). Only Dietitian-approved and paid orders are listed (server `staff_orders`). |
 | KIT-12 | Done | Order Details without prices, last name, email or payment; Customer Preferences (allergies, dietary, levels) shown above the action. |
-| KIT-13 | Done | "Start Preparing" (Paid → Preparing) and "Mark Ready for Pickup" (→ Ready for Delivery, or Ready for Pickup for pick-up orders) with confirmations; server `staff_transition_order` enforces role and order. |
+| KIT-13 | Done | "Start Preparing" (Paid → Preparing) and "Mark Ready for Pickup" (→ Ready for Delivery, or Ready for Pickup for pick-up orders) with confirmations; server `transition_order_status` enforces role and order. |
 | KIT-14 | Done | Customer Details for kitchen: initial, first name, email, allergies and levels; no history or address. |
 | KIT-15 | Done | Shared `MenuScreen` with add (+), Edit, availability switch and delete confirmations; kitchen sees "Menu item updated. Your permitted changes were saved." |
 
@@ -98,28 +98,29 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 
 | Story | Status | Evidence / gaps |
 |---|---|---|
-| DEL-01 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DEL-02 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DEL-03 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DEL-04 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DEL-05 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Home & Navigation; shared store not wired to user Supabase. |
-| DEL-06 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| DEL-07 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for story; shared store not wired to user Supabase. |
-| DEL-08 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| DEL-09 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DEL-10 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Dashboard; shared store not wired to user Supabase. |
-| DEL-11 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| DEL-12 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| DEL-13 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Customers; shared store not wired to user Supabase. |
-| DEL-14 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Menu; shared store not wired to user Supabase. |
-| DEL-15 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Delivery; shared store not wired to user Supabase. |
-| DEL-16 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Delivery; shared store not wired to user Supabase. |
-| DEL-17 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Delivery; shared store not wired to user Supabase. |
+| DEL-01 | Done | Shared Select Your Role screen; "Delivery Staff" card opens the role log in. |
+| DEL-02 | Done | Shared Supabase password sign-in with role check; lands on `RoleApp`. |
+| DEL-03 | Done | Shared password recovery through the account email. |
+| DEL-04 | Partial | Google sign-in for staff stays local only. |
+| DEL-05 | Done | Bell opens Notifications for the delivery audience, only for orders assigned to this person (ready for pickup, assignment). |
+| DEL-06 | Done | Shared Settings / Edit Profile. |
+| DEL-07 | Done | Language and appearance; notifications set by Admin (ADM-21). |
+| DEL-08 | Done | Shared Help & Support and About screens. |
+| DEL-09 | Done | Shared logout card and session end. |
+| DEL-10 | Done | `DeliveryDashboardScreen`: "Delivery Staff" / "Delivery Panel", greeting, View Orders (assigned count), Ready for Pickup list, Menu Management with Edit. Figma "Dispatch dashboard" frame is off-system, so the spec layout was used. |
+| DEL-11 | Done | Orders list limited to delivery orders assigned to this person; first name, Order ID, date and "Ready for Pickup" / "Out for Delivery" badges; same fuzzy search rules as Kitchen. |
+| DEL-12 | Done | Order Details without prices, last name, email or payment; allergies and preferences shown before the delivery actions; no Start Preparing. |
+| DEL-13 | Done | Customer Details: initial, first name, email, allergies, levels; no history or address. |
+| DEL-14 | Done | Shared manageable `MenuScreen` (add, edit, delete, availability) with the kitchen/delivery confirmation copy. |
+| DEL-15 | Done | "Delivery Address" card (first name, contact number, full address, notes) for Admin and the assigned Delivery Staff only; server `staff_order_detail` strips it for other roles. |
+| DEL-16 | Partial | No in-app map library yet: shows "Location not available" with the address text, an "Open in Maps" button (device maps navigation) and Call. |
+| DEL-17 | Done | "Collect order & start delivery" (Ready for Delivery → Out for Delivery) and "Mark Completed" with confirmations, only on assigned orders; status history records date and time and is visible to Admin and the user tracking screen. |
 
-## Integration blockers (staff)
+## Integration status (staff)
 
-- Unify order status model across User PDF (review → payment → kitchen → delivery/pickup) and `frontend/src/admin` local statuses.
-- Add Dietitian role to Supabase schema and RLS scopes (DIT-16, USR-41).
-- Wire ADM-17/ADM-18 menu changes to User catalog reads (USR-16, USR-17).
-- Implement ADM-12 ↔ DEL assignment and DEL-15–DEL-17 status updates on shared order records.
-- ADM-20 audit log must include staff, menu, and order events per PDF; connect to existing audit chain in `supabase/`.
+- Done: one order status model across User and staff (review → payment → kitchen → delivery/pickup), enforced by `transition_order_status`.
+- Done: Dietitian role in Supabase with RLS and RPC scopes (DIT-16, USR-41).
+- Done: ADM-17/18 menu edits reach the user catalog (availability, price, ingredients, allergens via `client_meal_key`). Gap: a brand-new staff-created meal shows in staff menus only, because the user menu is a curated catalog keyed by `client_meal_key`.
+- Done: ADM-12 assignment ↔ DEL-15–17 status updates on shared order records.
+- Done: ADM-20 audit log covers staff, menu, order and DIT-17 events on the existing audit chain.
+- Open: DEL-16 in-app map (no map library yet); staff Google sign-in (ADM-04, DIT-04, KIT-04, DEL-04) is local only.
