@@ -25,6 +25,8 @@ import HelpGuideGate from '../components/HelpGuideGate';
 import StaffNavigator from '../../admin/navigation';
 import { colors } from '../theme/theme';
 import { isStaffProfileRole } from '../../lib/staffAuth.js';
+import { fetchRemoteMeals } from '../../lib/mealCatalogBackend.js';
+import { syncMealsWithRemoteMenu } from '../data/meals.js';
 import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
@@ -36,6 +38,14 @@ export default function RootNavigator() {
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [booting, setBooting] = useState(true);
   const lastActiveRef = useRef(0);
+
+  // ADM-17/18 → USR-16: staff menu edits (availability, price, allergens) reach the user menu.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !session?.access_token) return;
+    fetchRemoteMeals()
+      .then((rows) => { syncMealsWithRemoteMenu(rows); })
+      .catch(() => { /* keep the bundled menu when offline */ });
+  }, [session?.access_token]);
 
   useEffect(() => {
     let cancelled = false;

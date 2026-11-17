@@ -88,6 +88,20 @@ export const PLANS: PlanOffer[] = [
   { id: 'yearly', name: 'Yearly', price: 327999 },
 ];
 
+/** Meal times shared with the user app (USR menu tabs, Figma Breakfast / Lunch / Dinner). */
+export const MEAL_TIMES = ['Breakfast', 'Lunch', 'Dinner'] as const;
+
+/** Categories offered in the menu form: Supabase meals use the meal time; demo data keeps sub-groups. */
+export function menuCategories() {
+  const present = db.menu.map((item) => item.category);
+  const base: string[] = backendActive() ? [...MEAL_TIMES] : CATEGORIES;
+  return [...new Set([...base, ...present])];
+}
+
+export function mealTimeOf(category: string) {
+  return MEAL_TIMES.find((time) => category.startsWith(time)) ?? 'Other';
+}
+
 export const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const DEFAULT_PREFS: Preferences = { language: 'en', appearance: 'light' };
@@ -1066,7 +1080,7 @@ export async function saveMenuAsync(actor: Actor, id: string | null, draft: Menu
     const result = await remote.upsertMeal(id, parsed.value);
     if (!result.ok) return { ok: false as const, message: result.message };
     await syncStaffData(actor);
-    return { ok: true as const, message: id ? 'Menu item updated' : 'Menu item added' };
+    return { ok: true as const, message: id ? COPY.menuUpdated : COPY.menuAdded };
   }
   return saveMenu(actor, id, draft);
 }
@@ -1103,7 +1117,7 @@ export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {
     auditChange(actor, 'menu.create', item.id, { summary: `Added ${item.name}`, targetLabel: item.name, newValue: peso(item.price) });
     notifyMenu(`Menu updated: ${item.name}`);
     touch();
-    return { ok: true as const, message: 'Menu item added' };
+    return { ok: true as const, message: COPY.menuAdded };
   }
   const item = db.menu.find((row) => row.id === id);
   if (!item) return { ok: false as const, message: 'Menu item not found.' };
@@ -1121,7 +1135,7 @@ export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {
     notifyMenu(`Menu updated: ${item.name}`);
   }
   touch();
-  return { ok: true as const, message: 'Menu item updated' };
+  return { ok: true as const, message: COPY.menuUpdated };
 }
 
 export function setMenuAvailability(actor: Actor, id: string, available: boolean) {

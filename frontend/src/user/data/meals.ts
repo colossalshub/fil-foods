@@ -1,5 +1,5 @@
 import type { Meal } from '../types';
-import { MENU_CATALOG, resolveMenuMeal } from './menuCatalog.js';
+import { MENU_CATALOG, applyRemoteMenu, resolveMenuMeal, type RemoteMenuRow } from './menuCatalog.js';
 import { STANDARD_MEAL_PRICE } from '../services/orderService.js';
 
 /** Browse and filter labels aligned with USR-16 meal times only. */
@@ -98,3 +98,20 @@ export const MEALS: Meal[] = [
 export const RECOMMENDATION_MEALS: Meal[] = MENU_CATALOG.filter(
   (item) => item.available && (item.slot === 'Breakfast' || item.slot === 'Lunch'),
 ).map(resolveMenuMeal);
+/**
+ * Refreshes the meal lists after the live menu loads, keeping the same
+ * array objects so every importer sees the change.
+ */
+export function syncMealsWithRemoteMenu(rows: RemoteMenuRow[]) {
+  const changed = applyRemoteMenu(rows);
+  if (!changed) return 0;
+  const available = MENU_CATALOG.filter((item) => item.available).map(resolveMenuMeal);
+  const ids = new Set(available.map((meal) => meal.id));
+  MEALS.splice(0, MEALS.length, ...available, ...SEARCH_FIXTURE_MEALS.filter((meal) => !ids.has(meal.id)));
+  RECOMMENDATION_MEALS.splice(
+    0,
+    RECOMMENDATION_MEALS.length,
+    ...available.filter((meal) => meal.category === 'Breakfast' || meal.category === 'Lunch'),
+  );
+  return changed;
+}

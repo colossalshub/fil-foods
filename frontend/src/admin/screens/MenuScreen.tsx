@@ -4,8 +4,10 @@ import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { COPY } from '../copy.js';
 import {
-  CATEGORIES,
+  MEAL_TIMES,
   adminView,
+  mealTimeOf,
+  menuCategories,
   deleteMenuAsync,
   menuChanges,
   saveMenuAsync,
@@ -14,7 +16,10 @@ import {
 import { peso } from '../domain/format.js';
 import { useAdmin } from '../context.js';
 import { tabBarStyle, type ScreenProps } from '../nav.js';
-import type { MenuDraft } from '../types';
+import type { MenuDraft, MenuItem } from '../types';
+import { can } from '../domain/roleAccess.js';
+import { photoKeyFor } from '../../lib/staffBackend.js';
+import { EmptyState, OrderPhoto } from '../ui/blocks.js';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AdminField,
@@ -25,68 +30,122 @@ import {
   useStoreRevision,
 } from '../components.js';
 
+type MealTab = 'All' | typeof MEAL_TIMES[number];
+
+/** ADM-17/18, DIT-14 (view only), KIT-15, DEL-14 (manage). */
 export function MenuScreen({ navigation }: ScreenProps) {
   useStoreRevision();
   const { session, colors, showFlash, t } = useAdmin();
+  const [tab, setTab] = useState<MealTab>('All');
+  const [preview, setPreview] = useState<MenuItem | null>(null);
   const data = adminView();
   const actor = session ? { id: session.id, name: session.name, email: session.email, role: session.role } : null;
+  if (!actor) return null;
+  const manage = can(actor.role, 'menuManage');
+  const categories = menuCategories();
+  const items = data.menu.filter((item) => tab === 'All' || mealTimeOf(item.category) === tab);
+  const groups = categories
+    .map((category) => ({ category, rows: items.filter((item) => item.category === category) }))
+    .filter((group) => group.rows.length);
   return (
     <View style={styles.flex}>
-      <GreenHeader title={t('menu')} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 28 }}>
-        <FlashBanner />
-        <View style={[styles.planCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.planTitle, { color: colors.text }]}>Plans</Text>
-          {data.plans.map((plan) => (
-            <Text key={plan.id} style={{ color: colors.text, marginTop: 4 }}>{plan.name} {peso(plan.price)}</Text>
-          ))}
-          <Text style={{ color: colors.muted, marginTop: 8 }}>Only available items can be ordered.</Text>
-        </View>
-        {CATEGORIES.map((category) => {
-          const items = data.menu.filter((item) => item.category === category);
-          if (!items.length) return null;
+      <GreenHeader
+        title={t('menu')}
+        onBack={() => navigation.getParent()?.navigate('Dashboard')}
+        right={manage ? (
+          <Pressable accessibilityLabel="Add menu item" onPress={() => navigation.navigate('MenuForm')}>
+            <Ionicons name="add" size={26} color="#FFFFFF" />
+          </Pressable>
+        ) : undefined}
+      />
+      <View style={styles.tabs}>
+        {(['All', ...MEAL_TIMES] as MealTab[]).map((option) => {
+          const selected = option === tab;
           return (
-            <View key={category}>
-              <Text style={[styles.category, { color: colors.green }]}>{category}</Text>
-              {items.map((item) => (
-                <View key={item.id} style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={styles.flex}>
-                    <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>
-                      {item.ingredients.join(', ') || 'No ingredients listed'}
+            <Pressable
+              key={option}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => setTab(option)}
+              style={[styles.tab, { backgroundColor: selected ? colors.header : colors.card, borderColor: selected ? colors.header : colors.border }]}
+            >
+              <Text style={{ color: selected ? '#FFFFFF' : colors.text, fontWeight: '600', fontSize: 13 }}>{option}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, paddingBottom: 28 }}>
+        <FlashBanner />
+        {actor.role === 'admin' && tab === 'All' ? (
+          <View style={[styles.planCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.planTitle, { color: colors.text }]}>Plans</Text>
+            {data.plans.map((plan) => (
+              <Text key={plan.id} style={{ color: colors.text, marginTop: 4 }}>{plan.name} {peso(plan.price)}</Text>
+            ))}
+            <Text style={{ color: colors.muted, marginTop: 8 }}>Only available items can be ordered.</Text>
+          </View>
+        ) : null}
+        {groups.length === 0 ? <EmptyState title="No menu items yet." /> : groups.map((group) => (
+          <View key={group.category}>
+            <Text style={[styles.category, { color: colors.green }]}>{group.category}</Text>
+            {group.rows.map((item) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={item.name}
+                onPress={() => (manage ? navigation.navigate('MenuForm', { id: item.id }) : setPreview(item))}
+                style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <OrderPhoto photo={photoKeyFor(item.name)} size={52} />
+                <View style={styles.flex}>
+                  <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+                  <Text style={[styles.price, { color: colors.text }]}>{peso(item.price)}</Text>
+                  {manage ? (
+                    <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>
+                      {item.allergens.length ? `Allergens: ${item.allergens.join(', ')}` : 'Allergens: None'}
                     </Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>
-                      Allergens: {item.allergens.join(', ') || 'None'}
-                    </Text>
-                    {!item.available ? <Text style={styles.warn}>{COPY.notSelectable}</Text> : null}
-                  </View>
+                  ) : null}
+                  {!item.available ? <Text style={styles.warn}>{COPY.notSelectable}</Text> : null}
+                </View>
+                {manage ? (
                   <View style={styles.side}>
-                    <Text style={[styles.price, { color: colors.text }]}>{peso(item.price)}</Text>
                     <Switch
+                      accessibilityLabel={`${item.name} available`}
                       value={item.available}
                       onValueChange={async (available) => {
-                        if (!actor) return;
                         const result = await setMenuAvailabilityAsync(actor, item.id, available);
                         if (result.message) showFlash(result.message);
                       }}
                       trackColor={{ true: colors.green, false: colors.border }}
                     />
-                    <Pressable accessibilityLabel={`Edit ${item.name}`} onPress={() => navigation.navigate('MenuForm', { id: item.id })}>
-                      <Ionicons name="create-outline" size={20} color={colors.green} />
-                    </Pressable>
+                    <View style={[styles.editPill, { backgroundColor: colors.header }]}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>Edit</Text>
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          );
-        })}
-        <PrimaryButton title={t('addItem')} onPress={() => navigation.navigate('MenuForm')} />
+                ) : <Ionicons name="chevron-forward" size={18} color={colors.muted} />}
+              </Pressable>
+            ))}
+          </View>
+        ))}
       </ScrollView>
+      <ConfirmCard
+        visible={!!preview}
+        title={preview ? `${preview.name} · ${peso(preview.price)}` : ''}
+        body={preview ? [
+          `Nutrition: not supplied`,
+          `Allergens: ${preview.allergens.length ? preview.allergens.join(', ') : 'not supplied'}`,
+          `Ingredients: ${preview.ingredients.length ? preview.ingredients.join(', ') : 'not supplied'}`,
+          preview.available ? 'Available for new orders.' : COPY.notSelectable,
+          'Use verified data before recommending.',
+        ].join('\n') : undefined}
+        confirmLabel="Close"
+        onConfirm={() => setPreview(null)}
+      />
     </View>
   );
 }
 
-const emptyDraft = (category = CATEGORIES[0]): MenuDraft => ({
+const emptyDraft = (category = menuCategories()[0]): MenuDraft => ({
   name: '',
   category,
   price: '',
@@ -130,18 +189,18 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
       setConfirm(false);
       return;
     }
-    showFlash(existing ? 'Menu item updated' : 'Menu item added');
+    showFlash(existing ? `${COPY.menuUpdated}. ${draft.name.trim()} is now ${peso(Number(draft.price) || 0)}.` : COPY.menuAdded);
     navigation.goBack();
   };
 
   return (
     <View style={styles.flex}>
-      <GreenHeader title={existing ? 'Edit item' : 'Add item'} onBack={() => navigation.goBack()} />
+      <GreenHeader title={existing ? 'Edit Menu Item' : 'Add Menu Item'} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 8 }} keyboardShouldPersistTaps="handled">
-        <AdminField icon="restaurant-outline" value={draft.name} onChangeText={(name) => setDraft({ ...draft, name })} placeholder="Name" />
+        <AdminField icon="restaurant-outline" value={draft.name} onChangeText={(name) => setDraft({ ...draft, name })} placeholder="Item name" />
         <Text style={{ color: colors.muted, fontWeight: '700' }}>Category</Text>
         <View style={styles.cats}>
-          {CATEGORIES.map((category) => (
+          {menuCategories().map((category) => (
             <Pressable key={category} onPress={() => setDraft({ ...draft, category })} style={[styles.cat, { borderColor: draft.category === category ? colors.primary : colors.border, backgroundColor: draft.category === category ? colors.mint : colors.card }]}>
               <Text style={{ color: colors.text, fontSize: 12 }}>{category}</Text>
             </Pressable>
@@ -172,8 +231,11 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
       </ScrollView>
       <ConfirmCard
         visible={confirm}
-        title={existing?.name ?? 'Save changes'}
-        body={changes.map((change) => `${change.label}: ${change.from} → ${change.to}`).join('\n')}
+        title="Save menu changes?"
+        body={[
+          `Save your changes to ${existing?.name ?? 'this item'}? The updated price will appear on the menu.`,
+          ...changes.map((change) => `${existing?.name ?? ''} ${change.label}: ${change.from} → ${change.to}`),
+        ].join('\n')}
         confirmLabel={COPY.saveChanges}
         cancelLabel={COPY.keepEditing}
         onConfirm={save}
@@ -181,10 +243,10 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
       />
       <ConfirmCard
         visible={remove}
-        title="Delete this item?"
-        body={COPY.menuDeleted}
+        title={`Delete ${existing?.name ?? 'this item'}?`}
+        body={`Are you sure you want to delete ${existing?.name ?? 'this item'} from the menu? This action cannot be undone.\n${COPY.menuDeleteWarning}`}
         confirmLabel={COPY.yesDelete}
-        cancelLabel="Keep item"
+        cancelLabel="No, keep it"
         danger
         onConfirm={async () => {
           if (!actor || !existing) return;
@@ -203,9 +265,12 @@ const styles = StyleSheet.create({
   planCard: { borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
   planTitle: { fontWeight: '800', fontSize: 16 },
   category: { fontWeight: '800', marginTop: 14, marginBottom: 8 },
-  item: { borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 8, flexDirection: 'row', gap: 8 },
-  name: { fontWeight: '800', marginBottom: 4 },
-  price: { fontWeight: '800' },
+  item: { borderWidth: 1, borderRadius: 14, padding: 10, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  name: { fontWeight: '600' },
+  price: { fontWeight: '700' },
+  tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
+  tab: { flex: 1, borderRadius: 999, borderWidth: 1, paddingVertical: 8, alignItems: 'center' },
+  editPill: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
   side: { alignItems: 'flex-end', gap: 8 },
   warn: { color: '#D76566', marginTop: 4, fontSize: 13 },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

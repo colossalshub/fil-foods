@@ -12,6 +12,7 @@ export interface RemoteMealRow {
   is_available?: boolean;
   calories?: number | null;
   protein?: number | null;
+  client_meal_key?: string | null;
 }
 
 export async function fetchRemoteMeals(): Promise<RemoteMealRow[]> {
@@ -20,7 +21,7 @@ export async function fetchRemoteMeals(): Promise<RemoteMealRow[]> {
   const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
   const query = requireSupabase()
     .from('meals')
-    .select('id, name, description, category, ingredients, allergens, price, is_available, calories, protein')
+    .select('id, name, description, category, ingredients, allergens, price, is_available, calories, protein, client_meal_key')
     .order('category')
     .order('name');
   const { data, error } = headers

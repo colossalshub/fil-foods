@@ -368,3 +368,43 @@ export function customizedMenuMeal(base: MenuCatalogItem, choice: { vegetableSty
   }
   return { ...meal, allergens: [...allergens], ingredients: [...ingredients] } as Meal;
 }
+
+/** Fields staff can change in Menu Management that the user menu must follow (ADM-17/18, USR-16). */
+export interface RemoteMenuRow {
+  client_meal_key?: string | null;
+  name?: string;
+  price?: number | string;
+  is_available?: boolean;
+  ingredients?: string[] | null;
+  allergens?: string[] | null;
+}
+
+/**
+ * Applies the live Supabase menu to the catalog in place: availability,
+ * price, ingredients and allergens follow staff edits. A catalog item whose
+ * meal row was deleted is no longer offered. Returns how many items changed.
+ */
+export function applyRemoteMenu(rows: RemoteMenuRow[]) {
+  if (!rows.length) return 0;
+  const byKey = new Map(rows.filter((row) => row.client_meal_key).map((row) => [row.client_meal_key as string, row]));
+  let changed = 0;
+  for (const item of MENU_CATALOG) {
+    const row = byKey.get(item.mealId || item.id);
+    const next = {
+      available: row ? row.is_available !== false : false,
+      price: row && Number.isFinite(Number(row.price)) && Number(row.price) > 0 ? Number(row.price) : item.price,
+      ingredients: row?.ingredients ?? item.ingredients,
+      allergens: row?.allergens ?? item.allergens,
+    };
+    if (
+      next.available !== item.available
+      || next.price !== item.price
+      || JSON.stringify(next.ingredients) !== JSON.stringify(item.ingredients)
+      || JSON.stringify(next.allergens) !== JSON.stringify(item.allergens)
+    ) {
+      Object.assign(item, next);
+      changed += 1;
+    }
+  }
+  return changed;
+}
