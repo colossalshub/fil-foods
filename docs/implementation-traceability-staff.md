@@ -78,21 +78,21 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 
 | Story | Status | Evidence / gaps |
 |---|---|---|
-| KIT-01 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| KIT-02 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| KIT-03 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| KIT-04 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| KIT-05 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Home & Navigation; shared store not wired to user Supabase. |
-| KIT-06 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| KIT-07 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for story; shared store not wired to user Supabase. |
-| KIT-08 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| KIT-09 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| KIT-10 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Dashboard; shared store not wired to user Supabase. |
-| KIT-11 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| KIT-12 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| KIT-13 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| KIT-14 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Customers; shared store not wired to user Supabase. |
-| KIT-15 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Menu; shared store not wired to user Supabase. |
+| KIT-01 | Done | Shared Select Your Role screen; "Kitchen Staff" card opens the role log in. |
+| KIT-02 | Done | Shared Supabase password sign-in with role check; lands on `RoleApp` (`homeRouteFor`). |
+| KIT-03 | Done | Shared password recovery through the account email. |
+| KIT-04 | Partial | Google sign-in for staff stays local only (no Supabase Google provider for staff yet). |
+| KIT-05 | Done | Bell opens the shared Notifications inbox filtered to the kitchen audience (orders paid, menu changes); "You’re all caught up." empty state; no on/off switch. |
+| KIT-06 | Done | Shared Settings / Edit Profile (own name and email only). |
+| KIT-07 | Done | Language and appearance in Preferences; notifications controlled by Admin (ADM-21) hint. |
+| KIT-08 | Done | Shared Help & Support and About screens. |
+| KIT-09 | Done | Shared logout card and session end. |
+| KIT-10 | Done | `KitchenDashboardScreen`: "Kitchen Staff" / "Kitchen Panel", greeting, View Orders card (paid queue count), Menu Management with View All and five items with Edit. No sales or staff figures. |
+| KIT-11 | Done | Shared Orders list shaped for kitchen: first name, Order ID, date and bucket badge only; fuzzy first-name / exact-partial Order ID search combined with filters (`searchRoleOrders`). Only Dietitian-approved and paid orders are listed (server `staff_orders`). |
+| KIT-12 | Done | Order Details without prices, last name, email or payment; Customer Preferences (allergies, dietary, levels) shown above the action. |
+| KIT-13 | Done | "Start Preparing" (Paid → Preparing) and "Mark Ready for Pickup" (→ Ready for Delivery, or Ready for Pickup for pick-up orders) with confirmations; server `staff_transition_order` enforces role and order. |
+| KIT-14 | Done | Customer Details for kitchen: initial, first name, email, allergies and levels; no history or address. |
+| KIT-15 | Done | Shared `MenuScreen` with add (+), Edit, availability switch and delete confirmations; kitchen sees "Menu item updated. Your permitted changes were saved." |
 
 ### Delivery Module (DEL-01–DEL-17)
 

@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   pill: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, minHeight: 26, justifyContent: 'center', alignSelf: 'flex-start' },
   search: { marginHorizontal: 16, marginTop: 16, marginBottom: 8, borderWidth: 1, borderRadius: 14, minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8 },
   // outlineWidth: 0 removes the browser focus box on web; native ignores it.
-  searchInput: { flex: 1, fontSize: 15, paddingVertical: 10, outlineWidth: 0 } as object,
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 10, outlineWidth: 0, outlineStyle: 'none' } as object,
   section: { gap: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontSize: 17, fontWeight: '600' },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   brand: { borderRadius: 18, alignItems: 'center', paddingVertical: 18, gap: 2, marginTop: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(16, 22, 18, 0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modal: { width: '100%', maxWidth: 360, borderRadius: 20, padding: 20, gap: 12 },
-  reason: { borderWidth: 1, borderRadius: 12, minHeight: 96, padding: 12, textAlignVertical: 'top', fontSize: 15 , outlineWidth: 0 } as object,
+  reason: { borderWidth: 1, borderRadius: 12, minHeight: 96, padding: 12, textAlignVertical: 'top', fontSize: 15, outlineWidth: 0, outlineStyle: 'none' } as object,
   cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 12, padding: 32 },
 });

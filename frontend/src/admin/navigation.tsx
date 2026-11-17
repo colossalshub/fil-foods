@@ -32,7 +32,8 @@ import {
   RemovalRequestScreen,
   RemovalRequestsScreen,
 } from './screens/DietitianScreens.js';
-import { homeRouteFor } from './nav.js';
+import { KitchenDashboardScreen } from './screens/KitchenScreens.js';
+import { homeRouteFor, type ScreenProps } from './nav.js';
 import { NotificationsScreen as InboxScreen } from './screens/InboxScreen.js';
 import { StaffNotificationsScreen } from './screens/StaffNotificationsScreen.js';
 import { StaffFormScreen, StaffScreen } from './screens/StaffScreen.js';
@@ -119,11 +120,18 @@ function AdminTabs() {
   );
 }
 
+/** The Dashboard each non-admin role lands on (DIT-10, KIT-10, DEL-10). */
+function RoleDashboardHome(props: ScreenProps) {
+  const { session } = useAdmin();
+  if (session?.role === 'kitchen') return <KitchenDashboardScreen {...props} />;
+  return <DietitianDashboardScreen {...props} />;
+}
+
 /** Dashboard stack per role (DIT-10, KIT, DEL dashboards). */
 function RoleDashboardStack() {
   return (
     <Stack.Navigator screenOptions={useStackOptions()}>
-      <Stack.Screen name="RoleDashboard" component={screen(DietitianDashboardScreen)} />
+      <Stack.Screen name="RoleDashboard" component={screen(RoleDashboardHome)} />
       <Stack.Screen name="AllergiesPrefs" component={screen(AllergiesPreferencesScreen)} />
       <Stack.Screen name="Customers" component={screen(CustomersScreen)} />
     </Stack.Navigator>

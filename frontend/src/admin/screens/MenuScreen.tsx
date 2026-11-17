@@ -189,7 +189,10 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
       setConfirm(false);
       return;
     }
-    showFlash(existing ? `${COPY.menuUpdated}. ${draft.name.trim()} is now ${peso(Number(draft.price) || 0)}.` : COPY.menuAdded);
+    const updated = actor.role === 'admin'
+      ? `${COPY.menuUpdated}. ${draft.name.trim()} is now ${peso(Number(draft.price) || 0)}.`
+      : 'Menu item updated. Your permitted changes were saved.';
+    showFlash(existing ? updated : COPY.menuAdded);
     navigation.goBack();
   };
 

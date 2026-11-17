@@ -135,3 +135,10 @@ test('nutrition tiles: goals map to levels; nothing saved reads Not supplied', (
   assert.deepEqual(tiles.map((tile) => `${tile.label}:${tile.level}`), ['Sugar:No preference', 'Calories:No preference', 'Sodium:Low', 'Protein:High']);
   assert.equal(tiles[2].range, '≤ 400 mg');
 });
+
+test('each role lands on its own home after sign-in (DIT-05, KIT-10)', async () => {
+  const { homeRouteFor } = await import('../nav.js');
+  assert.equal(homeRouteFor('admin'), 'AdminApp');
+  assert.equal(homeRouteFor('dietitian'), 'RoleApp');
+  assert.equal(homeRouteFor('kitchen'), 'RoleApp');
+});

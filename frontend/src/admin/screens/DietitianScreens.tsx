@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,7 +33,7 @@ export function RoleDashboardHeader({
   unread,
   onBell,
 }: {
-  icon: IconName;
+  icon: IconName | ReactNode;
   title: string;
   subtitle: string;
   unread: number;
@@ -43,7 +43,7 @@ export function RoleDashboardHeader({
   const { colors } = useAdmin();
   return (
     <View style={[styles.header, { backgroundColor: colors.header, paddingTop: insets.top + 12 }]}>
-      <Ionicons name={icon} size={34} color="#FFFFFF" />
+      {typeof icon === 'string' ? <Ionicons name={icon as IconName} size={34} color="#FFFFFF" /> : icon}
       <View style={styles.flex}>
         <Text style={styles.headerTitle} accessibilityRole="header">{title}</Text>
         <Text style={styles.headerSub}>{subtitle}</Text>
