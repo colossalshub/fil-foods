@@ -229,4 +229,13 @@ commit;
 -- ADM-06 / DIT-06: a confirmed auth email change reaches the profile ------------------------
 update auth.users set email = 'Maria.New@filfoods.ph' where id = (select id from public.profiles where email = 'maria.santos@filfoods.ph');
 select pg_temp.check(exists (select 1 from public.profiles where email = 'maria.new@filfoods.ph'), 'auth email change syncs to profiles');
+-- DIT-17: the client cannot delete a condition directly; adding one is allowed ----------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
+select pg_temp.expect_error($$delete from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'condition'$$, 'condition_removal_requires_review');
+select pg_temp.expect_error($$update public.client_health_items set value = 'Nothing' where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'condition'$$, 'condition_removal_requires_review');
+insert into public.client_health_items (client_id, item_type, value) values ('00000000-0000-0000-0000-0000000000c1', 'condition', 'Gout');
+delete from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and item_type = 'allergy' and value = 'Shellfish';
+select pg_temp.check(exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Gout')
+  and not exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Shellfish'),
+  'clients add conditions and edit allergies freely');
 \echo ALL STAFF WORKFLOW CHECKS PASSED

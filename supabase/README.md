@@ -88,6 +88,10 @@ shared staff workflow:
 copies a confirmed `auth.users` email change to `profiles` (staff change their own email from Settings
 through Supabase's confirmation email).
 
+[`migrations/20261117120000_guard_condition_removal.sql`](./migrations/20261117120000_guard_condition_removal.sql)
+stops a client from deleting or renaming a health condition directly (DIT-17): the app files
+`request_health_condition_removal()` instead and only a Dietitian's approval removes it.
+
 Staff management (ADM-13–ADM-16) needs the service-role key, so it is an Edge Function:
 
 ```bash
