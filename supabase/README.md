@@ -65,6 +65,36 @@ node scripts/seed-staff-users.mjs
 
 Details: [`seed/STAFF_AUTH.md`](./seed/STAFF_AUTH.md). Staff demo password: `Admin@2026`.
 
+## Staff modules (ADM / DIT / KIT / DEL)
+
+[`migrations/20261117100000_staff_modules.sql`](./migrations/20261117100000_staff_modules.sql) adds the
+shared staff workflow:
+
+- `orders.order_no` (shown as `#00001`), delivery assignment, and the Dietitian review decision/reason.
+- Role-shaped reads: `staff_orders()`, `staff_order_detail()`, `staff_customers()`, `staff_customer_detail()`.
+  Kitchen/Delivery get first names and food only (no prices); only Admin and the assigned Delivery Staff
+  get the delivery address. Staff no longer read `orders`/`profiles` tables directly (Admin still can).
+- `dietitian_review_order()` (DIT-15), `assign_delivery_staff()` (ADM-12), role checks in
+  `transition_order_status()` (KIT-13, DEL-17: Delivery Staff only on orders assigned to them).
+- `health_condition_removal_requests` + `request_health_condition_removal()` /
+  `decide_health_condition_removal()` (DIT-17, Dietitian only).
+- `staff_notifications` (staff bells) driven by order/menu triggers and the ADM-21 settings
+  (`save_staff_notification_settings()`), plus `admin_audit_log()` (ADM-20).
+- Menu writes for Admin, Kitchen and Delivery (ADM-18, KIT-15, DEL-14); Dietitian is read-only (DIT-14).
+- Security fixes: clients can no longer change their own `profiles.role`/account status, and
+  `record_order_status_change()` is no longer callable directly (it let any signed-in user mark an order paid).
+
+Staff management (ADM-13–ADM-16) needs the service-role key, so it is an Edge Function:
+
+```bash
+npx supabase functions deploy admin-staff
+```
+
+It uses the same `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY` secrets as `login-by-username`.
+New staff receive a Supabase invite email to set their password.
+
+Local checks for all of this live in [`tests/`](./tests/README.md).
+
 Deploy the username login function separately:
 
 ```bash

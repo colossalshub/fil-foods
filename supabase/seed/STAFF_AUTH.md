@@ -14,6 +14,9 @@ Required order:
 2. `20261115120000_user5_module_integration.sql`
 3. `20261115143000_sync_user5_menu_catalog.sql`
 4. `20261115150000_help_feedback.sql`
+5. `20261117100000_staff_modules.sql` (staff workflow, role-shaped reads, notifications, DIT-17)
+
+Then deploy the staff-management function: `npx supabase functions deploy admin-staff`.
 
 ## 2. Bootstrap staff (recommended)
 
