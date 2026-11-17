@@ -5,7 +5,7 @@ import { Text } from '../ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COPY } from '../copy.js';
-import { adminView, noticesFor, savePreferences, saveProfileAsync, sendSupport } from '../data/store.js';
+import { adminView, noticesFor, savePreferences, saveProfileAsync, sendSupportAsync } from '../data/store.js';
 import { avatarLetter, formatWhen } from '../domain/format.js';
 import { ROLE_TITLE } from '../domain/roleAccess.js';
 import { useAdmin } from '../context.js';
@@ -276,27 +276,52 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 }
 
 export function HelpScreen({ navigation }: ScreenProps) {
-  const { session, showFlash } = useAdmin();
+  const { session, showFlash, colors } = useAdmin();
+  const [topic, setTopic] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  if (sent) {
+    return (
+      <View style={styles.flex}>
+        <GreenHeader title="Help & Support" onBack={() => navigation.goBack()} />
+        <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
+          <Ionicons name="checkmark-circle" size={56} color={colors.green} />
+          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '800' }}>{COPY.helpSent}</Text>
+          <Text style={{ color: colors.text }}>Your request has been received.</Text>
+          <Text style={{ color: colors.muted, marginBottom: 12 }}>A reply will be sent to your account email.</Text>
+          <View style={{ alignSelf: 'stretch' }}>
+            <PrimaryButton title="Back to Settings" onPress={() => navigation.goBack()} />
+          </View>
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.flex}>
       <GreenHeader title="Help & Support" onBack={() => navigation.goBack()} />
       <View style={{ padding: 16 }}>
         <FlashBanner />
+        <AdminField value={topic} onChangeText={setTopic} placeholder="Topic (e.g. Account access)" />
         <AdminField value={message} onChangeText={setMessage} placeholder="How can we help?" multiline error={error} />
         <PrimaryButton
-          title="Send"
-          onPress={() => {
-            if (!session) return;
-            const result = sendSupport(actorFrom(session), message);
+          title={sending ? 'Sending…' : 'Send message'}
+          disabled={sending}
+          onPress={async () => {
+            if (!session || sending) return;
+            setSending(true);
+            const result = await sendSupportAsync(actorFrom(session), message, topic);
+            setSending(false);
             if (!result.ok) {
               setError(result.message);
+              if (result.message !== COPY.helpEmpty) showFlash(result.message);
               return;
             }
+            setTopic('');
             setMessage('');
             setError(null);
-            showFlash(result.message);
+            setSent(true);
           }}
         />
       </View>

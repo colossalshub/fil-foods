@@ -528,6 +528,15 @@ export async function updateOwnStaffName(userId: string, fullName: string) {
     .setHeader('Authorization', header));
 }
 
+/** DIT/KIT/DEL-08: staff Help & Support messages are stored in help_feedback with their topic. */
+export async function sendStaffSupportMessage(userId: string, topic: string, message: string) {
+  const header = await authHeader().catch(() => '');
+  return select<null>(() => requireSupabase()
+    .from('help_feedback')
+    .insert({ client_id: userId, topic: topic.trim() || null, message: message.trim() })
+    .setHeader('Authorization', header));
+}
+
 /** Own email change: Supabase emails a confirmation link; a DB trigger copies the confirmed email to `profiles`. */
 export async function requestOwnEmailChange(email: string) {
   if (!isSupabaseConfigured) return { ok: false as const, message: 'Backend not configured.' };

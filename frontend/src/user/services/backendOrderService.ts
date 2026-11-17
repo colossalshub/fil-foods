@@ -55,7 +55,9 @@ export async function placeOrderWithBackend({
   address,
   specialInstructions,
   items,
+  planId,
 }: {
+  planId?: string | null;
   authSession?: AuthTokenSession | null;
   clientRequestId: string;
   fulfillmentType?: string | null;
@@ -106,7 +108,9 @@ export async function placeOrderWithBackend({
     if (!backendMealId || !UUID_RE.test(backendMealId)) {
       throw new Error(`Meal "${item.mealName || item.mealId}" is not available in the backend catalog.`);
     }
-    return { meal_id: backendMealId, quantity: item.quantity };
+    return item.mealCategory
+      ? { meal_id: backendMealId, quantity: item.quantity, meal_time: item.mealCategory }
+      : { meal_id: backendMealId, quantity: item.quantity };
   });
 
   const { data, error } = await client.rpc('place_order', {
@@ -116,9 +120,67 @@ export async function placeOrderWithBackend({
     p_address: address || null,
     p_special_instructions: specialInstructions || null,
     p_items: backendItems,
+    p_plan_id: planId && planId !== 'standard' ? planId : null,
   }).setHeader('Authorization', authorization);
-  if (error) throw error;
+  if (error) throw new Error(backendOrderErrorMessage(error));
   return Array.isArray(data) ? data[0] : data;
+}
+
+const ORDER_ERRORS: Record<string, string> = {
+  not_authenticated: 'Your session has expired. Please log in again.',
+  account_not_ready: 'Please verify your account before placing an order.',
+  items_required: 'Add at least one meal to your order.',
+  bad_quantity: 'Enter a valid quantity.',
+  one_meal_per_time: 'You can choose only one meal for that meal time.',
+  max_meals_per_day: 'You can choose a maximum of three meals per day.',
+  meal_unavailable: 'One of the selected meals is no longer available.',
+  plan_unavailable: 'The selected plan is not available. Please choose another plan.',
+  lead_time: 'Please choose a time at least 24 hours from now.',
+  kitchen_closed: 'The kitchen is closed at that time. Orders can be scheduled Monday to Saturday, 7:00 AM to 6:00 PM.',
+  address_required: 'Please enter a delivery address.',
+  recipient_name_required: "Please enter the meal recipient's first and last name.",
+  invalid_contact: 'Please enter a valid 11-digit contact number.',
+};
+
+/** Turns place_order / save_meal_recipient error codes into the user-facing wording. */
+export function backendOrderErrorMessage(error: { message?: string } | null | undefined) {
+  const raw = String(error?.message || '').trim();
+  if (raw.startsWith('allergen_conflict:')) {
+    return `A selected meal contains ${raw.slice('allergen_conflict:'.length).trim()}, which is listed in the profile.`;
+  }
+  return ORDER_ERRORS[raw] || raw || 'Unable to place order.';
+}
+
+/** Family Member accounts: keep the meal recipient on the server so staff deliver to the right person. */
+export async function saveMealRecipientWithBackend(
+  recipient: {
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    suffix?: string;
+    contactNumber?: string;
+    relationship?: string;
+    deliveryAddress?: string;
+  },
+  authSession?: AuthTokenSession | null,
+) {
+  const client = requireSupabase();
+  const session = await ensureSession(authSession)
+    || (authSession?.access_token ? authSession : null);
+  if (!session?.access_token) throw new Error('Your session has expired. Please log in again.');
+  const { data, error } = await client.rpc('save_meal_recipient', {
+    p_recipient: {
+      first_name: recipient.firstName,
+      middle_name: recipient.middleName || null,
+      last_name: recipient.lastName,
+      suffix: recipient.suffix || null,
+      contact_number: recipient.contactNumber || null,
+      relationship: recipient.relationship || null,
+      address: recipient.deliveryAddress || null,
+    },
+  }).setHeader('Authorization', `Bearer ${session.access_token}`);
+  if (error) throw new Error(backendOrderErrorMessage(error));
+  return data;
 }
 
 export async function getClientOrders() {

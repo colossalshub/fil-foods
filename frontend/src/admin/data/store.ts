@@ -66,7 +66,7 @@ interface AdminDb {
   auditLog: AuditEvent[];
   resets: ResetLink[];
   pendingSetup: { name: string; email: string; token: string } | null;
-  support: { id: string; from: string; message: string; at: string }[];
+  support: { id: string; from: string; topic?: string; message: string; at: string }[];
   removalRequests: RemovalRequest[];
   /** Rows from `admin_audit_log` when signed in to Supabase. */
   remoteAudit: AuditRow[] | null;
@@ -1503,16 +1503,25 @@ export function savePreferences(actor: Actor, preferences: Preferences) {
   return { ok: true as const, message: 'Preferences saved', preferences: record.preferences };
 }
 
-export function sendSupport(actor: Actor, message: string) {
+export function sendSupport(actor: Actor, message: string, topic = '') {
   const text = message.trim();
   if (!text) return { ok: false as const, message: COPY.helpEmpty };
-  db.support.push({ id: nid('help'), from: actor.email, message: text, at: new Date().toISOString() });
+  db.support.push({ id: nid('help'), from: actor.email, topic: topic.trim(), message: text, at: new Date().toISOString() });
   auditChange(actor, 'support.message', actor.id, {
     summary: 'Support message sent',
     targetLabel: actor.email,
     newValue: 'sent',
   });
   touch();
+  return { ok: true as const, message: COPY.helpSent };
+}
+
+/** Live mode stores the message in help_feedback; demo mode keeps it on the device. */
+export async function sendSupportAsync(actor: Actor, message: string, topic = '') {
+  if (!backendActive()) return sendSupport(actor, message, topic);
+  if (!message.trim()) return { ok: false as const, message: COPY.helpEmpty };
+  const saved = await remote.sendStaffSupportMessage(actor.id, topic, message);
+  if (!saved.ok) return { ok: false as const, message: saved.message };
   return { ok: true as const, message: COPY.helpSent };
 }
 

@@ -12,7 +12,7 @@ import {
 } from '../services/orderService';
 import { confirmChoosePlan, setPendingPlanPeriod } from '../services/planService';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
-import { placeOrderWithBackend } from '../services/backendOrderService.js';
+import { placeOrderWithBackend, saveMealRecipientWithBackend } from '../services/backendOrderService.js';
 import { mapBackendOrder } from '../services/trackingService.js';
 import { combineSchedule } from '../components/scheduleValue';
 import type { MealMatchProfile } from '../types';
@@ -98,7 +98,11 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           refresh_token: user.refreshToken,
           expires_at: user.expiresAt,
         };
+        if (user.accountFor === 'family' && user.mealRecipient) {
+          await saveMealRecipientWithBackend(user.mealRecipient, authSession);
+        }
         const payload = {
+          planId: checkout.planId,
           authSession,
           fulfillmentType: fulfillment.type,
           schedule: check.scheduled!.toISOString(),
