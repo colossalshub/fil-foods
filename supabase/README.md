@@ -84,6 +84,10 @@ shared staff workflow:
 - Security fixes: clients can no longer change their own `profiles.role`/account status, and
   `record_order_status_change()` is no longer callable directly (it let any signed-in user mark an order paid).
 
+[`migrations/20261117110000_profile_email_sync.sql`](./migrations/20261117110000_profile_email_sync.sql)
+copies a confirmed `auth.users` email change to `profiles` (staff change their own email from Settings
+through Supabase's confirmation email).
+
 Staff management (ADM-13–ADM-16) needs the service-role key, so it is an Edge Function:
 
 ```bash

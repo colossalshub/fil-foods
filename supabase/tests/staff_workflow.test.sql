@@ -225,4 +225,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e2', true);
 select pg_temp.expect_error('select public.staff_orders()', 'not_authorized');
 commit;
+
+-- ADM-06 / DIT-06: a confirmed auth email change reaches the profile ------------------------
+update auth.users set email = 'Maria.New@filfoods.ph' where id = (select id from public.profiles where email = 'maria.santos@filfoods.ph');
+select pg_temp.check(exists (select 1 from public.profiles where email = 'maria.new@filfoods.ph'), 'auth email change syncs to profiles');
 \echo ALL STAFF WORKFLOW CHECKS PASSED
