@@ -56,7 +56,10 @@ Deno.serve(async (request) => {
   const profileResponse = await rest(
     url,
     serviceKey,
-    `/rest/v1/profiles?select=id,email,is_verified,is_active,locked_at,failed_attempts&username=eq.${encodeURIComponent(username)}&limit=1`,
+    // USR-02: the login field accepts the username or the account email.
+    username.includes('@')
+      ? `/rest/v1/profiles?select=id,email,is_verified,is_active,locked_at,failed_attempts&email=ilike.${encodeURIComponent(username.replace(/[%_*]/g, ''))}&limit=1`
+      : `/rest/v1/profiles?select=id,email,is_verified,is_active,locked_at,failed_attempts&username=eq.${encodeURIComponent(username)}&limit=1`,
   );
   const profiles = profileResponse.ok ? await profileResponse.json() : [];
   const profile = profiles[0];
@@ -80,6 +83,13 @@ Deno.serve(async (request) => {
     body: JSON.stringify({ email: profile.email, password }),
   });
   const signedIn = authResponse.ok ? await authResponse.json() : null;
+  if (!authResponse.ok) {
+    const failure = await authResponse.json().catch(() => ({}));
+    // USR-33 G: the password was right but the email code was never entered.
+    if (failure?.error_code === 'email_not_confirmed' || /not confirmed/i.test(String(failure?.msg || failure?.message || ''))) {
+      return response({ message: 'Please verify your account first.', verifyRequired: true, email: profile.email }, 403);
+    }
+  }
   await rest(url, serviceKey, '/rest/v1/login_attempts', {
     method: 'POST',
     body: JSON.stringify({
@@ -109,7 +119,8 @@ Deno.serve(async (request) => {
   await rest(url, serviceKey, `/rest/v1/profiles?id=eq.${profile.id}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ failed_attempts: 0, locked_at: null }),
+    // A successful password grant means Supabase confirmed the email (USR-33).
+    body: JSON.stringify({ failed_attempts: 0, locked_at: null, is_verified: true }),
   });
   await rest(url, serviceKey, '/rest/v1/rpc/append_audit_event', {
     method: 'POST',

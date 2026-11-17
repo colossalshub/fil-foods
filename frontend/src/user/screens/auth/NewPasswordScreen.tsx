@@ -4,23 +4,29 @@ import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import FormMessage from '../../components/FormMessage';
 import { peekGrant, updatePassword } from '../../services/authService';
+import { updateLivePassword } from '../../services/liveAuthService';
 
 export default function NewPasswordScreen({ navigation, route }: {
   navigation: { replace: (name: string, params?: object) => void; navigate: (name: string, params?: object) => void };
   route: { params?: { grantId?: string } };
 }) {
   const grantId = route.params?.grantId;
+  const live = grantId === 'live';
+  const [saving, setSaving] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    if (!peekGrant(grantId)) navigation.replace('ForgotPassword');
-  }, [grantId, navigation]);
+    if (!live && !peekGrant(grantId)) navigation.replace('ForgotPassword');
+  }, [grantId, live, navigation]);
 
-  const onSave = () => {
-    const result = updatePassword({ grantId, password, confirmPassword: confirm });
+  const onSave = async () => {
+    setSaving(true);
+    const result = live
+      ? await updateLivePassword(password, confirm).finally(() => setSaving(false))
+      : (setSaving(false), updatePassword({ grantId, password, confirmPassword: confirm }));
     if (result.code === 'no-grant') {
       navigation.replace('ForgotPassword');
       return;
@@ -41,7 +47,7 @@ export default function NewPasswordScreen({ navigation, route }: {
       {done ? (
         <AppButton title="Log in" onPress={() => navigation.navigate('Login')} />
       ) : (
-        <AppButton title="Update password" onPress={onSave} />
+        <AppButton title="Update password" onPress={onSave} loading={saving} />
       )}
     </AuthLayout>
   );

@@ -1,5 +1,6 @@
 import { accessTokenStillValid } from '../../lib/authSession.js';
 import { requireSupabase, rememberSession } from '../../lib/supabaseClient.js';
+import { liveUserFromProfile, loadLiveRecipient } from './liveAuthService.js';
 
 const functionUrl = () => {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -20,8 +21,13 @@ export async function loginWithSupabase({ username, password, deviceKey }: {
     },
     body: JSON.stringify({ username, password, deviceKey }),
   });
-  const result = await response.json();
-  if (!response.ok) return { ok: false, message: result.message };
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (result.verifyRequired && result.email) {
+      return { ok: false, message: result.message, verifyRequired: true, email: result.email as string };
+    }
+    return { ok: false, message: result.message || 'Could not log in. Try again.' };
+  }
   if (!result.session?.access_token) {
     return { ok: false, message: 'Could not start your session. Please try again.' };
   }
@@ -41,16 +47,12 @@ export async function loginWithSupabase({ username, password, deviceKey }: {
       return { ok: false, message: (error as { message?: string } | undefined)?.message || 'Could not start your session. Please try again.' };
     }
   }
+  const recipient = await loadLiveRecipient(result.profile, session!.access_token).catch(() => null);
   return {
     ok: true,
     session,
     user: {
-      ...result.profile,
-      id: result.profile.id,
-      role: result.profile.role,
-      verified: result.profile.is_verified,
-      profileComplete: result.profile.profile_complete,
-      inactive: !result.profile.is_active,
+      ...liveUserFromProfile(result.profile, recipient),
       accessToken: session!.access_token,
       refreshToken: session!.refresh_token,
       expiresAt: session!.expires_at,

@@ -49,7 +49,9 @@ export default function LoginScreen({ navigation }: {
       signIn(res.user, { keepLoggedIn: keep, session: res.session });
       return;
     }
-    if (res.verifyRequired && res.userId) {
+    if (res.verifyRequired && res.email) {
+      navigation.navigate('VerifyAccount', { live: true, fromLogin: true, email: res.email });
+    } else if (res.verifyRequired && res.userId) {
       navigation.navigate('VerifyAccount', { userId: res.userId });
     }
     setFormError(res.message || 'Could not log in. Try again.');

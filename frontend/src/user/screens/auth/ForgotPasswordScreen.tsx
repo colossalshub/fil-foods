@@ -9,6 +9,8 @@ import FormMessage from '../../components/FormMessage';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import VerificationFlow from '../../components/VerificationFlow';
 import { lookupPasswordReset } from '../../services/authService';
+import { lookupLiveReset } from '../../services/liveAuthService';
+import { isSupabaseConfigured } from '../../../lib/supabaseClient';
 import { MSG } from '../../data/messages';
 import { colors, font, spacing, fonts } from '../../theme/theme';
 
@@ -21,9 +23,13 @@ export default function ForgotPasswordScreen({ navigation }: {
   const [messages, setMessages] = useState<string[]>([]);
   const [resetUser, setResetUser] = useState<{ userId: string; phone?: string; email?: string } | null>(null);
 
-  const onContinue = () => {
+  const [checking, setChecking] = useState(false);
+  const onContinue = async () => {
     setMessages([]);
-    const result = lookupPasswordReset({ mode, value });
+    setChecking(true);
+    const result = isSupabaseConfigured
+      ? await lookupLiveReset(mode, value).finally(() => setChecking(false))
+      : (setChecking(false), lookupPasswordReset({ mode, value }));
     if (!result.ok) {
       setResetUser(null);
       if (result.message === MSG.invalidContact || result.message === MSG.invalidEmail) {
@@ -58,6 +64,7 @@ export default function ForgotPasswordScreen({ navigation }: {
 
             {resetUser ? (
               <VerificationFlow
+                live={isSupabaseConfigured}
                 userId={resetUser.userId}
                 purpose="reset"
                 phone={resetUser.phone}
@@ -85,7 +92,7 @@ export default function ForgotPasswordScreen({ navigation }: {
                   error={fieldError}
                 />
                 <FormMessage messages={messages} tone="error" />
-                <AppButton title="Continue" onPress={onContinue} />
+                <AppButton title="Continue" onPress={onContinue} loading={checking} />
               </>
             )}
 

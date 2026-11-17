@@ -27,6 +27,7 @@ import { colors } from '../theme/theme';
 import { isStaffProfileRole } from '../../lib/staffAuth.js';
 import { fetchRemoteMeals } from '../../lib/mealCatalogBackend.js';
 import { syncMealsWithRemoteMenu } from '../data/meals.js';
+import { liveUserFromProfile, loadLiveRecipient } from '../services/liveAuthService.js';
 import { ensureSession, getCurrentSupabaseProfile, isSupabaseConfigured, supabase, forgetSession, rememberSession } from '../../lib/supabaseClient.js';
 
 const Stack = createNativeStackNavigator();
@@ -64,11 +65,9 @@ export default function RootNavigator() {
               setKeepLoggedIn(false);
             } else {
               setSession(restoredSession);
+              const recipient = await loadLiveRecipient(profile, restoredSession.access_token).catch(() => null);
               setUser({
-                ...profile,
-                verified: profile.is_verified,
-                profileComplete: profile.profile_complete,
-                inactive: !profile.is_active,
+                ...liveUserFromProfile(profile, recipient),
                 accessToken: restoredSession.access_token,
                 refreshToken: restoredSession.refresh_token,
                 expiresAt: restoredSession.expires_at,

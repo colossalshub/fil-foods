@@ -59,7 +59,10 @@ export default function CreateAccountScreen({ navigation }: {
       }
       setFields({});
       setMessages([]);
-      navigation.replace('VerifyAccount', { userId: result.userId });
+      const pending = (result as { pending?: { email: string; contactNumber?: string; firstName?: string } }).pending;
+      navigation.replace('VerifyAccount', pending
+        ? { live: true, email: pending.email, phone: pending.contactNumber, firstName: pending.firstName }
+        : { userId: result.userId });
     } finally {
       setLoading(false);
     }

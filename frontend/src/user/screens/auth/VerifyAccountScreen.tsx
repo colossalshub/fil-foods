@@ -11,9 +11,12 @@ import { colors, font, spacing, fonts } from '../../theme/theme';
 
 export default function VerifyAccountScreen({ navigation, route }: {
   navigation: { replace: (name: string, params?: object) => void; navigate: (name: string, params?: object) => void };
-  route: { params?: { userId?: string } };
+  route: { params?: { userId?: string; live?: boolean; email?: string; phone?: string; firstName?: string; fromLogin?: boolean } };
 }) {
-  const user = getPublicUser(route.params?.userId);
+  const params = route.params || {};
+  const user = params.live && params.email
+    ? { id: params.email, firstName: params.firstName || '', contactNumber: params.phone, email: params.email }
+    : getPublicUser(params.userId);
 
   return (
     <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
@@ -34,9 +37,11 @@ export default function VerifyAccountScreen({ navigation, route }: {
           {user ? (
             <>
               <Text style={styles.body}>
-                {user.firstName}, enter the 6-digit code we send to your phone or email.
+                {user.firstName ? `${user.firstName}, enter` : 'Enter'} the 6-digit code we send to your phone or email.
               </Text>
               <VerificationFlow
+                live={Boolean(params.live)}
+                alreadySent={Boolean(params.live && !params.fromLogin)}
                 userId={user.id}
                 purpose="account"
                 phone={user.contactNumber}

@@ -10,11 +10,13 @@ import FormMessage from '../../components/FormMessage';
 import { PrivacyModal, TermsModal } from '../../components/LegalModals';
 import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding, logout, normalizeContact } from '../../services/authService';
+import { completeOnboardingLive } from '../../services/liveOnboardingService';
+import { isSupabaseConfigured } from '../../../lib/supabaseClient';
 import { ALLERGY_PRESETS } from '../../services/profileService';
 import { MSG } from '../../data/messages';
 import { RECOMMENDATION_MEALS } from '../../data/meals';
 import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
-import type { FieldMap, MealMatchProfile } from '../../types';
+import type { FieldMap, MealMatchProfile, PublicUser } from '../../types';
 import { colors, font, spacing, card, fonts } from '../../theme/theme';
 
 const HEALTH_OPTIONS = PROFILE_HEALTH_OPTIONS;
@@ -135,7 +137,7 @@ export default function CompleteProfileScreen() {
     setStep((current) => current + 1);
   };
 
-  const finish = () => {
+  const finish = async () => {
     if (!user?.id) {
       setMessages(['Your account could not be loaded. Please log in again.']);
       return;
@@ -147,7 +149,7 @@ export default function CompleteProfileScreen() {
     if (healthOther.trim()) savedConditions.push(healthOther.trim());
     const savedRestrictions = [...dietaryRestrictions];
     if (dietaryOther.trim()) savedRestrictions.push(dietaryOther.trim());
-    const result = completeOnboarding(user.id, {
+    const input = {
       personal: {
         firstName,
         middleName,
@@ -172,14 +174,19 @@ export default function CompleteProfileScreen() {
       healthConditions: savedConditions,
       dietaryRestrictions: savedRestrictions,
       acceptedTerms: accepted,
-    });
+    };
+    const result = isSupabaseConfigured
+      ? await completeOnboardingLive(user as PublicUser, input)
+      : completeOnboarding(user.id, input);
     setSaving(false);
     if (!result.ok || !result.user) {
       setMessages(result.messages || [MSG.acceptanceSaveFailed]);
       setFields(result.fields || {});
       return;
     }
-    signIn(result.user, { keepLoggedIn });
+    signIn(isSupabaseConfigured
+      ? { ...result.user, accessToken: user.accessToken, refreshToken: user.refreshToken, expiresAt: user.expiresAt }
+      : result.user, { keepLoggedIn });
   };
 
   const title = currentStage === 'recipient'

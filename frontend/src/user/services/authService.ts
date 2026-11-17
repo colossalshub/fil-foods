@@ -11,6 +11,7 @@ import { clearPersistedSession } from './sessionPersistence.js';
 import { disableBiometricUnlock } from './biometricService.js';
 import { appendAuditEvent, comparePassword, comparePasswordSync, hashPasswordSync } from './securityService.js';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
+import { signUpLive } from './liveAuthService.js';
 import { loginWithSupabase } from './supabaseAuthService.js';
 
 const wait = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -159,6 +160,8 @@ export function logout(userId: string) {
 }
 
 export async function register(data: RegistrationInput) {
+  // Live project: a real Supabase account; the local stand-in is demo mode only.
+  if (isSupabaseConfigured) return signUpLive(data);
   if (acceptanceSaveFails) {
     acceptanceSaveFails = false;
     return { ok: false, messages: [MSG.acceptanceSaveFailed], fields: { terms: true } };
