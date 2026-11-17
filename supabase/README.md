@@ -92,6 +92,15 @@ through Supabase's confirmation email).
 stops a client from deleting or renaming a health condition directly (DIT-17): the app files
 `request_health_condition_removal()` instead and only a Dietitian's approval removes it.
 
+[`migrations/20261117130000_schema_audit.sql`](./migrations/20261117130000_schema_audit.sql)
+fixes what the schema audit found against the module specs and the app:
+- turns on RLS for `meal_recipients` (its policies existed but RLS was off, so any signed-in user could read every recipient);
+- adds `meal_plans` (Weekly ₱4,999, Monthly ₱27,899, Yearly ₱327,999) and `orders.plan_id`, so `place_order(..., p_plan_id)` saves the plan price the user confirmed (USR-20 A);
+- `place_order` now enforces one meal per meal time and at most three meals per day (per account, per day in Asia/Manila), and stores each item's `meal_time`;
+- order notifications follow the USR-25 wording and name the meal recipient on Family Member accounts;
+- `save_meal_recipient()` stores the Family Member's recipient and a profile can only point at its own recipient;
+- `help_feedback.topic` so staff Help & Support messages (DIT/KIT/DEL-08) are stored with their topic.
+
 Staff management (ADM-13–ADM-16) needs the service-role key, so it is an Edge Function:
 
 ```bash

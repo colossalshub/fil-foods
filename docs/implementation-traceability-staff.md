@@ -123,4 +123,6 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 - Done: ADM-17/18 menu edits reach the user catalog (availability, price, ingredients, allergens via `client_meal_key`). Gap: a brand-new staff-created meal shows in staff menus only, because the user menu is a curated catalog keyed by `client_meal_key`.
 - Done: ADM-12 assignment ↔ DEL-15–17 status updates on shared order records.
 - Done: ADM-20 audit log covers staff, menu, order and DIT-17 events on the existing audit chain.
+- Done (schema audit, migration 20261117130000): plan price is set by the server (`meal_plans`), meal limits are enforced by `place_order`, Family Member recipients are stored (`save_meal_recipient`), `meal_recipients` RLS is on, staff Help & Support messages reach `help_feedback` with a topic.
+- Open: the sugar goal is derived from a "Low-sugar" restriction because the User module only offers calorie, protein and sodium preferences; `order_status` value `issue` is unused; there is no payment record (pay_order only changes the status).
 - Open: DEL-16 in-app map (no map library yet); staff Google sign-in (ADM-04, DIT-04, KIT-04, DEL-04) is local only.

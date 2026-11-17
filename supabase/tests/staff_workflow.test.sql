@@ -30,6 +30,9 @@ insert into public.nutritional_preferences (client_id, lower_sodium, higher_prot
 -- A schedule inside kitchen hours, past the lead time.
 select s as slot from generate_series(date_trunc('hour', now()) + interval '3 days', date_trunc('hour', now()) + interval '10 days', interval '1 hour') s
 where public.is_within_kitchen_hours(s) limit 1 \gset
+-- A slot on a later day, so a second order does not reuse the first order's meal time.
+select s as slot2 from generate_series(date_trunc('day', :'slot'::timestamptz) + interval '1 day', date_trunc('day', :'slot'::timestamptz) + interval '8 days', interval '1 hour') s
+where public.is_within_kitchen_hours(s) limit 1 \gset
 select id as meal_id from public.meals where is_available and not ('Shellfish' = any(allergens)) and not exists (
   select 1 from public.meal_conflicts_with_client('00000000-0000-0000-0000-0000000000c1', meals.id)) limit 1 \gset
 
@@ -177,7 +180,7 @@ select pg_temp.check((select count(*) from public.audit_events where event_type 
 begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
-select id as order2 from public.place_order(gen_random_uuid(), 'pick_up', :'slot'::timestamptz, null, null,
+select id as order2 from public.place_order(gen_random_uuid(), 'pick_up', :'slot2'::timestamptz, null, null,
   jsonb_build_array(jsonb_build_object('meal_id', :'meal_id', 'quantity', 1))) \gset
 commit;
 begin;
@@ -238,4 +241,75 @@ delete from public.client_health_items where client_id = '00000000-0000-0000-000
 select pg_temp.check(exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Gout')
   and not exists (select 1 from public.client_health_items where client_id = '00000000-0000-0000-0000-0000000000c1' and value = 'Shellfish'),
   'clients add conditions and edit allergies freely');
+-- Schema audit (20261117130000) ------------------------------------------------------------
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000c2', 'rosa.lim@example.com', '{"first_name":"Rosa","last_name":"Lim"}');
+update public.profiles set is_verified = true, address = '7 Kamias Rd, Quezon City', account_for = 'self'
+where email = 'rosa.lim@example.com';
+select id as breakfast_id from public.meals where is_available and category = 'Breakfast' and not exists (
+  select 1 from public.meal_conflicts_with_client('00000000-0000-0000-0000-0000000000c2', meals.id)) limit 1 \gset
+select id as lunch_id from public.meals where is_available and category = 'Lunch' and not exists (
+  select 1 from public.meal_conflicts_with_client('00000000-0000-0000-0000-0000000000c2', meals.id)) limit 1 \gset
+select id as lunch2_id from public.meals where is_available and category = 'Lunch' and id <> :'lunch_id' and not exists (
+  select 1 from public.meal_conflicts_with_client('00000000-0000-0000-0000-0000000000c2', meals.id)) limit 1 \gset
+select id as dinner_id from public.meals where is_available and category = 'Dinner' and not exists (
+  select 1 from public.meal_conflicts_with_client('00000000-0000-0000-0000-0000000000c2', meals.id)) limit 1 \gset
+
+select pg_temp.check((select relrowsecurity from pg_class where oid = 'public.meal_recipients'::regclass), 'meal_recipients has RLS on');
+select pg_temp.check((select string_agg(id || '=' || price::integer, ',' order by sort_order) from public.meal_plans)
+  = 'weekly=4999,monthly=27899,yearly=327999', 'plan prices match USR-20 A');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c2', true);
+select pg_temp.check(not exists (select 1 from public.meal_recipients), 'another account cannot read meal recipients');
+select pg_temp.check((select count(*) from public.meal_plans) = 3, 'signed-in users can read plans');
+update public.meal_plans set price = 1;
+select pg_temp.expect_error($$select public.place_order(gen_random_uuid(), 'pick_up', '$$ || :'slot' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'lunch_id' || $$', 'quantity', 2)))$$, 'one_meal_per_time');
+select pg_temp.expect_error($$select public.place_order(gen_random_uuid(), 'pick_up', '$$ || :'slot' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'lunch_id' || $$', 'quantity', 1),
+                    jsonb_build_object('meal_id', '$$ || :'lunch2_id' || $$', 'quantity', 1)))$$, 'one_meal_per_time');
+select pg_temp.expect_error($$select public.place_order(gen_random_uuid(), 'pick_up', '$$ || :'slot' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'breakfast_id' || $$', 'quantity', 1),
+                    jsonb_build_object('meal_id', '$$ || :'lunch_id' || $$', 'quantity', 1),
+                    jsonb_build_object('meal_id', '$$ || :'dinner_id' || $$', 'quantity', 1),
+                    jsonb_build_object('meal_id', '$$ || :'lunch2_id' || $$', 'quantity', 1, 'meal_time', 'Snack')))$$, 'max_meals_per_day');
+select pg_temp.expect_error($$select public.place_order(gen_random_uuid(), 'pick_up', '$$ || :'slot' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'lunch_id' || $$', 'quantity', 1)), 'daily')$$, 'plan_unavailable');
+select id as plan_order, total as plan_total, plan_id as plan_used from public.place_order(gen_random_uuid(), 'pick_up', :'slot'::timestamptz, null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', :'lunch_id', 'quantity', 1),
+                    jsonb_build_object('meal_id', :'lunch2_id', 'quantity', 1, 'meal_time', 'Dinner')), 'weekly') \gset
+select pg_temp.expect_error($$select public.place_order(gen_random_uuid(), 'pick_up', '$$ || :'slot' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'dinner_id' || $$', 'quantity', 1)))$$, 'one_meal_per_time');
+select id as std_order, total as std_total from public.place_order(gen_random_uuid(), 'pick_up', :'slot'::timestamptz, null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', :'breakfast_id', 'quantity', 1))) \gset
+commit;
+select pg_temp.check((select price from public.meal_plans where id = 'weekly') = 4999, 'clients cannot change plan prices');
+select pg_temp.check(:'plan_total'::numeric = 4999 and :'plan_used' = 'weekly', 'a Weekly plan order totals ₱4,999 on the server');
+select pg_temp.check(:'std_total'::numeric = (select price from public.meals where id = :'breakfast_id'), 'a Standard order totals the meal price');
+select pg_temp.check((select array_agg(meal_time order by meal_time) from public.order_items where order_id = :'plan_order') = array['Dinner', 'Lunch'],
+  'order items keep the chosen meal time');
+select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order2' and body like 'Order TRK-%for Lia Dizon was sent to the Dietitian for review.'),
+  'family orders name the meal recipient');
+select pg_temp.check(exists (select 1 from public.notifications n join public.orders o on o.id = n.order_id where n.order_id = :'std_order'
+  and n.body = 'Order ' || o.tracking_number || ' was sent to the Dietitian for review.'), 'self orders do not add a recipient name');
+select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order_id' and body like 'Order TRK-%for Lia Dizon is now Out for Delivery.'),
+  'status notices follow USR-25 wording');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+insert into public.help_feedback (client_id, topic, message) values (auth.uid(), 'Account access', 'I cannot see today''s orders.');
+select pg_temp.expect_error($$insert into public.help_feedback (client_id, message) values ('00000000-0000-0000-0000-0000000000c2', 'spoof')$$, 'row-level security');
+commit;
+select pg_temp.check(exists (select 1 from public.help_feedback where topic = 'Account access'), 'staff help messages are stored with a topic');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c2', true);
+select pg_temp.expect_error($$update public.profiles set meal_recipient_id = '00000000-0000-0000-0000-0000000000f1' where id = auth.uid()$$, 'recipient_not_owned');
+select pg_temp.expect_error($$select public.save_meal_recipient('{"first_name":"Ben"}')$$, 'recipient_name_required');
+select id as rosa_recipient from public.save_meal_recipient('{"first_name":"Ben","last_name":"Lim","relationship":"Parent","contact_number":"0917 555 0111","address":"7 Kamias Rd, Quezon City"}') \gset
+select pg_temp.check((select id from public.save_meal_recipient('{"first_name":"Benito","last_name":"Lim"}')) = :'rosa_recipient', 'one recipient per account, updated in place');
+commit;
+select pg_temp.check((select account_for || '|' || meal_recipient_id from public.profiles where email = 'rosa.lim@example.com') = 'family|' || :'rosa_recipient',
+  'saving a recipient links it to the profile');
 \echo ALL STAFF WORKFLOW CHECKS PASSED

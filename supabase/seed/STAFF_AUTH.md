@@ -17,6 +17,7 @@ Required order:
 5. `20261117100000_staff_modules.sql` (staff workflow, role-shaped reads, notifications, DIT-17)
 6. `20261117110000_profile_email_sync.sql` (confirmed staff email changes reach `profiles`)
 7. `20261117120000_guard_condition_removal.sql` (condition removals go through the Dietitian, DIT-17)
+8. `20261117130000_schema_audit.sql` (recipient privacy, plan prices, meal limits, notification wording, staff help)
 
 Then deploy the staff-management function: `npx supabase functions deploy admin-staff`.
 
