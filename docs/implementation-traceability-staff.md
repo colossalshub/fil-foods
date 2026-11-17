@@ -56,23 +56,23 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 
 | Story | Status | Evidence / gaps |
 |---|---|---|
-| DIT-01 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DIT-02 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DIT-03 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DIT-04 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DIT-05 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Home & Navigation; shared store not wired to user Supabase. |
-| DIT-06 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| DIT-07 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| DIT-08 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Settings & Profile; shared store not wired to user Supabase. |
-| DIT-09 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Authentication & Account Management; shared store not wired to user Supabase. |
-| DIT-10 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Dashboard; shared store not wired to user Supabase. |
-| DIT-11 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Allergies & Preferences; shared store not wired to user Supabase. |
-| DIT-12 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Allergies & Preferences; shared store not wired to user Supabase. |
-| DIT-13 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Customers; shared store not wired to user Supabase. |
-| DIT-14 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Menu; shared store not wired to user Supabase. |
-| DIT-15 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Orders; shared store not wired to user Supabase. |
-| DIT-16 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Access Control; shared store not wired to user Supabase. |
-| DIT-17 | Partial | Staff UI prototype under `frontend/src/admin`; verify against PDF criteria for Health Information Approval; shared store not wired to user Supabase. |
+| DIT-01 | Done | Shared staff sign-in (`StaffLoginScreen`, `lib/staffAuth.ts`): Dietitian role card, Supabase password sign-in, role check against `profiles.role`. |
+| DIT-02 | Done | Shared forgot / reset password flow (`AuthScreens.tsx`) with Supabase recovery email. |
+| DIT-03 | Done | Wrong email / wrong password messages from `signInStaffToSupabase` reasons; disabled accounts refused. |
+| DIT-04 | Partial | Remember me and session restore (`restoreStaffSession`); Google sign-in for staff stays local only. |
+| DIT-05 | Done | `RoleApp` tabs Dashboard, Orders, Menu, Settings (no Staff tab); `homeRouteFor` routes the Dietitian there after sign-in. |
+| DIT-06 | Done | Edit Profile (name, email change via Supabase confirmation + `sync_profile_email` trigger). |
+| DIT-07 | Done | Dietitian-only Notifications switch in Settings (`prefs.notifications`); bell dot respects unread notices; removal requests stay listed when OFF. |
+| DIT-08 | Done | Shared Help & Support and About screens (`SettingsScreen.tsx`). |
+| DIT-09 | Done | Shared logout card; `signOut` ends the Supabase session and clears stored sign-in. |
+| DIT-10 | Done | `DietitianDashboardScreen`: "Dietitian" / "Nutrition Specialist" header, greeting, Allergies / Customer Preferences tiles, Condition Removal Requests card with pending count, Orders for review card, Menu Overview grid with View All. No sales figures. |
+| DIT-11 | Done | `AllergiesPreferencesScreen`: view-only chips Peanuts, Shellfish, Dairy, Eggs, Gluten, Other with customer counts (`domain/dietitian.ts`). |
+| DIT-12 | Done | Preferred Nutritional Levels tiles (level + range, "n of m customers") with the spec footer; same tiles on Customer Details. Ranges derived from yes/no goals (see inconsistencies). |
+| DIT-13 | Done | Directory "Customer Preferences" / "Choose a customer"; Customer Details with allergies, tiles and full Order History (each row opens the order). No address or payment shown. |
+| DIT-14 | Done | Shared `MenuScreen` is view-only for the Dietitian (no add/edit/delete/availability); tapping an item shows the read-only review with "Use verified data before recommending." Server blocks writes (`meals_staff_write` RLS excludes the Dietitian). |
+| DIT-15 | Done | `ReviewPanel` on Order Details: order review details (meals, customizations, allergies, conditions, doctor restrictions), Approve (→ Awaiting Payment) and Return for changes with a required reason (`review_order` RPC, recorded in audit). |
+| DIT-16 | Done | No Staff tab or sales cards; direct links to staff-only screens show "You do not have access to this page."; RLS/RPCs reject other roles. |
+| DIT-17 | Done | Condition Removal Requests list (pending oldest first / decided), request detail with recipient context, Approve / Reject with reason, "already decided" guard. User profile edits now file a request instead of deleting the condition; DB trigger `guard_health_condition_removal` blocks direct client deletes. |
 
 ### Kitchen Module (KIT-01–KIT-15)
 

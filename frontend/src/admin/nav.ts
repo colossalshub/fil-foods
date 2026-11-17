@@ -56,3 +56,10 @@ export function tabBarStyle(insets: EdgeInsets, colors: Palette) {
     paddingTop: 6,
   };
 }
+
+/** Where each role lands after sign-in: Admin has its own tabs; the other roles share RoleApp. */
+export function homeRouteFor(role: string) {
+  if (role === 'admin') return 'AdminApp';
+  if (role === 'dietitian') return 'RoleApp';
+  return 'RoleHome';
+}

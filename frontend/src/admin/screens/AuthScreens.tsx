@@ -20,7 +20,7 @@ import { signInStaffToSupabase } from '../../lib/staffAuth.js';
 import { sendStaffPasswordReset } from '../../lib/staffBackend.js';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { useAdmin } from '../context.js';
-import type { ScreenProps } from '../nav.js';
+import { homeRouteFor, type ScreenProps } from '../nav.js';
 import type { StaffPublic, StaffRole } from '../types';
 import {
   AdminField,
@@ -142,7 +142,7 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
     } else {
       showFlash(COPY.loggedIn);
     }
-    navigation.reset({ index: 0, routes: [{ name: account.role === 'admin' ? 'AdminApp' : 'RoleHome' }] });
+    navigation.reset({ index: 0, routes: [{ name: homeRouteFor(account.role) }] });
   };
 
   const onLogin = async () => {

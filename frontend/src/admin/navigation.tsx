@@ -26,6 +26,13 @@ import {
   SettingsScreen,
 } from './screens/SettingsScreen.js';
 import { CustomerDetailScreen, CustomersScreen } from './screens/CustomerScreens.js';
+import {
+  AllergiesPreferencesScreen,
+  DietitianDashboardScreen,
+  RemovalRequestScreen,
+  RemovalRequestsScreen,
+} from './screens/DietitianScreens.js';
+import { homeRouteFor } from './nav.js';
 import { NotificationsScreen as InboxScreen } from './screens/InboxScreen.js';
 import { StaffNotificationsScreen } from './screens/StaffNotificationsScreen.js';
 import { StaffFormScreen, StaffScreen } from './screens/StaffScreen.js';
@@ -112,6 +119,47 @@ function AdminTabs() {
   );
 }
 
+/** Dashboard stack per role (DIT-10, KIT, DEL dashboards). */
+function RoleDashboardStack() {
+  return (
+    <Stack.Navigator screenOptions={useStackOptions()}>
+      <Stack.Screen name="RoleDashboard" component={screen(DietitianDashboardScreen)} />
+      <Stack.Screen name="AllergiesPrefs" component={screen(AllergiesPreferencesScreen)} />
+      <Stack.Screen name="Customers" component={screen(CustomersScreen)} />
+    </Stack.Navigator>
+  );
+}
+
+function RoleSettingsStack() {
+  return (
+    <Stack.Navigator screenOptions={useStackOptions()}>
+      <Stack.Screen name="SettingsHome" component={screen(SettingsScreen)} />
+      <Stack.Screen name="EditProfile" component={screen(EditProfileScreen)} />
+      <Stack.Screen name="Preferences" component={screen(PreferencesScreen)} />
+      <Stack.Screen name="Help" component={screen(HelpScreen)} />
+      <Stack.Screen name="About" component={screen(AboutScreen)} />
+    </Stack.Navigator>
+  );
+}
+
+/** DIT-16 / KIT / DEL: Dashboard, Orders, Menu and Settings only; no Staff tab. */
+function RoleTabs() {
+  const { colors } = useAdmin();
+  return (
+    <PhoneFrame>
+      <Tab.Navigator
+        tabBar={(props) => <AdminTabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.page } }}
+      >
+        <Tab.Screen name="Dashboard" component={RoleDashboardStack} />
+        <Tab.Screen name="Orders" component={OrdersStack} />
+        <Tab.Screen name="Menu" component={MenuStack} />
+        <Tab.Screen name="Settings" component={RoleSettingsStack} />
+      </Tab.Navigator>
+    </PhoneFrame>
+  );
+}
+
 function StaffStack() {
   const { ready, session, colors } = useAdmin();
   if (!ready) {
@@ -123,7 +171,7 @@ function StaffStack() {
       </PhoneFrame>
     );
   }
-  const initial = session ? (session.role === 'admin' ? 'AdminApp' : 'RoleHome') : 'RoleSelect';
+  const initial = session ? homeRouteFor(session.role) : 'RoleSelect';
   return (
     <Stack.Navigator initialRouteName={initial} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.page } }}>
       <Stack.Screen name="RoleSelect" component={screen(RoleSelectScreen)} />
@@ -133,7 +181,10 @@ function StaffStack() {
       <Stack.Screen name="ResetPassword" component={screen(ResetPasswordScreen)} />
       <Stack.Screen name="SignInRequired" component={screen(SignInRequiredScreen)} />
       <Stack.Screen name="AdminApp" component={AdminTabs} />
+      <Stack.Screen name="RoleApp" component={RoleTabs} />
       <Stack.Screen name="RoleHome" component={screen(RoleHomeScreen)} />
+      <Stack.Screen name="RemovalRequests" component={screen(RemovalRequestsScreen)} />
+      <Stack.Screen name="RemovalRequest" component={screen(RemovalRequestScreen)} />
       <Stack.Screen name="OrderDetail" component={screen(OrderDetailScreen)} />
       <Stack.Screen name="CustomerDetail" component={screen(CustomerDetailScreen)} />
       <Stack.Screen name="StaffNotifications" component={screen(StaffNotificationsScreen)} />

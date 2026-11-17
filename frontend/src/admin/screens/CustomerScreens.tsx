@@ -41,6 +41,7 @@ export function CustomersScreen({ navigation }: ScreenProps) {
   return (
     <View style={styles.flex}>
       <GreenHeader title={actor.role === 'dietitian' ? 'Customer Preferences' : t('customers')} onBack={() => navigation.goBack()} />
+      {actor.role === 'dietitian' ? <Text style={[styles.choose, { color: colors.muted }]}>Choose a customer</Text> : null}
       <SearchBox value={query} onChange={setQuery} placeholder="Search customers..." />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
         {rows.length === 0 ? <EmptyState title="No customers found" /> : rows.map((customer) => {
@@ -163,6 +164,7 @@ export function CustomerDetailScreen({ navigation, route }: ScreenProps<{ id?: s
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  choose: { marginHorizontal: 16, marginTop: 14, fontWeight: '600' },
   body: { padding: 16, gap: 16, paddingBottom: 40 },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },

@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   brand: { borderRadius: 18, alignItems: 'center', paddingVertical: 18, gap: 2, marginTop: 8 },
   backdrop: { flex: 1, backgroundColor: 'rgba(16, 22, 18, 0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   modal: { width: '100%', maxWidth: 360, borderRadius: 20, padding: 20, gap: 12 },
-  reason: { borderWidth: 1, borderRadius: 12, minHeight: 96, padding: 12, textAlignVertical: 'top', fontSize: 15 },
+  reason: { borderWidth: 1, borderRadius: 12, minHeight: 96, padding: 12, textAlignVertical: 'top', fontSize: 15 , outlineWidth: 0 } as object,
   cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 12, padding: 32 },
 });

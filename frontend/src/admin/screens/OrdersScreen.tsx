@@ -30,6 +30,7 @@ import type { Actor, AdminOrder } from '../types';
 import { ConfirmCard, FlashBanner, GreenHeader, PhoneFrame, PrimaryButton, useStoreRevision } from '../components.js';
 import { Card, EmptyState, OrderPhoto, Pill, PreferencesPanel, SearchBox, Section } from '../ui/blocks.js';
 import { Text } from '../ui/StaffText.js';
+import { ReviewPanel } from './DietitianScreens.js';
 
 export function useActor(): Actor | null {
   const { session } = useAdmin();
@@ -215,6 +216,8 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
             ) : null}
           </Card>
         </Section>
+
+        <ReviewPanel order={order} />
 
         <Section title="Customer Preferences">
           <Card>

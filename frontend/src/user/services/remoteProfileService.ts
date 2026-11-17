@@ -140,18 +140,47 @@ async function replaceHealthItems(
   return { ok: true };
 }
 
+/** Splits a health-condition edit into rows to add and conditions whose removal needs a Dietitian (DIT-17). */
+export function planHealthChange(current: string[], next: string[]) {
+  const key = (value: string) => value.trim().toLowerCase();
+  const before = new Set(current.map(key));
+  const after = new Set(next.map(key));
+  return {
+    add: next.filter((value) => !before.has(key(value))),
+    remove: current.filter((value) => !after.has(key(value))),
+  };
+}
+
+export function removalRequestedMessage(conditions: string[]) {
+  return `Removing ${conditions.join(', ')} needs Dietitian approval. Your request was sent; the condition stays until it is approved.`;
+}
+
 export async function saveRemoteHealth(userId: string, conditions: string[] | null | undefined): Promise<ServiceResult> {
   const gate = await withClient();
   if (!gate.ok) return gate;
   const values = [...new Set((conditions || []).map((item) => String(item).trim()).filter(Boolean))];
-  const result = await replaceHealthItems(
-    gate.client,
-    gate.token,
-    userId,
-    'condition',
-    values.map((value) => ({ client_id: userId, item_type: 'condition', value })),
-  );
-  return result.ok ? { ok: true, message: MSG.healthSaved } : result;
+  const existing = await gate.client
+    .from('client_health_items')
+    .select('value')
+    .eq('client_id', userId)
+    .eq('item_type', 'condition')
+    .setHeader('Authorization', `Bearer ${gate.token}`);
+  if (existing.error) return failed(existing.error);
+  const plan = planHealthChange(((existing.data as { value: string }[] | null) || []).map((row) => row.value), values);
+  if (plan.add.length) {
+    const inserted = await gate.client
+      .from('client_health_items')
+      .insert(plan.add.map((value) => ({ client_id: userId, item_type: 'condition', value })))
+      .setHeader('Authorization', `Bearer ${gate.token}`);
+    if (inserted.error) return failed(inserted.error);
+  }
+  for (const condition of plan.remove) {
+    const requested = await gate.client
+      .rpc('request_health_condition_removal', { p_condition: condition, p_reason: null })
+      .setHeader('Authorization', `Bearer ${gate.token}`);
+    if (requested.error) return failed(requested.error);
+  }
+  return { ok: true, message: plan.remove.length ? removalRequestedMessage(plan.remove) : MSG.healthSaved };
 }
 
 export async function saveRemoteDiet(userId: string, restrictions: string[] | null | undefined): Promise<ServiceResult> {
