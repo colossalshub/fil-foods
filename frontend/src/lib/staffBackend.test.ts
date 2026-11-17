@@ -47,3 +47,13 @@ test('maps customers, removal requests, audit rows and errors', () => {
   assert.equal(staffRoleFromDb('kitchen_staff'), 'kitchen');
   assert.equal(staffRoleFromDb('client'), null);
 });
+
+test('a project without the staff migrations reports it instead of showing sample data', async () => {
+  const { backendMessage, isServerOutdated, SERVER_OUTDATED, STAFF_FUNCTION_MISSING } = await import('./staffBackend.js');
+  const missing = { code: 'PGRST202', message: 'Could not find the function public.staff_orders without parameters in the schema cache' };
+  assert.equal(isServerOutdated(missing), true);
+  assert.equal(backendMessage(missing), SERVER_OUTDATED);
+  assert.equal(backendMessage({ code: 'PGRST205', message: "Could not find the table 'public.staff_notifications' in the schema cache" }), SERVER_OUTDATED);
+  assert.equal(backendMessage('Requested function was not found'), STAFF_FUNCTION_MISSING);
+  assert.equal(isServerOutdated({ message: 'not_authorized' }), false);
+});

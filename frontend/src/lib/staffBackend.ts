@@ -55,8 +55,19 @@ const MESSAGES: Record<string, string> = {
   customer_not_found: 'This customer is no longer available.',
 };
 
-export function backendMessage(error: { message?: string } | string | null | undefined, reasonContext: 'order' | 'removal' = 'order') {
+/** Shown when the linked project has not received the staff migrations / Edge Function yet. */
+export const SERVER_OUTDATED = 'Live staff data is not available yet: the server is missing the staff database update (migration 20261117100000_staff_modules and later). Ask the admin to apply it, then pull to refresh.';
+export const STAFF_FUNCTION_MISSING = 'Staff management is not installed on the server yet (Edge Function admin-staff). Ask the admin to deploy it.';
+
+export function isServerOutdated(error: { message?: string; code?: string } | string | null | undefined) {
+  const raw = typeof error === 'string' ? error : `${error?.code ?? ''} ${error?.message ?? ''}`;
+  return /PGRST202|PGRST205|Could not find the (function|table)|schema cache/i.test(raw);
+}
+
+export function backendMessage(error: { message?: string; code?: string } | string | null | undefined, reasonContext: 'order' | 'removal' = 'order') {
+  if (isServerOutdated(error)) return SERVER_OUTDATED;
   const raw = typeof error === 'string' ? error : error?.message || '';
+  if (/Requested function was not found|NOT_FOUND|FunctionsHttpError.*404/i.test(raw)) return STAFF_FUNCTION_MISSING;
   if (raw.includes('reason_required')) {
     return reasonContext === 'removal'
       ? 'Please enter a reason for rejecting this request.'
@@ -481,6 +492,7 @@ export async function manageStaff(body: Json): Promise<Result<Json>> {
     });
     if (error) {
       const context = (error as { context?: Response }).context;
+      if (context?.status === 404) return { ok: false, message: STAFF_FUNCTION_MISSING };
       let message = error.message;
       if (context && typeof context.json === 'function') {
         try {

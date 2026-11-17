@@ -52,6 +52,8 @@ export const COPY = {
   notSelectable: 'Not selectable for new orders.',
   menuDeleted: 'Menu item deleted successfully',
   menuDeleteWarning: 'Warning: this item will no longer be available for new orders.',
+  demoMode: 'Demo mode: sample data (Supabase is not configured).',
+  googleStaffUnavailable: 'Google sign-in for staff is not available yet. Log in with your work email and password.',
   menuAdded: 'Menu item added successfully',
   menuUpdated: 'Menu item updated successfully',
   notificationsSaved: 'Notification settings saved.',

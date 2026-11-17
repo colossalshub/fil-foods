@@ -5,7 +5,7 @@ import { markAllNoticesRead, markNoticeRead, noticesFor } from '../data/store.js
 import { formatWhen } from '../domain/format.js';
 import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
-import { GreenHeader, PhoneFrame, PrimaryButton, useStoreRevision } from '../components.js';
+import { GreenHeader, PhoneFrame, PrimaryButton, SyncBanner, useStoreRevision } from '../components.js';
 import { Text } from '../ui/StaffText.js';
 
 /** ADM-05 / DIT-05 / KIT-05 / DEL-05: the bell inbox, only items this role may open. */
@@ -26,6 +26,7 @@ export function NotificationsScreen({ navigation }: ScreenProps) {
           </Pressable>
         ) : undefined}
       />
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}><SyncBanner /></View>
       {notices.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="notifications-off-outline" size={40} color={colors.muted} />

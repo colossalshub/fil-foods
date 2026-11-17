@@ -27,7 +27,7 @@ import {
 import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
 import type { Actor, AdminOrder } from '../types';
-import { ConfirmCard, FlashBanner, GreenHeader, PhoneFrame, PrimaryButton, useStoreRevision } from '../components.js';
+import { ConfirmCard, FlashBanner, GreenHeader, PhoneFrame, PrimaryButton, SyncBanner, useStoreRevision } from '../components.js';
 import { Card, EmptyState, OrderPhoto, Pill, PreferencesPanel, SearchBox, Section } from '../ui/blocks.js';
 import { Text } from '../ui/StaffText.js';
 import { ReviewPanel } from './DietitianScreens.js';
@@ -125,6 +125,7 @@ export function OrdersScreen({ navigation }: ScreenProps) {
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={refresh.enabled ? <RefreshControl refreshing={refresh.refreshing} onRefresh={refresh.onRefresh} /> : undefined}
       >
+        <View style={{ paddingHorizontal: 16 }}><SyncBanner /></View>
         {rows.length === 0 ? (
           <EmptyState
             title={COPY.noOrders}

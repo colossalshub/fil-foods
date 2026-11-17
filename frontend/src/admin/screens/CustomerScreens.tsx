@@ -9,7 +9,7 @@ import { can, nutritionTiles } from '../domain/roleAccess.js';
 import { searchOrdersWhere } from '../domain/search.js';
 import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
-import { GreenHeader, PhoneFrame, useStoreRevision } from '../components.js';
+import { GreenHeader, PhoneFrame, SyncBanner, useStoreRevision } from '../components.js';
 import { Card, Chip, EmptyState, Pill, SearchBox, Section } from '../ui/blocks.js';
 import { Text } from '../ui/StaffText.js';
 import { useActor } from './OrdersScreen.js';
@@ -44,6 +44,7 @@ export function CustomersScreen({ navigation }: ScreenProps) {
       {actor.role === 'dietitian' ? <Text style={[styles.choose, { color: colors.muted }]}>Choose a customer</Text> : null}
       <SearchBox value={query} onChange={setQuery} placeholder="Search customers..." />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
+        <SyncBanner />
         {rows.length === 0 ? <EmptyState title="No customers found" /> : rows.map((customer) => {
           const allergies = customer.dietary?.allergies.map((item) => item.value) ?? customer.allergies;
           return (

@@ -137,8 +137,9 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
     }
     await signIn(account, remember, backend);
     if (backend) {
-      const sync = await syncStaffData({ id: account.id, name: account.name, email: account.email, role: account.role });
-      showFlash(!sync.ok && 'message' in sync && sync.message ? sync.message : COPY.loggedIn);
+      // Any read failure stays visible as the SyncBanner on each screen.
+      await syncStaffData({ id: account.id, name: account.name, email: account.email, role: account.role });
+      showFlash(COPY.loggedIn);
     } else {
       showFlash(COPY.loggedIn);
     }
@@ -185,6 +186,11 @@ export function StaffLoginScreen({ navigation, route }: ScreenProps<{ role?: Sta
 
   const onGoogle = async (address: string) => {
     setGoogleOpen(false);
+    if (isSupabaseConfigured) {
+      // Staff Google sign-in only exists in the offline demo; never open sample data on a live project.
+      setFormError(COPY.googleStaffUnavailable);
+      return;
+    }
     const result = loginWithGoogle(address, role);
     if (!result.ok) {
       setAuthError({ title: result.title, detail: result.detail });

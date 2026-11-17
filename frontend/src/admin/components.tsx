@@ -4,7 +4,7 @@ import { Text, TextInput } from './ui/StaffText.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COPY } from './copy.js';
-import { subscribeAdmin } from './data/store.js';
+import { backendSyncError, isDemoMode, subscribeAdmin, syncStaffDataFromBackend } from './data/store.js';
 import { useAdmin } from './context.js';
 import { adminListStatusLabel } from './domain/orderDisplay.js';
 import type { OrderStatus } from './types';
@@ -22,22 +22,62 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
 
 export function FlashBanner() {
   const { flash, clearFlash, colors } = useAdmin();
-  if (!flash) return null;
   const success = flash === COPY.loggedIn;
   return (
-    <Pressable
-      onPress={clearFlash}
-      accessibilityRole="button"
-      style={[
-        styles.banner,
-        success
-          ? { backgroundColor: colors.mint, borderWidth: 1, borderColor: '#B8DFC3', flexDirection: 'row', alignItems: 'center', gap: 8 }
-          : { backgroundColor: colors.green },
-      ]}
-    >
-      {success ? <Ionicons name="checkmark-circle" size={20} color={colors.primary} /> : null}
-      <Text style={[styles.bannerText, success && { color: colors.primary, flex: 1, textAlign: 'left' }]}>{flash}</Text>
-    </Pressable>
+    <>
+      {flash ? (
+        <Pressable
+          onPress={clearFlash}
+          accessibilityRole="button"
+          style={[
+            styles.banner,
+            success
+              ? { backgroundColor: colors.mint, borderWidth: 1, borderColor: '#B8DFC3', flexDirection: 'row', alignItems: 'center', gap: 8 }
+              : { backgroundColor: colors.green },
+          ]}
+        >
+          {success ? <Ionicons name="checkmark-circle" size={20} color={colors.primary} /> : null}
+          <Text style={[styles.bannerText, success && { color: colors.primary, flex: 1, textAlign: 'left' }]}>{flash}</Text>
+        </Pressable>
+      ) : null}
+      <SyncBanner />
+    </>
+  );
+}
+
+/** Live-data status: an error card with Try again when Supabase reads fail, or a Demo label offline. */
+export function SyncBanner() {
+  const { session, colors } = useAdmin();
+  const [busy, setBusy] = useState(false);
+  if (!session) return null;
+  if (isDemoMode()) {
+    return (
+      <View style={[styles.demo, { borderColor: colors.border, backgroundColor: colors.card }]} accessibilityRole="text">
+        <Ionicons name="flask-outline" size={16} color={colors.muted} />
+        <Text style={{ color: colors.muted, fontSize: 12, flex: 1 }}>{COPY.demoMode}</Text>
+      </View>
+    );
+  }
+  const error = backendSyncError();
+  if (!error) return null;
+  return (
+    <View style={styles.syncError} accessibilityRole="alert">
+      <Ionicons name="cloud-offline-outline" size={20} color="#9B2C2C" />
+      <View style={{ flex: 1, gap: 6 }}>
+        <Text style={{ color: '#7A1F1F', fontSize: 13 }}>{error}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={async () => {
+            setBusy(true);
+            await syncStaffDataFromBackend();
+            setBusy(false);
+          }}
+        >
+          <Text style={{ color: '#7A1F1F', fontWeight: '700', fontSize: 13 }}>{busy ? 'Loading…' : 'Try again'}</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -306,6 +346,8 @@ export function AdminListStatusBadge({ status }: { status: OrderStatus }) {
 }
 
 const styles = StyleSheet.create({
+  syncError: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 14, backgroundColor: '#FDECEC', borderWidth: 1, borderColor: '#F3C1C1', marginBottom: 10 },
+  demo: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, marginBottom: 8, alignSelf: 'flex-start' },
   outer: { flex: 1, backgroundColor: '#1E2A22', alignItems: 'center' },
   inner: { flex: 1, width: '100%', maxWidth: 430 },
   banner: { marginTop: 4, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14 },

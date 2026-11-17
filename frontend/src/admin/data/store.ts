@@ -126,6 +126,8 @@ let seq = 100;
 let db = undefined as unknown as AdminDb;
 let backendSynced = false;
 let backendViewer: Actor | null = null;
+// Why the last Supabase sync failed (shown on staff screens instead of sample rows).
+let backendError: string | null = null;
 const listeners = new Set<() => void>();
 const BACKEND_ORDER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -694,6 +696,9 @@ export function backendActive() {
 export function endBackendSession() {
   backendViewer = null;
   backendSynced = false;
+  backendError = null;
+  db = build();
+  touch();
 }
 
 function recordFromPublic(person: StaffPublic): StaffRecord {
@@ -714,21 +719,51 @@ function recordFromPublic(person: StaffPublic): StaffRecord {
 }
 
 /** Loads everything the signed-in role may see from Supabase into the cache. */
+/** Demo data is only used when Supabase is not configured (explicit offline demo). */
+export function isDemoMode() {
+  return !isSupabaseConfigured;
+}
+
+export function backendSyncError() {
+  return backendError;
+}
+
+/** Drops every sample row so a Supabase session never shows made-up data. */
+function clearSampleData(actor: Actor) {
+  db.orders = [];
+  db.customers = [];
+  db.menu = [];
+  db.notices = [];
+  db.removalRequests = [];
+  db.auditLog = [];
+  db.remoteAudit = [];
+  db.support = [];
+  db.staff = [recordFromPublic({
+    id: actor.id, name: actor.name, email: actor.email, role: actor.role,
+    disabled: false, sessionVersion: 1, preferences: { ...DEFAULT_PREFS },
+  })];
+}
+
 export async function syncStaffData(actor: Actor) {
   if (!isSupabaseConfigured) return { ok: true as const, skipped: true as const };
+  if (!backendViewer || backendViewer.id !== actor.id || !backendSynced) clearSampleData(actor);
   backendViewer = actor;
+  backendSynced = true;
+  const errors: string[] = [];
+  const keep = <T,>(result: { ok: true; value: T } | { ok: false; message: string }, apply: (value: T) => void) => {
+    if (result.ok) apply(result.value);
+    else errors.push(result.message);
+  };
   const [orders, menu, notices] = await Promise.all([
     remote.fetchStaffOrders(),
     remote.fetchMenu(),
     remote.fetchStaffNotices(actor.role, actor.id),
   ]);
-  if (!orders.ok) return { ok: false as const, message: orders.message };
-  db.orders = orders.value;
-  if (menu.ok) db.menu = menu.value;
-  if (notices.ok) db.notices = notices.value;
+  keep(orders, (value) => { db.orders = value; });
+  keep(menu, (value) => { db.menu = value; });
+  keep(notices, (value) => { db.notices = value; });
   if (actor.role === 'admin' || actor.role === 'dietitian') {
-    const customers = await remote.fetchStaffCustomers();
-    if (customers.ok) db.customers = customers.value;
+    keep(await remote.fetchStaffCustomers(), (value) => { db.customers = value; });
   } else {
     db.customers = [];
   }
@@ -742,8 +777,8 @@ export async function syncStaffData(actor: Actor) {
       const self = staff.value.some((row) => row.id === actor.id);
       const people = self ? staff.value : [...staff.value, { id: actor.id, name: actor.name, email: actor.email, role: actor.role, disabled: false, sessionVersion: 1, preferences: { ...DEFAULT_PREFS } }];
       db.staff = people.map(recordFromPublic);
-    }
-    if (audit.ok) db.remoteAudit = audit.value;
+    } else errors.push(staff.message);
+    keep(audit, (value) => { db.remoteAudit = value; });
     if (settings.ok && settings.value) {
       db.settings = {
         kitchen: settings.value.kitchen ?? db.settings.kitchen,
@@ -752,12 +787,12 @@ export async function syncStaffData(actor: Actor) {
     }
   }
   if (actor.role === 'dietitian') {
-    const requests = await remote.fetchRemovalRequests(null);
-    if (requests.ok) db.removalRequests = requests.value;
+    keep(await remote.fetchRemovalRequests(null), (value) => { db.removalRequests = value; });
   }
-  backendSynced = true;
+  const outdated = errors.find((message) => message === remote.SERVER_OUTDATED);
+  backendError = outdated ?? errors[0] ?? null;
   touch();
-  return { ok: true as const };
+  return backendError ? { ok: false as const, message: backendError } : { ok: true as const };
 }
 
 /** Fetches the role-shaped detail (dietary info, address, history) for one order. */

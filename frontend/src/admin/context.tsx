@@ -94,6 +94,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
             if (!cancelled) setReady(true);
             return;
           }
+          // A demo (sample-data) session is never restored once Supabase is configured.
+          if (isSupabaseConfigured) {
+            await AsyncStorage.removeItem(KEY);
+            if (!cancelled) setReady(true);
+            return;
+          }
           const account = findPublic(saved.accountId);
           if (account && account.sessionVersion === saved.sessionVersion) {
             const restored = await storedPrefs(account.id, account.preferences);
