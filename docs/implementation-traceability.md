@@ -12,7 +12,7 @@ The User sheet of the revised workbook changes these stories (canonical export r
 
 | Story | Change | State |
 |---|---|---|
-| USR-15, USR-43, USR-50 | "Register" is now "Sign Up" | Pending |
+| USR-15, USR-43, USR-50 | "Register" is now "Sign Up" | Done (button, terms error and code all say Sign Up; "Registered for: …" labels are spec wording) |
 | USR-11, USR-12, USR-35, USR-39 | Meals with a recorded allergen are disabled and blocked, with an explanation — not listed last with a warning | Pending |
 | USR-21, USR-22, USR-23, USR-49, USR-50 | Order reference `ORD-YYYY-NNNN`; delivery tracking number `TRK-YYYY-NNNN` shown separately | Pending |
 | USR-20, USR-21, USR-23 | "Returned for Changes": the user edits and resubmits after a double confirmation; the order goes back to the Dietitian | Pending |
@@ -189,7 +189,7 @@ Not added: the "Suggest a day of meals" solver panel. No story asks for calorie/
 
 1. **Landing after login.** USR-02 no. 4 "redirect the user to the meal menu" vs USR-28 "When the Home screen opens" (first-login guide) and USR-50 H "continue to the Home screen". Implemented: menu after login, Home after accepting new terms; the guide is a global overlay so it shows either way.
 2. **When family details are asked.** USR-01 C asks for the meal recipient right after the account is created; USR-43 B / USR-44 no. 1 say after the account is verified.
-3. **Button label.** USR-01 "Sign Up" vs USR-15/USR-50 "Register".
+3. **Button label.** Resolved in the revised workbook (2026-11-19): "Sign Up" everywhere.
 4. **Order status names.** USR-23 lists For Dietitian Review, Awaiting Payment, Paid, Preparing, Ready for Pickup, Out for Delivery, Completed, Cancelled; USR-47 uses "Pending … Ready for pickup, Out for delivery" and "delivered"; Figma USR 21 shows "Delivered". The staff/DB side also uses "Ready for Delivery" and "Confirmed".
 5. **Quantity.** USR-26 help sample "2. Set quantity" vs USR-18 one meal per meal time (there is no quantity). Kept the sample text.
 6. **Meal data.** USR-16 lists meat choices (Beef, Pork, Chicken, Fish) and vegetable choices; USR-12/USR-46 samples use named dishes (Chicken Tinola, Grilled Bangus, Ampalaya Stir-fry, "Chicken Satay" vs "Chicken Satay with Peanut Sauce"). Figma USR 16 vegetables are Pinakbet, Chopsuey, Sautéed Green Beans, Steamed Pechay; USR-18 says steamed, stir-fried, Pinakbet; Figma USR 2 says "Pakbet"; Figma breads add "Pan de Coco".

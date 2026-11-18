@@ -979,7 +979,7 @@ export async function reviewOrderAsync(actor: Actor, orderId: string, approve: b
     order.reviewReason = approve ? (note || null) : note;
     const from = order.status;
     order.status = target;
-    order.updates.push({ at: new Date().toISOString(), by: actor.name, summary: approve ? 'Approved by the Dietitian' : `Returned: ${note}` });
+    order.updates.push({ at: new Date().toISOString(), by: actor.name, summary: approve ? 'Approved by the Dietitian' : `Returned for Changes: ${note}` });
     auditChange(actor, 'order.review', order.id, {
       summary: approve ? 'Dietitian approved an order' : 'Dietitian returned an order',
       targetLabel: `Order ${orderLabel(order)}`,
@@ -990,7 +990,7 @@ export async function reviewOrderAsync(actor: Actor, orderId: string, approve: b
     if (customer) customer.history = historyFor(db.orders, customer.id);
     touch();
   }
-  return { ok: true as const, message: approve ? 'Order approved. The customer can now pay.' : 'Order returned to the customer.' };
+  return { ok: true as const, message: approve ? 'Order approved. The customer can now pay.' : 'Order Returned for Changes. The customer has been notified.' };
 }
 
 export function removalRequests(status: 'pending' | 'decided' | 'all' = 'pending') {

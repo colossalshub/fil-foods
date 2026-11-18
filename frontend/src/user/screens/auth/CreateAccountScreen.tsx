@@ -47,7 +47,7 @@ export default function CreateAccountScreen({ navigation }: {
 
   const set = (key: keyof typeof EMPTY) => (value: string) => setForm((current) => ({ ...current, [key]: value }));
 
-  const onRegister = async () => {
+  const onSignUp = async () => {
     if (!accountFor) return;
     setLoading(true);
     try {
@@ -221,7 +221,7 @@ export default function CreateAccountScreen({ navigation }: {
                 </Pressable>
                 {fields.terms ? <Text style={styles.fieldError}>{fields.terms}</Text> : null}
 
-                <AppButton title="Sign Up" onPress={onRegister} loading={loading} disabled={!termsReady} color={colors.action} style={styles.action} />
+                <AppButton title="Sign Up" onPress={onSignUp} loading={loading} disabled={!termsReady} color={colors.action} style={styles.action} />
                 <GoogleSignIn
                   accountFor={accountFor || undefined}
                   color={colors.primary}

@@ -258,7 +258,7 @@ export function ReviewPanel({ order }: { order: AdminOrder }) {
     return (
       <Section title="Dietitian review">
         <Card>
-          <Text style={{ color: colors.text, fontWeight: '600' }}>{decided === 'approved' ? 'Approved' : 'Returned for changes'}</Text>
+          <Text style={{ color: colors.text, fontWeight: '600' }}>{decided === 'approved' ? 'Approved' : 'Returned for Changes'}</Text>
           {order.reviewReason ? <Text style={{ color: colors.muted }}>Reason: {order.reviewReason}</Text> : null}
         </Card>
       </Section>
