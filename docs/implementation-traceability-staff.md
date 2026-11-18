@@ -10,6 +10,25 @@ Cross-module map: [`docs/specs/meal-service-modules.md`](./specs/meal-service-mo
 
 Status values: **Done** — workflow implemented in the staff app and enforced by Supabase (RLS/RPC), covered by unit tests (`npm test`) and/or `supabase/tests/staff_workflow.test.sql`; **Missing** — no usable implementation for the core workflow; **Partial** — some UI or local prototype exists but at least one acceptance criterion is unmet or lacks verification; **Blocked** — cannot satisfy without backend, provider, or cross-app integration called out below.
 
+## Revised workbook (2026-11-19)
+
+The module workbook was revised on 2026-11-19 (canonical exports refreshed from it). Changes that touch the staff app, and their state:
+
+| Story | Change in the revised workbook | State |
+|---|---|---|
+| KIT-15, ADM-18, ADM-17 | Admin owns menu details (add/edit/delete); Kitchen only sets availability and Admin is notified; Admin views availability | Pending |
+| DEL-14, DEL-10 | DEL-14 removed: Delivery has no menu; Dashboard shows no menu card | Pending |
+| ADM-11, KIT-11, DEL-11, DEL-17 | Shared order reference `ORD-YYYY-NNNN`; `TRK-YYYY-NNNN` is the separate delivery tracking number | Pending |
+| KIT-11, KIT-12, postcondition | Kitchen sees only orders with confirmed payment (owner decision: COD orders are an exception) | Pending |
+| DEL-11, DEL-17 | Delivery sees only Ready for Pickup orders assigned to them | Pending |
+| DIT-15 | A returned order uses the status "Returned for Changes" and comes back for approval after the user resubmits | Pending |
+| DIT-17 | Removed from the workbook. **Kept as an extra beyond spec** (owner decision 2026-11-19) | Beyond spec |
+| ADM-20 | AC 1 (which named DIT-17) removed; the audit log still records condition-removal decisions as part of the extra | Beyond spec |
+| ADM-19, DIT-12, KIT-12, KIT-14, DEL-12, DEL-13 | Sodium is calculated per meal from ingredient sodium and compared with the recipient's limit (owner decision: default limit 400 mg per meal) | Not started (large) |
+| ADM-17, KIT-15 | Five food items per day, grouped by Breakfast, Lunch and Dinner | Not started (large) |
+
+Inconsistencies inside the revised workbook (recorded, not reinterpreted): DEL-02 still lists a Menu tab and KIT-10 still shows "Menu Management … Manage your menu items" with Edit buttons; KIT-11/DEL-11 samples list Pending, Cancelled and Delivered orders although only paid / assigned Ready for Pickup orders may appear; search samples still find `ORD-2026-0002` by typing "350"; KIT-11 and DEL-11 each have two "AC 1." lines; ADM-20 now starts at AC 2.
+
 ## Shared staff implementation surface
 
 | Surface | Location | Notes |
@@ -52,7 +71,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | ADM-20 | Done | Audit log from `admin_audit_log` (append-only `audit_events`); covers staff, menu, order status/assignment/review, notification settings and DIT-17 decisions. |
 | ADM-21 | Done | Staff notifications screen for Kitchen/Delivery types via `save_staff_notification_settings` (admin-only, audited); all OFF ⇒ role disabled; delivery and kitchen inboxes honour it. |
 
-### Dietitian Module (DIT-01–DIT-17)
+### Dietitian Module (DIT-01–DIT-16, plus DIT-17 beyond spec)
 
 | Story | Status | Evidence / gaps |
 |---|---|---|
@@ -72,7 +91,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | DIT-14 | Done | Shared `MenuScreen` is view-only for the Dietitian (no add/edit/delete/availability); tapping an item shows the read-only review with "Use verified data before recommending." Server blocks writes (`meals_staff_write` RLS excludes the Dietitian). |
 | DIT-15 | Done | `ReviewPanel` on Order Details: order review details (meals, customizations, allergies, conditions, doctor restrictions), Approve (→ Awaiting Payment) and Return for changes with a required reason (`dietitian_review_order` RPC, recorded in audit). |
 | DIT-16 | Done | No Staff tab or sales cards; direct links to staff-only screens show "You do not have access to this page."; RLS/RPCs reject other roles. |
-| DIT-17 | Done | Condition Removal Requests list (pending oldest first / decided), request detail with recipient context, Approve / Reject with reason, "already decided" guard. User profile edits now file a request instead of deleting the condition; DB trigger `guard_health_condition_removal` blocks direct client deletes. |
+| DIT-17 | Done (beyond spec) | Condition Removal Requests list (pending oldest first / decided), request detail with recipient context, Approve / Reject with reason, "already decided" guard. User profile edits now file a request instead of deleting the condition; DB trigger `guard_health_condition_removal` blocks direct client deletes. |
 
 ### Kitchen Module (KIT-01–KIT-15)
 
@@ -111,7 +130,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | DEL-11 | Done | Orders list limited to delivery orders assigned to this person; first name, Order ID, date and "Ready for Pickup" / "Out for Delivery" badges; same fuzzy search rules as Kitchen. |
 | DEL-12 | Done | Order Details without prices, last name, email or payment; allergies and preferences shown before the delivery actions; no Start Preparing. |
 | DEL-13 | Done | Customer Details: initial, first name, email, allergies, levels; no history or address. |
-| DEL-14 | Done | Shared manageable `MenuScreen` (add, edit, delete, availability) with the kitchen/delivery confirmation copy. |
+| DEL-14 | Removed (revised workbook) — pending removal | Shared manageable `MenuScreen` (add, edit, delete, availability) with the kitchen/delivery confirmation copy. |
 | DEL-15 | Done | "Delivery Address" card (first name, contact number, full address, notes) for Admin and the assigned Delivery Staff only; server `staff_order_detail` strips it for other roles. |
 | DEL-16 | Partial | No in-app map library yet: shows "Location not available" with the address text, an "Open in Maps" button (device maps navigation) and Call. |
 | DEL-17 | Done | "Collect order & start delivery" (Ready for Delivery → Out for Delivery) and "Mark Completed" with confirmations, only on assigned orders; status history records date and time and is visible to Admin and the user tracking screen. |

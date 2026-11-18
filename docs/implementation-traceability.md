@@ -6,6 +6,23 @@ Staff modules (Admin, Dietitian, Kitchen, Delivery) are indexed in [`docs/specs/
 
 The User 5 PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
 
+## Revised workbook (2026-11-19)
+
+The User sheet of the revised workbook changes these stories (canonical export refreshed):
+
+| Story | Change | State |
+|---|---|---|
+| USR-15, USR-43, USR-50 | "Register" is now "Sign Up" | Pending |
+| USR-11, USR-12, USR-35, USR-39 | Meals with a recorded allergen are disabled and blocked, with an explanation — not listed last with a warning | Pending |
+| USR-21, USR-22, USR-23, USR-49, USR-50 | Order reference `ORD-YYYY-NNNN`; delivery tracking number `TRK-YYYY-NNNN` shown separately | Pending |
+| USR-20, USR-21, USR-23 | "Returned for Changes": the user edits and resubmits after a double confirmation; the order goes back to the Dietitian | Pending |
+| USR-20 (payments) | GCash, Maya, COD, separate payment status, failed/cancelled/retry, transaction reference. Owner decision: COD orders may reach the Kitchen unpaid | Not started (large; payment not launching yet) |
+| USR-20 (plans) | Plans include up to three meals per day with a different choice each day | Not started |
+| USR-13 | Sodium calculated from ingredient sodium against the recipient's limit (default 400 mg per meal) | Not started (large) |
+| USR-16, USR-18 | Five food items per day; max three meals per day; editing a selection is not an extra meal | Meal limit done; daily 5-item menu not started (large) |
+
+Inconsistencies inside the revised workbook: USR-21's status list has no Pending/Delivered/Paid while USR-23 lists "Paid" as a stage; USR-25/46/47 notification samples use "Order TRK-…" as the order reference; USR-21 numbering repeats AC 4 and 5; card payment is no longer listed but was not explicitly removed.
+
 ## Historical baseline audit
 
 The following baseline was audited on 2026-10-30 against the previous 42-story specification, before later implementation changes. It is historical evidence only, not current compliance verification against the supplied PDF.

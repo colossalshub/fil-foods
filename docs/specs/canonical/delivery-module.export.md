@@ -19,7 +19,7 @@ Then the system shall return to Select Your Role without losing the chosen role 
 						Passed	
 						Failed	
 						Total	
-DEL - 02	Authentication & Account Management	As a Delivery Staff member	log in with my work email and password	so that only authorised Delivery Staff staff can open the Delivery Staff and its information.	Given When Then	1. The system shall show the Log in screen with: email field (mail icon, placeholder "Email Address"), password field (lock icon, eye icon), the "Remember me" tick box, the "Forgot password?" link, a primary "Log In" button, an "or" divider and a "Continue with Google" button.	
+DEL - 02	Authentication & Account Management	As a Delivery Staff member	log in with my work email and password	so that only authorised Delivery Staff staff can open the Delivery Staff and its information.	Given When Then	"1. The system shall show the Log in screen with: email field (mail icon, placeholder ""Email Address""), password field (lock icon, eye icon), the ""Remember me"" tick box, the ""Forgot password?"" link, a primary ""Log In"" button, an ""or"" divider and a ""Continue with Google"" button."	
 					"A. Valid credentials
 
 Given the Delivery Staff is on the Delivery Staff Log in screen showing the F.I.L Foods logo, the title ""F.I.L Foods"", the label ""Delivery Staff"", the tagline and the footer ""F.I.L Foods © 2026""
@@ -29,7 +29,7 @@ And a green banner shall show ""Logged in successfully"" at the top of the Dashb
 And the bottom navigation shall show only: Dashboard, Orders, Menu and Settings, with Dashboard marked active
 
 Sample Data:
-Email: delivery@filfoods.ph. Password: ••••••••••."	2. The system shall validate that the email contains "@" and that both fields are filled before checking credentials.	
+Email: delivery@filfoods.ph. Password: ••••••••••."	"2. The system shall validate that the email contains ""@"" and that both fields are filled before checking credentials."	
 					"B. Wrong email format
 
 Given the Log in screen is open
@@ -39,7 +39,7 @@ And the email field shall get a red border and show ""Invalid email. Add an @ be
 And the password dots and the Remember me tick shall stay as entered
 
 Sample Data:
-Email: deliveryfilfoods.ph. Password: ••••••••••."	3. The system shall display the exact messages: "Invalid email. Add an @ before filfoods.ph and try again.", "Incorrect password. Try again or tap Forgot password?", "Email and password are required." and "Could not connect".	
+Email: deliveryfilfoods.ph. Password: ••••••••••."	"3. The system shall display the exact messages: ""Invalid email. Add an @ before filfoods.ph and try again."", ""Incorrect password. Try again or tap Forgot password?"", ""Email and password are required."" and ""Could not connect""."	
 					"C. Wrong password
 
 Given the Log in screen is open
@@ -48,14 +48,14 @@ Then the system shall show ""Incorrect password. Try again or tap Forgot passwor
 And no session shall be created
 
 Sample Data:
-Email: delivery@filfoods.ph. Password: wrong value."	4. The system shall open the Dashboard of the signed-in role only and show the "Logged in successfully" banner once.	
+Email: delivery@filfoods.ph. Password: wrong value."	"4. The system shall open the Dashboard of the signed-in role only and show the ""Logged in successfully"" banner once."	
 					"D. Blank fields
 
 Given the Log in screen is open with empty inputs (placeholders ""Email Address"" and ""Password"")
 When Log In is selected with both inputs empty
 Then the system shall stay on Log in and show the heading ""Please check your details""
 And the inputs shall show the prompts ""Enter your email"" and ""Enter your password""
-And the message ""Email and password are required."" shall be shown (outcome H03)"	5. The system shall show the role label "Delivery Staff" and not any other role's label on this screen (Figma Dietitian Log in currently reads "Admin Panel" and must read "Dietitian").	
+And the message ""Email and password are required."" shall be shown (outcome H03)"	"5. The system shall show the role label ""Delivery Staff"" and not any other role's label on this screen (Figma Dietitian Log in currently reads ""Admin Panel"" and must read ""Dietitian"")."	
 					"E. Show / hide password and Remember me
 
 Given the Log in screen is open
@@ -73,7 +73,7 @@ And the entered details shall be kept, no success message shall appear, and the 
 						Passed	
 						Failed	
 						Total	
-DEL - 03	Authentication & Account Management	As a Delivery Staff member	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	1. The system shall send a reset link only to an existing account but shall always show the neutral wording "If an account exists for this email…".	
+DEL - 03	Authentication & Account Management	As a Delivery Staff member	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	"1. The system shall send a reset link only to an existing account but shall always show the neutral wording ""If an account exists for this email…""."	
 					"A. Request a reset link
 
 Given the Log in screen is open
@@ -134,7 +134,7 @@ Given Google confirms the identity but the account has no Delivery Staff role
 When the account is continued
 Then the system shall show ""Account not authorized"" and ""This account is not allowed to access the selected role.""
 And it shall add ""No session has been created."" and ""Contact your administrator if you need access.""
-And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	3. The system shall show the Google "G" mark beside the label "Continue with Google".	
+And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	"3. The system shall show the Google ""G"" mark beside the label ""Continue with Google""."	
 						Passed	
 						Failed	
 						Total	
@@ -143,7 +143,7 @@ DEL - 05	Home & Navigation	As a Delivery Staff member	open my notifications from
 
 Given the Delivery Staff is on a screen whose header shows the bell icon
 When the bell is selected
-Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order #00350 is pending"" and ""Menu item updated"" followed by ""No more notifications""
+Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order ORD-2026-0002 is pending"" followed by ""No more notifications""
 And selecting an order notification shall open that order's detail screen for this role; Back returns to the source screen (S01)"	2. The system shall mark an item as read when opened without changing the order or menu data.	
 					"B. Empty inbox
 
@@ -207,7 +207,7 @@ When the message is empty
 Then the system shall show ""Please enter a message before sending."" (S14)
 
 Sample Data:
-Topic: Account access. Message: I need help with my account."	2. The brand name appears as "F.I.L Foods" in Figma screens and "filfoods Food" in some outcome screens; the final app shall use one name consistently.	
+Topic: Account access. Message: I need help with my account."	"2. The brand name appears as ""F.I.L Foods"" in Figma screens and ""filfoods Food"" in some outcome screens; the final app shall use one name consistently."	
 					"B. About
 
 Given About F.I.L Foods is selected
@@ -237,40 +237,43 @@ Then the system shall show ""Sign in required"" and ""Your session has ended. Lo
 						Passed	
 						Failed	
 						Total	
-DEL - 10	Dashboard	As a Delivery Staff member	see my Dashboard with shortcuts to Orders and Menu	so that I can start my shift quickly.	Given When Then	1. The system shall NOT show Total Orders, Total Sales, Total Customers, Sales Overview or Staff.	
+DEL - 10	Dashboard	As a Delivery Staff member	see my Dashboard with shortcuts to Orders and delivery tasks	so that I can start my shift quickly.	Given When Then	1. The system shall NOT show Total Orders, Total Sales, Total Customers, Sales Overview or Staff.	
 					"A. Dashboard
 
 Given the Delivery Staff has logged in
 When the Dashboard loads
 Then the header shall show ""Delivery Staff"" and ""Delivery Panel""
 And the greeting shall read ""Welcome back, Delivery Staff!"" and ""Here's what you can do today.""
-And a ""View Orders"" button and a ""Menu Management"" card with ""View All"" and ""Manage your menu items."" shall be shown
-And five items with Edit buttons: Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00"		
+And a ""View Orders"" button and delivery-task summary shall be shown. The Dashboard shall not show Menu Management, menu items or menu-editing controls."		
 						Passed	
 						Failed	
 						Total	
-DEL - 11	Orders	As a Delivery Staff member	see the orders list with only the food, the customer's first name and the Order ID	so that I can prepare food without seeing private details.	Given When Then	1. The Order ID shall be unique and shown as #00000.	
+DEL - 11	Orders	As a Delivery Staff member	see the orders list with only the food, the customer's first name and the Order ID	so that I can prepare food without seeing private details.	Given When Then	"1. The Order ID shall be unique and shown as ORD-YYYY-NNNN.
+
+1. The order reference shall use the shared format ORD-YYYY-NNNN. A separate delivery tracking number shall use TRK-YYYY-NNNN.
+
+2. Delivery Staff shall receive only orders marked Ready for Pickup and assigned to that staff member. Orders that are not ready or not assigned shall not appear in the active delivery queue."	
 					"A. Orders list
 
 Given the Delivery Staff selects Orders
 When the screen opens
 Then ""Orders"" with the search box ""Search orders..."" and filters All, Pending, Preparing, Delivered
-And rows show food image, FIRST NAME only, Order ID, date and status: Juan #00350 Oct 29, 2026 • 08:45 PM Pending; Maria #00349 08:30 PM Preparing; Carlos #00348 07:50 PM Delivered; Ana #00347 07:20 PM Cancelled; Mark #00346 06:55 PM Delivered
+And rows show food image, FIRST NAME only, Order ID, date and status: Juan ORD-2026-0002 Oct 29, 2026 • 08:45 PM Pending; Maria ORD-2026-0003 08:30 PM Preparing; Carlos ORD-2026-0004 07:50 PM Delivered; Ana ORD-2026-0005 07:20 PM Cancelled; Mark ORD-2026-0006 06:55 PM Delivered
 And rows shall NOT show last name, price, total or address"	2. Status badges: Pending, Preparing, Delivered, Cancelled.	
 					"B. Fuzzy search by first name or Order ID
 
 Given Orders is open with the five sample orders listed
 When ""Mria"" is typed (a missing letter)
-Then only Maria #00349 shall be listed, with the first name only
+Then only Maria ORD-2026-0003 shall be listed, with the first name only
 
 When ""carols"" is typed (two letters swapped)
-Then only Carlos #00348 shall be listed
+Then only Carlos ORD-2026-0004 shall be listed
 
-When ""350"" or ""#00350"" is typed
-Then only Juan #00350 shall be listed
+When ""350"" or ""ORD-2026-0002"" is typed
+Then only Juan ORD-2026-0002 shall be listed
 
 When ""Mar"" is typed (a partial name)
-Then Maria #00349 and Mark #00346 shall be listed, newest first"	3. The system shall search only the first name and the Order ID shown on the list, and shall never search or reveal the last name, price, total or address.	
+Then Maria ORD-2026-0003 and Mark ORD-2026-0006 shall be listed, newest first"	3. The system shall search only the first name and the Order ID shown on the list, and shall never search or reveal the last name, price, total or address.	
 					"C. Fuzzy search: limits and combined filters
 
 Given Orders is open with the five sample orders listed
@@ -284,7 +287,7 @@ When ""Jon"" is typed (too different from any first name)
 Then the system shall show the same ""No orders found"" message
 
 When ""Mria"" is typed and Delivered is selected
-Then the system shall show ""No orders found"", because Maria #00349 is Preparing
+Then the system shall show ""No orders found"", because Maria ORD-2026-0003 is Preparing
 
 When the search box is cleared
 Then the full list shall be restored"	4. The system shall ignore capital letters and extra spaces, match partial first names, and find first names with small typing mistakes (one wrong, missing, extra or swapped letter for names of 3 to 5 letters, up to two for 6 or more). Order IDs shall be matched only exactly or partially. Search shall start from 2 typed characters and work together with the status filter.	
@@ -294,12 +297,14 @@ Then the full list shall be restored"	4. The system shall ignore capital letters
 DEL - 12	Orders	As a Delivery Staff member	open an order to see its food and the customer's allergies and nutritional preferences	so that I prepare the order safely.	Given When Then	1. Allergies shall be visible before the staff member acts on the order.	
 					"A. Order details
 
-Given the Delivery Staff opens #00350
+Given the Delivery Staff opens ORD-2026-0002
 When Order Details loads
-Then the card shall show the customer first name, #00350, Oct 29, 2026 • 08:45 PM and the badge Pending
+Then the card shall show the customer first name, ORD-2026-0002, Oct 29, 2026 • 08:45 PM and the badge Pending
 And ""Order Items"": Fried Chicken ×1 and Pasta Carbonara ×1 (no prices shall be shown to this role)
-And ""Customer Preferences"": Allergies Peanuts, Shellfish; Dietary Preference Low Sugar; Calories 400 – 600 kcal; Sodium ≤ 2g; Protein ≥ 25g
-And no ""Start Preparing"" button; the delivery section (see Delivery stories) shall be shown"	2. The screen shall not show the customer's last name, email or payment details.	
+And ""Customer Preferences"": Allergies Peanuts, Shellfish; Dietary Preference Low Sugar; Calories 400 – 600 kcal; Sodium: calculated value compared with the applicable limit; Protein ≥ 25g
+And no ""Start Preparing"" button; the delivery section (see Delivery stories) shall be shown"	"2. The screen shall not show the customer's last name, email or payment details.
+
+3. The order details shall show the calculated sodium content and whether it is within the meal recipient’s applicable sodium limit."	
 						Passed	
 						Failed	
 						Total	
@@ -308,25 +313,8 @@ DEL - 13	Customers	As a Delivery Staff member	see a customer's allergies and pre
 
 Given the Delivery Staff opens a customer
 When Customer Details loads
-Then it shall show the initial ""A"", first name and email, Allergies: Peanuts, Dairy and Preferred Nutritional Levels: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium Low ≤ 2.00 mg; Protein High ≥ 25g
+Then it shall show the initial ""A"", first name and email, Allergies: Peanuts, Dairy and Preferred Nutritional Levels: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium: calculated value compared with the applicable limit; Protein High ≥ 25g
 And no order history and no address shall be shown"		
-						Passed	
-						Failed	
-						Total	
-DEL - 14	Menu	As a Delivery Staff member	see all menu items and manage them	so that the menu reflects what the kitchen can make.	Given When Then	1. The staff member can add, edit, delete and set availability of menu items.	
-					"A. View
-
-Given the Delivery Staff selects Menu
-When the screen opens
-Then it shall show tabs All, Meals, Desserts, Drinks and six items: Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00, Fruit Bowl ₱70.00"	2. The staff member cannot open Staff or sales information.	
-					"B. Manage
-
-Given a menu item is selected or Edit is selected on the Dashboard
-When the price or availability is changed and saved
-Then the system shall show ""Edit Menu Item"" with name, price and availability, then ""Menu item updated"" and ""Your permitted changes were saved."" (K05, K08)
-
-When an item is added or deleted
-Then the same confirmations as Admin shall be used: ""Save menu changes?"" and ""Delete <item>?"" with ""No, keep it"" / ""Yes, delete"""		
 						Passed	
 						Failed	
 						Total	
@@ -356,7 +344,17 @@ Then the system shall show ""Location not available"" and still show the address
 						Passed	
 						Failed	
 						Total	
-DEL - 17	Delivery	As a Delivery Staff member	update a delivery order from Out for Delivery to Completed	so that the user and Admin can confirm that the meal has been delivered.	Given When Then	1. Delivery Staff shall only access orders assigned for delivery.	
+DEL - 17	Delivery	As a Delivery Staff member	update a delivery order from Out for Delivery to Completed	so that the user and Admin can confirm that the meal has been delivered.	"Given When Then
+
+C. Delivery tracking reference
+
+Given an order is assigned to a Delivery Staff member
+When delivery tracking is created
+Then the system shall display a separate tracking number in the format TRK-YYYY-NNNN (for example, TRK-2026-0002), while retaining the order reference in the format ORD-YYYY-NNNN."	"1. Delivery Staff shall only access orders assigned for delivery.
+
+4. The system shall generate and display a delivery tracking number in the format TRK-YYYY-NNNN (for example, TRK-2026-0002), separate from the order reference.
+
+5. Delivery Staff shall only update delivery progress for orders marked Ready for Pickup and assigned to them."	
 					"A. Start the delivery
 
 Given an order is Ready for Pickup and assigned to a Delivery Staff member

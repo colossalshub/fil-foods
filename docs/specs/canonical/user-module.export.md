@@ -2,7 +2,7 @@ User Module
 Precondition: The user (the person who registers, logs in and uses the application) has a registered, verified account (or one created by the Admin), is logged in to the meal service application, and the meals and menu have already been set up by the Admin. The account is registered either For Myself (the user is also the meal recipient, the person who will receive the meals) or for a Family Member (the user manages the account for another person, the meal recipient).							
 Postcondition: The user's profile, the meal recipient's profile, or the order is saved with a unique reference, the order status and notifications are updated, and the action is logged under the user's account with the user who made it and the meal recipient it concerns. Notifications go to the user; the health, dietary, and delivery information belongs to the meal recipient.							
 No.	Epic (System Component)	Persona (User)	I want to (action)	So that (benefit or value)	Scenarios (Given / When / Then)	Acceptance Criteria (System Requirement)	Remarks
-USR - 01	Authentication & Account Management	As a User	sign up either for myself or for a family member, then create an account using my first name, last name, contact number, address, email and password	so that I can access the meal service, and the meals and health information are saved for the right person (myself or the family member who will receive the meals).	Given When Then	1. The system shall first display the "Who is this meal subscription for?" screen with the options "Signing Up for Myself" and "Signing Up for a Family Member" before the sign-up form (USR - 43).	
+USR - 01	Authentication & Account Management	As a User	sign up either for myself or for a family member, then create an account using my first name, last name, contact number, address, email and password	so that I can access the meal service, and the meals and health information are saved for the right person (myself or the family member who will receive the meals).	Given When Then	"1. The system shall first display the ""Who is this meal subscription for?"" screen with the options ""Signing Up for Myself"" and ""Signing Up for a Family Member"" before the sign-up form (USR - 43)."	
 					"A. Choose who is signing up
 
 Given the user opens the app and selects Sign Up
@@ -10,7 +10,7 @@ When the sign-up screen opens
 Then the system shall first display ""Who is this meal subscription for?"" with two options, ""Signing Up for Myself"" and ""Signing Up for a Family Member"" (USR - 43), before any form is shown
 
 Sample Data:
-Maria Santos chooses ""Signing Up for Myself"". Carlos Dizon chooses ""Signing Up for a Family Member""."	2. The system shall collect the user’s first name and last name as separate fields (not one full name), contact number, email address and password. The delivery address is collected from the user for "Signing Up for Myself"; for "Signing Up for a Family Member" it is collected for the family member who will receive the meals (USR - 44).	
+Maria Santos chooses ""Signing Up for Myself"". Carlos Dizon chooses ""Signing Up for a Family Member""."	"2. The system shall collect the user’s first name and last name as separate fields (not one full name), contact number, email address and password. The delivery address is collected from the user for ""Signing Up for Myself""; for ""Signing Up for a Family Member"" it is collected for the family member who will receive the meals (USR - 44)."	
 					"B. Sign up for myself
 
 Given the user has chosen ""Signing Up for Myself"" and has not registered before
@@ -56,7 +56,7 @@ When the user enters the registered username and password and selects Log in
 Then the system shall grant access, redirect the user to the meal menu and record the date and time of the login
 
 Sample Data:
-Username: msantos. Password: Meal@2026."	2. The system shall display "Invalid username or password." when the credentials do not match an active account.	
+Username: msantos. Password: Meal@2026."	"2. The system shall display ""Invalid username or password."" when the credentials do not match an active account."	
 					"B. Invalid or blank credentials
 
 Given the user is on the login screen
@@ -97,14 +97,14 @@ When wrong passwords are entered for 11 different usernames within one minute
 Then the system shall display ""Too many attempts. Please wait a minute and try again."" and not count the blocked attempts towards the five-attempt lockout
 
 Sample Data:
-11 different usernames within one minute from the same phone."	6. The system shall display "Your account is locked. Please reset your password or contact support." when a locked account is used to log in, and shall keep the account locked until the user resets the password or the Admin unlocks it.	
+11 different usernames within one minute from the same phone."	"6. The system shall display ""Your account is locked. Please reset your password or contact support."" when a locked account is used to log in, and shall keep the account locked until the user resets the password or the Admin unlocks it."	
 						7. The system shall apply the password rules and the five-attempt lockout to username and password accounts only. Accounts that continue with Google are not locked by failed password attempts (see USR - 30).	
-						8. The system shall display "Please verify your account first." and open the "Verify your account" screen (USR - 33) when the correct username and password belong to an account that is not yet verified.	
-						9. The system shall allow no more than 10 login attempts per minute from the same device or network address, whatever the username, and display "Too many attempts. Please wait a minute and try again." Attempts blocked this way do not count towards the five-attempt lockout.	
+						"8. The system shall display ""Please verify your account first."" and open the ""Verify your account"" screen (USR - 33) when the correct username and password belong to an account that is not yet verified."	
+						"9. The system shall allow no more than 10 login attempts per minute from the same device or network address, whatever the username, and display ""Too many attempts. Please wait a minute and try again."" Attempts blocked this way do not count towards the five-attempt lockout."	
 						Passed	
 						Failed	
 						Total	
-USR - 03	Authentication & Account Management	As a User	choose to stay logged in on my device	so that I do not have to sign in every time I open the app.	Given When Then	1. The system shall display a "Keep me logged in" option on the login screen.	
+USR - 03	Authentication & Account Management	As a User	choose to stay logged in on my device	so that I do not have to sign in every time I open the app.	Given When Then	"1. The system shall display a ""Keep me logged in"" option on the login screen."	
 					"A. Stay logged in
 
 Given the user is on the login screen
@@ -128,7 +128,7 @@ New password: NewMeal@2026."	3. The system shall end the session when the app is
 						Passed	
 						Failed	
 						Total	
-USR - 04	Authentication & Account Management	As a User	request help when I forget my password	so that I can regain access to my account without asking staff to do it for me.	Given When Then	1. The system shall allow a password reset to be requested with the registered contact number or the registered email address, and the user shall choose "Send code by SMS" or "Send code by email".	
+USR - 04	Authentication & Account Management	As a User	request help when I forget my password	so that I can regain access to my account without asking staff to do it for me.	Given When Then	"1. The system shall allow a password reset to be requested with the registered contact number or the registered email address, and the user shall choose ""Send code by SMS"" or ""Send code by email""."	
 					"A. Request a verification code
 
 Given the user is on the forgot password screen
@@ -140,7 +140,7 @@ Then the system shall send a 6-digit code by email
 
 Sample Data:
 Registered number: 09171234567, by SMS.
-Registered email: maria.santos@gmail.com, by email."	2. The system shall display "No account found with this contact number." or "No account found with this email address." when the value is not registered.	
+Registered email: maria.santos@gmail.com, by email."	"2. The system shall display ""No account found with this contact number."" or ""No account found with this email address."" when the value is not registered."	
 					"B. Unregistered contact details
 
 Given the user is on the forgot password screen
@@ -167,7 +167,7 @@ When the user enters its contact number or email address
 Then the system shall display ""This account signs in with Google. Please use that option to log in."" and not send a code
 
 Sample Data:
-Google-only contact number: 09175550142."	5. The system shall display "This account signs in with Google. Please use that option to log in." when the account has no password, and shall not send a code.	
+Google-only contact number: 09175550142."	"5. The system shall display ""This account signs in with Google. Please use that option to log in."" when the account has no password, and shall not send a code."	
 						Passed	
 						Failed	
 						Total	
@@ -183,7 +183,7 @@ Then the system shall end that other session
 
 Sample Data:
 New password: NewMeal@2026, entered twice.
-Two devices logged in; reset done on one."	2. The system shall display "Passwords do not match." when the two entries are different.	
+Two devices logged in; reset done on one."	"2. The system shall display ""Passwords do not match."" when the two entries are different."	
 					"B. Invalid new password
 
 Given the user is on the new password screen
@@ -199,14 +199,14 @@ Then the system shall not accept it
 Sample Data:
 Mismatch: NewMeal@2026 and NewMeal@2027.
 Short password: Abc123.
-Same as current: Meal@2026."	3. The system shall display "Password must be at least 8 characters." when a shorter password is entered.	
+Same as current: Meal@2026."	"3. The system shall display ""Password must be at least 8 characters."" when a shorter password is entered."	
 					"C. No verified code
 
 Given the user has not entered a verified code
 When the user tries to open the new password screen
 Then the system shall refuse access and return the user to the forgot password screen
 "	4. The system shall not accept a new password that is the same as the current password.	
-						5. The system shall display "Password updated. Please log in." after a successful reset.	
+						"5. The system shall display ""Password updated. Please log in."" after a successful reset."	
 						6. The system shall end all other active sessions of the account after the password is changed.	
 						Passed	
 						Failed	
@@ -222,7 +222,7 @@ When the user chooses Yes
 Then the system shall end the session, show the login screen and record the date and time of the logout
 
 Sample Data:
-Logout timestamp in the log, e.g. 2026-10-12 09:15 AM."	2. The system shall display "Are you sure you want to log out?" before ending the session.	
+Logout timestamp in the log, e.g. 2026-10-12 09:15 AM."	"2. The system shall display ""Are you sure you want to log out?"" before ending the session."	
 					"B. Cancel logging out
 
 Given the ""Are you sure you want to log out?"" message is displayed
@@ -233,7 +233,7 @@ Then the system shall keep the session active
 						Passed	
 						Failed	
 						Total	
-USR - 07	User Profile & Dietary Information	As a User	view my profile, and the meal recipient's profile, in one screen	so that I can check that the personal, health, and dietary information of the user and of the meal recipient is correct before ordering.	Given When Then	1. The system shall display "Registered for: Myself" or "Registered for: Family Member" at the top of the profile (USR - 43).	
+USR - 07	User Profile & Dietary Information	As a User	view my profile, and the meal recipient's profile, in one screen	so that I can check that the personal, health, and dietary information of the user and of the meal recipient is correct before ordering.	Given When Then	"1. The system shall display ""Registered for: Myself"" or ""Registered for: Family Member"" at the top of the profile (USR - 43)."	
 					"A. View the profile (For Myself)
 
 Given the user msantos registered For Myself, is logged in and has completed the profile
@@ -253,7 +253,7 @@ Sample Data:
 Your details: Carlos Dizon, 09175550123, carlos.dizon@gmail.com.
 Meal recipient: Lia Dizon (Child), 8 Sampaguita St., Quezon City.
 Diabetes, Low-sugar, Peanuts, family contact Carlos Dizon, last updated 2026-10-20."	3. The system shall display the address as part of the same person's details for a For Myself account, because the user is also the meal recipient.	
-						4. The system shall display the user's details ("Your details") and the meal recipient's details ("Meal recipient": name, relationship to the user, contact number if any, and delivery address) in two separate sections for a Family Member account.	
+						"4. The system shall display the user's details (""Your details"") and the meal recipient's details (""Meal recipient"": name, relationship to the user, contact number if any, and delivery address) in two separate sections for a Family Member account."	
 						5. The system shall display the meal recipient's recorded health conditions, dietary restrictions, food allergies, and meal preferences, labeled with the meal recipient's name (USR - 46).	
 						6. The system shall display the guardian/family member information, if any (USR - 14).	
 						7. The system shall display the date the profile was last updated.	
@@ -274,7 +274,7 @@ Then the system shall change only the user's details and leave the meal recipien
 Sample Data:
 Address: 45 Rizal Ave., Quezon City.
 Name: First name Maria Luisa, Last name Santos.
-Family Member: Carlos Dizon changes the contact number to 09175550999. Lia Dizon's details do not change."	2. The system shall display "Please enter a valid contact number." or "Please enter a valid email address." when the value is not valid.	
+Family Member: Carlos Dizon changes the contact number to 09175550999. Lia Dizon's details do not change."	"2. The system shall display ""Please enter a valid contact number."" or ""Please enter a valid email address."" when the value is not valid."	
 					"B. Blank or invalid entries
 
 Given the user is on the Edit profile screen
@@ -285,7 +285,7 @@ When the contact number or email address is not valid
 Then the system shall display ""Please enter a valid contact number."" or ""Please enter a valid email address.""
 
 Sample Data:
-Invalid contact numbers: 0917123 and 0917ABC4567. Invalid email: maria.santos@."	3. The system shall display "Please fill in all required fields." when the first name, last name, or email is blank.	
+Invalid contact numbers: 0917123 and 0917ABC4567. Invalid email: maria.santos@."	"3. The system shall display ""Please fill in all required fields."" when the first name, last name, or email is blank."	
 					"C. Change contact number or email
 
 Given the user is on the Edit profile screen
@@ -305,8 +305,8 @@ New number: 09181234567. New email: m.santos@gmail.com. Wrong code: 000000."	4. 
 Given the user has edited a field without saving
 When the user presses Back
 Then the system shall ask for confirmation before leaving the screen
-"	5. The system shall display "This username or contact number is already registered." or "This email address is already registered." when the new value belongs to another account.	
-						6. The system shall display "Profile updated successfully." after the changes are saved.	
+"	"5. The system shall display ""This username or contact number is already registered."" or ""This email address is already registered."" when the new value belongs to another account."	
+						"6. The system shall display ""Profile updated successfully."" after the changes are saved."	
 						7. The system shall ask for confirmation before leaving the screen with unsaved changes.	
 						8. The system shall apply this story to the user's own details only. The meal recipient's details of a Family Member account, including the delivery address, are edited in USR - 45.	
 						Passed	
@@ -336,17 +336,17 @@ Then the system shall save them to my profile and include them when checking mea
 						Passed	
 						Failed	
 						Total	
-USR - 11	User Profile & Dietary Information	As a User	record my food allergies	so that meals containing ingredients I am allergic to are excluded from my recommendations.	Given When Then	1. The system shall allow users to select or enter food allergies.	
+USR - 11	User Profile & Dietary Information	As a User	record my food allergies	so that meals containing ingredients I am allergic to cannot be selected or ordered.	Given When Then	1. The system shall allow users to select or enter food allergies.	
 					"A. Save food allergies
 
 Given the allergy section is open
 When I select or enter my food allergies and save the form
-Then the system shall store the allergies and exclude meals containing those allergens from recommended foods."	2. The system shall check meal ingredients and allergen information before showing a recommendation.	
-					"B. No safe meal available
+Then the system shall store the allergies and exclude meals containing those allergens from recommendations and selectable menu items."	2. The system shall check meal ingredients and allergen information before displaying, recommending or enabling selection of a meal.	
+					"B. Block an allergen-containing meal
 
-Given the allergy section is open
-When no safe recommended meal is available
-Then the system shall show a message instead of suggesting an unsafe meal."	3. The system shall not recommend meals that contain a recorded allergen.	
+Given the meal recipient has a recorded allergy
+When a menu item contains that allergen
+Then the meal shall be disabled and cannot be selected, added to an order or ordered. The system shall display an explanation identifying that the meal is unavailable because it contains a recorded allergen."	3. The system shall disable and block selection and ordering of meals that contain a recorded allergen, and display a clear explanation to the user.	
 						Passed	
 						Failed	
 						Total	
@@ -370,23 +370,27 @@ Sample Data:
 Remove Liver."	3. The system shall use the preferences to sort matching meals first in the menu.	
 					"C. Menu ranking
 
-Given the meal recipient prefers Soup and Fish, dislikes Ampalaya, has the Low-sodium restriction and is allergic to Peanuts
+Given the meal recipient prefers Soup and Fish, dislikes Ampalaya, has a Low-sodium restriction and is allergic to Peanuts
 When the user opens the menu
-Then the system shall list meals by score, highest first, with meals that contain a recorded allergen listed last and shown with a warning
+Then the system shall rank only meals that pass allergy and dietary suitability checks. Meals containing a recorded allergen shall be disabled and shall not be selectable or orderable.
 
 Sample Data:
-Chicken Tinola (score 5), Grilled Bangus (5), other meals (0), Ampalaya Stir-fry (-3), Chicken Satay (last)."	4. The system shall display "Meal preferences saved." after a successful save.	
-						"5. The system shall rank the menu by a score and list the highest score first, with equal scores in alphabetical order:
+Chicken Tinola (score 5), Grilled Bangus (5), other suitable meals (0), Ampalaya Stir-fry (-3), Chicken Satay (disabled because it contains Peanuts)."	"4. The system shall display ""Meal preferences saved."" after a successful save."	
+						"5. The system shall rank only meals that pass allergy checks by score and list the highest score first, with equal scores in alphabetical order:
    - +3 when the meal is in a preferred category
    - +2 when the meal matches a dietary restriction in the meal recipient's profile (e.g., Low-sodium)
    - +1 when the meal matches a nutritional preference (USR - 13)
    - -3 for each disliked ingredient in the meal
-   - Meals that contain a recorded allergen are listed last, with a warning, and never given a bonus"	
+   - Any meal containing a recorded allergen shall be disabled, excluded from selectable results and blocked from ordering; it shall not merely be listed last or shown with a warning."	
 						6. The system shall record the preferences for the meal recipient, not for the user, and shall rank the menu using the meal recipient's preferences, restrictions, and allergies.	
 						Passed	
 						Failed	
 						Total	
-USR - 13	User Profile & Dietary Information	As a User	update the meal recipient's nutritional preferences	so that I can pick meals that fit the meal recipient's daily nutrition goals.	Given When Then	1. The system shall allow nutritional preferences to be selected (e.g., lower calories, higher protein, lower sodium).	
+USR - 13	User Profile & Dietary Information	As a User	update the meal recipient's nutritional preferences	so that I can pick meals that fit the meal recipient's daily nutrition goals.	Given When Then	"1. The system shall allow nutritional preferences to be selected (e.g., lower calories, higher protein and a sodium target/limit).
+
+6. The system shall calculate the sodium content of each meal using the sodium values recorded for its ingredients and compare the calculated amount with the applicable sodium limit recorded for the meal recipient.
+
+7. The system shall identify and display when a meal exceeds the applicable sodium limit; a meal that exceeds the limit shall not be presented as meeting the recipient’s low-sodium requirement."	
 					"A. Select nutritional preferences
 
 Given the user is on the nutritional preferences screen of the meal recipient
@@ -395,7 +399,15 @@ Then the system shall save them and display ""Nutritional preferences updated.""
 
 Sample Data:
 Lower sodium and Higher protein selected.
-Family Member: Lower calories selected for Lia Dizon."	2. The system shall allow the selected preferences to be changed at any time.	
+Family Member: Lower calories selected for Lia Dizon.
+
+
+
+D. Calculate sodium content
+
+Given a meal has ingredient and sodium data and the meal recipient has an applicable sodium limit
+When the user views the meal nutrition details
+Then the system shall calculate and display the meal’s sodium content and indicate whether it is within or above the applicable limit."	2. The system shall allow the selected preferences to be changed at any time.	
 					"B. Change preferences
 
 Given the meal recipient has saved nutritional preferences
@@ -409,7 +421,7 @@ Change to Lower calories only."	3. The system shall allow the meal list to be fi
 Given the meal recipient has saved nutritional preferences
 When the user applies the filter in the menu
 Then the system shall show only matching meals
-"	4. The system shall display "Nutritional preferences updated." after a successful save.	
+"	"4. The system shall display ""Nutritional preferences updated."" after a successful save."	
 						5. The system shall save the nutritional preferences for the meal recipient, not for the user.	
 						Passed	
 						Failed	
@@ -422,7 +434,7 @@ When the user enters the name, relationship and contact number and saves
 Then the system shall save them and display ""Guardian information saved.""
 
 Sample Data:
-Jose Santos / Son / 09189876543."	2. The system shall display "Please enter the guardian's name and contact number." when a required field is blank.	
+Jose Santos / Son / 09189876543."	"2. The system shall display ""Please enter the guardian's name and contact number."" when a required field is blank."	
 					"B. Blank required field
 
 Given the user is adding a guardian
@@ -436,7 +448,7 @@ Blank contact number."	3. The system shall allow the guardian/family member info
 Given the user has not saved a guardian
 When the user opens the guardian screen
 Then the system shall display ""No guardian or family member added yet."" and an ""Add guardian"" button
-"	4. The system shall display "Guardian information saved." after a successful save.	
+"	"4. The system shall display ""Guardian information saved."" after a successful save."	
 					"D. Edit a guardian
 
 Given the user has a saved guardian
@@ -459,7 +471,7 @@ Then the system shall remove the entry
 
 When the user chooses No
 Then the system shall keep the entry
-"	6. The system shall display "No guardian or family member added yet." and an "Add guardian" button when no guardian has been saved.	
+"	"6. The system shall display ""No guardian or family member added yet."" and an ""Add guardian"" button when no guardian has been saved."	
 					"F. Admin view
 
 Given a guardian has been saved
@@ -473,7 +485,7 @@ When the user opens the guardian screen
 Then the system shall show the user's name and contact number as the main family contact of the meal recipient without requiring a guardian to be added, and shall still allow another guardian or family contact to be added
 
 Sample Data:
-Main family contact for Lia Dizon: Carlos Dizon, 09175550123 (the user). Another contact added: Rosa Dizon / Grandmother / 09175550456."	8. The system shall display "Are you sure you want to remove this guardian?" with Yes and No options before a guardian is removed.	
+Main family contact for Lia Dizon: Carlos Dizon, 09175550123 (the user). Another contact added: Rosa Dizon / Grandmother / 09175550456."	"8. The system shall display ""Are you sure you want to remove this guardian?"" with Yes and No options before a guardian is removed."	
 						9. The system shall show the user as the main family contact of the meal recipient for a Family Member account, using the name and contact number of the user's account, shall not require another guardian to be added, and shall allow another guardian or family contact to be added.	
 						Passed	
 						Failed	
@@ -486,11 +498,11 @@ When the user opens the Terms and Conditions
 Then the system shall display them, including how health and dietary information is collected and used
 
 Sample Data:
-Opened from the registration page and from Profile."	2. The system shall display "You must accept the Terms and Conditions to continue." when registration is attempted without acceptance.	
+Opened from the registration page and from Profile."	"2. The system shall display ""You must accept the Terms and Conditions to continue."" when registration is attempted without acceptance."	
 					"B. Registration without acceptance
 
 Given the user is on the registration page with the box unticked
-When the user selects Register
+When the user selects Sign Up
 Then the system shall display ""You must accept the Terms and Conditions to continue.""
 "	3. The system shall record the date and time the Terms and Conditions were accepted.	
 					"C. Accept the Terms and Conditions
@@ -512,13 +524,14 @@ Carlos Dizon reads the statement before saving Lia Dizon's details (USR - 44)."	
 						Passed	
 						Failed	
 						Total	
-USR - 16	Meals & Ordering	As a User	browse the available meals by meal time and food category	so that I can choose from the foods currently offered for breakfast, lunch or dinner.	Given When Then	1. The system shall separate the menu into Breakfast, Lunch and Dinner.	Connected to Admin menu management (ADM - 17 to ADM - 18).
+USR - 16	Meals & Ordering	As a User	browse the available meals by meal time and food category	so that I can choose from the foods currently offered for breakfast, lunch or dinner.	Given When Then	"1. The system shall separate the menu into Breakfast, Lunch and Dinner and display five available food items per day across the menu, based on the items configured by Admin and made available by Kitchen Staff.
+
+6. The system shall show only the five food items made available for the selected day and meal schedule; unavailable items shall not be selectable."	Connected to Admin menu management (ADM - 17 to ADM - 18).
 					"A. Browse meals by meal time
 
 Given I am signed in and open the Meals or Order page
 When I select Breakfast, Lunch or Dinner
-Then the system shall show the items available for that meal time.
-Breakfast shall show the pastries and breads currently available. Lunch and Dinner shall show the available meat choices (Beef, Pork, Chicken or Fish) and vegetable choices."	2. Breakfast shall display only available pastries and breads.	
+Then the system shall show the food items available for that meal time on the selected day, from the five food items available on the menu for that day. Breakfast shall show available pastries and breads. Lunch and Dinner shall show the available meat choices (Beef, Pork, Chicken or Fish) and vegetable choices."	2. Breakfast shall display only available pastries and breads.	
 						3. Lunch and Dinner shall display available meat or vegetable options.	
 						4. The system shall show availability and current price for each item.	
 						5. Meal availability and menu options shall use the menu items and availability maintained by Admin (ADM - 17 and ADM - 18).	
@@ -535,7 +548,11 @@ Then the system shall show its name, description, ingredients, meal time, price 
 						Passed	
 						Failed	
 						Total	
-USR - 18	Meals & Ordering	As a User	choose one meal for each meal time and customize my food choice	so that I can select meals that match my preferences while following my dietary needs.	Given When Then	1. The system shall allow one meal per meal time: Breakfast, Lunch and Dinner.	
+USR - 18	Meals & Ordering	As a User	choose one meal for each meal time and customize my food choice	so that I can select meals that match my preferences while following my dietary needs.	Given When Then	"1. The system shall allow one meal per meal time: Breakfast, Lunch and Dinner, with a maximum of three meals per user per day.
+
+7. The menu shall offer five food items per day. A user may select up to three meals per day, one for each meal time, from the items available for that day.
+
+8. Editing or replacing an existing meal selection shall not count as an additional meal, provided the user still has no more than one selected meal for each meal time."	
 					"A. One meal per meal time
 
 Given I am on the Order page
@@ -545,7 +562,15 @@ Then the system shall allow only one meal selection for that meal time and a max
 
 Given I am on the Order page
 When I choose vegetables or meat for a meal
-Then for vegetables I can select steamed, stir-fried or pinakbet. For meat I can select Beef, Pork, Chicken or Fish and a Filipino cooking style such as Adobo, Tinola, Sinigang, Kaldereta or Pinoy Steak, subject to availability and Dietitian approval."	3. Vegetable options shall include steamed, stir-fried and Pinakbet.	
+Then for vegetables I can select steamed, stir-fried or pinakbet. For meat I can select Beef, Pork, Chicken or Fish and a Filipino cooking style such as Adobo, Tinola, Sinigang, Kaldereta or Pinoy Steak, subject to availability and Dietitian approval.
+
+
+
+C. Edit a meal selection
+
+Given I have already selected a meal for a meal time
+When I replace or edit that existing selection
+Then the system shall update the existing meal selection without counting it as an additional meal, and shall keep the maximum of one meal per meal time and three meals per day."	3. Vegetable options shall include steamed, stir-fried and Pinakbet.	
 						4. Meat options shall include Beef, Pork, Chicken and Fish.	
 						5. Available Filipino cooking styles shall include Adobo, Tinola, Sinigang, Kaldereta and Pinoy Steak.	
 						6. Customizations shall be checked against the user’s allergies and restrictions.	
@@ -571,18 +596,59 @@ Then the system shall show the pickup instructions and available pickup schedule
 						Passed	
 						Failed	
 						Total	
-USR - 20	Meals & Ordering	As a User	review my meal selections or plan, confirm my order and pay after Dietitian approval	so that I can verify the order and complete payment before the kitchen prepares my meals.	Given When Then	1. The system shall calculate the total based on selected meals or the selected plan.	Connected workflow: User → Dietitian (DIT - 15) → payment → Kitchen (KIT - 11 to KIT - 13) → Admin assignment (ADM - 12) → Delivery Staff (DEL - 15 to DEL - 17), or Ready for Pickup.
-					"A. Review the order summary
+USR - 20	Meals & Ordering	As a User	review my meal selections or plan, confirm my order and pay after Dietitian approval	so that I can verify the order and complete payment before the kitchen prepares my meals.	Given When Then	"1. The system shall calculate the total based on selected meals or the selected plan.
 
-Given I have selected meals for the day or a meal plan
+8. Weekly, monthly and yearly plans shall each include up to three meals per user per day: one Breakfast, one Lunch and one Dinner. Users may select different available meals for each day of the plan.
+
+9. The system shall support GCash, Maya and Cash on Delivery (COD). For GCash and Maya, the user shall be redirected to a secure payment gateway or checkout page. COD shall not require payment redirection.
+
+10. For GCash and Maya, the system shall update payment status to Paid only after the payment gateway confirms the transaction, record the transaction reference number and payment date, and send a payment confirmation notification.
+
+11. If an online payment fails, the system shall set the payment status to Failed, notify the user, allow retry using the same or another available method, and prevent the order from entering the Kitchen queue until payment is confirmed.
+
+12. If the user cancels the online payment process, the system shall set the payment status to Cancelled, return the user to the order details or checkout page, and shall not mark the order as Paid.
+
+13. For COD, the system shall record COD as the selected payment method and keep payment unconfirmed until Delivery Staff confirms that payment has been collected from the recipient. After confirmation, the payment status shall become Paid and the payment date/time shall be recorded.
+
+14. The system shall support payment statuses Pending, Paid, Failed, Cancelled and Refunded. COD is a payment method, not a payment status.
+
+15. Before final submission, the system shall require the user to complete a double-verification step confirming the selected meals, meal times, customizations, recipient and fulfillment details. After final confirmation, the submitted order cannot be edited unless it is returned for changes.
+
+16. If an order is returned for changes, the system shall notify the user with the exact status label “Returned for Changes”. Any edit and resubmission shall restart the order workflow and require double verification and Dietitian approval again. If the user makes no changes, the existing order shall remain unchanged and the current workflow shall continue."	"Connected workflow: User → Dietitian (DIT - 15) → payment → Kitchen (KIT - 11 to KIT - 13) → Admin assignment (ADM - 12) → Delivery Staff (DEL - 15 to DEL - 17), or Ready for Pickup.
+
+OPEN WORKFLOW DECISION: COD is collected upon delivery, while the current rule says only paid orders may enter the Kitchen queue. The group must confirm whether COD orders are an explicit exception to the paid-only Kitchen queue rule; this workbook does not assume an exception."
+					"A. Review the order summary and meal plan
+
+Given I have selected meals for the day or chosen a weekly, monthly or yearly plan
 When I open the order summary
-Then the system shall show the selected meals, meal times, customizations, delivery or pickup details and total amount.
-A standard meal shall cost ₱300. The available plans shall be ₱4,999 weekly, ₱27,899 monthly and ₱327,999 yearly."	2. The system shall display ₱300 per standard meal and the weekly, monthly and yearly plan prices.	
+Then the system shall show the selected meals, meal times, customizations, delivery or pickup details and total amount. A standard meal shall cost ₱300. The available plans shall be ₱4,999 weekly, ₱27,899 monthly and ₱327,999 yearly. Each plan includes up to three meals per day (one Breakfast, one Lunch and one Dinner), and I may choose different meals for each day of the plan."	2. The system shall display ₱300 per standard meal and the weekly, monthly and yearly plan prices.	
 					"B. Dietitian review and payment
 
 Given I have confirmed my order
 When the order is submitted
-Then it shall be sent to the Dietitian for review. If approved, the system shall prompt me to pay. The order shall be sent to the Kitchen only after payment is confirmed."	3. The system shall require confirmation before submitting the order.	
+Then it shall be sent to the Dietitian for review. If approved, the system shall prompt me to pay. The order shall be sent to the Kitchen only after payment is confirmed.
+
+
+
+C. Online payment failed or cancelled
+
+Given I selected GCash or Maya after Dietitian approval
+When the payment gateway reports a failed transaction
+Then the payment status shall become Failed, I shall receive a failure notification, and I may retry using the same or another available payment method.
+
+When I cancel the payment process
+Then the payment status shall become Cancelled, the system shall return me to the order details or checkout page, and the order shall not be marked Paid.
+
+
+
+D. Cash on Delivery
+
+Given I select Cash on Delivery for an approved order
+When the order is submitted for fulfillment
+Then the system shall record COD as the payment method without redirecting me to a payment gateway.
+
+When Delivery Staff collects the payment and confirms collection
+Then the system shall change the payment status to Paid, record the payment date/time and notify the user."	3. The system shall require confirmation before submitting the order.	
 						4. Confirmed orders shall be routed to the Dietitian for review.	
 						5. Payment shall be requested only after Dietitian approval.	
 						6. Only paid orders shall be forwarded to Kitchen Staff for preparation.	
@@ -590,12 +656,19 @@ Then it shall be sent to the Dietitian for review. If approved, the system shall
 						Passed	
 						Failed	
 						Total	
-USR - 21	Orders	As a User	view my submitted orders and their payment status	so that I can keep track of orders that are awaiting review, payment or preparation.	Given When Then	1. The system shall show only the signed-in user’s orders.	Status source is connected to the relevant staff-module actions.
+USR - 21	Orders	As a User	view my submitted orders and their payment status	so that I can keep track of orders that are awaiting review, payment or preparation.	Given When Then	"1. The system shall show only the signed-in user’s orders.
+
+5. Order statuses shall include Returned for Changes, For Dietitian Review, Awaiting Payment, Preparing, Ready for Pickup, Out for Delivery, Completed and Cancelled, as applicable to the order workflow.
+6. The payment status shall be displayed separately from the order status and shall use Pending, Paid, Failed, Cancelled or Refunded. COD shall be displayed as the payment method, not as a payment status."	Status source is connected to the relevant staff-module actions.
 					"A. View submitted orders
 
 Given I have submitted an order
 When I open Orders
-Then the system shall list my orders with an order reference, date, selected meals, fulfillment method, total and current status."	2. Each order shall have a unique order reference.	
+Then the system shall list my orders with an order reference, date, selected meals, fulfillment method, total and current status."	"2. Each order shall have a unique order reference.
+
+4. The order reference shall use the format ORD-YYYY-NNNN (for example, ORD-2026-0002) and shall be used consistently in the User, Admin and Kitchen modules.
+
+5. For delivery orders, the system shall also display a separate delivery tracking number in the format TRK-YYYY-NNNN (for example, TRK-2026-0002)."	
 						3. The order list shall show the current review, payment, preparation and fulfillment status.	
 						4. Order records and status shall reflect authorized updates from Dietitian (DIT - 15), Kitchen Staff (KIT - 13), Admin (ADM - 12) and Delivery Staff (DEL - 17).	
 						Passed	
@@ -606,11 +679,16 @@ USR - 22	Orders	As a User	view the full details of an order	so that I can verify
 
 Given an order appears in my order list
 When I open the order
-Then the system shall show its meal selections, customizations, amount, payment status, delivery or pickup details and status history."	2. The system shall display payment and fulfillment information accurately.	
+Then the system shall show its meal selections, customizations, amount, payment status, delivery or pickup details and status history."	"2. The system shall display payment and fulfillment information accurately.
+3. The order details shall show the payment method, payment status and, when available, transaction reference number and payment date/time."	
 						Passed	
 						Failed	
 						Total	
-USR - 23	Orders	As a User	check the status of my order	so that I know whether it is being reviewed, awaiting payment, prepared or ready for delivery or pickup.	Given When Then	1. The system shall display the current order status.	Connected to Kitchen and Delivery status updates.
+USR - 23	Orders	As a User	check the status of my order	so that I know whether it is being reviewed, awaiting payment, prepared or ready for delivery or pickup.	Given When Then	"1. The system shall display the current order status.
+
+The delivery tracking number shall use the format TRK-YYYY-NNNN and shall be separate from the order reference.
+
+The user shall see the status Returned for Changes and the Dietitian’s reason or requested corrections. After the user edits and resubmits the order, it shall return to the beginning of the order process, repeat double verification and be submitted to the Dietitian for approval again."	Connected to Kitchen and Delivery status updates.
 					"A. View current order status
 
 Given I have an active order
@@ -706,7 +784,7 @@ Then the system shall show the matching question
 
 When the user searches ""zzzz""
 Then the system shall display ""No answers found.""
-"	3. The system shall display "No answers found." when the search returns no result.	
+"	"3. The system shall display ""No answers found."" when the search returns no result."	
 					"C. Expand an answer
 
 Given the FAQ list is displayed
@@ -731,7 +809,7 @@ When the user searches ""delivry"" (a missing letter)
 Then the system shall show the questions about delivery
 
 When the user searches ""p"" (one character only)
-Then the system shall keep showing the full grouped list until at least 2 characters are typed"	5. The system shall search the question and answer text while ignoring capital letters and extra spaces, and shall find words with small typing mistakes (one wrong, missing, extra or swapped letter for words of 3 to 5 letters, up to two for 6 or more). Exact matches shall be listed before spelling-corrected matches, and "No answers found." shall be shown when nothing is close enough.	
+Then the system shall keep showing the full grouped list until at least 2 characters are typed"	"5. The system shall search the question and answer text while ignoring capital letters and extra spaces, and shall find words with small typing mistakes (one wrong, missing, extra or swapped letter for words of 3 to 5 letters, up to two for 6 or more). Exact matches shall be listed before spelling-corrected matches, and ""No answers found."" shall be shown when nothing is close enough."	
 						Passed	
 						Failed	
 						Total	
@@ -775,7 +853,7 @@ Then the system shall ask me to enter a comment before submitting."	3. Submitted
 						Passed	
 						Failed	
 						Total	
-USR - 30	Authentication & Account Management	As a User	continue with Google to sign up or log in	so that I can use my existing Google account instead of creating a new password.	Given When Then	1. The system shall display a "Continue with Google" button on the login screen and the registration screen, next to the username and password option.	
+USR - 30	Authentication & Account Management	As a User	continue with Google to sign up or log in	so that I can use my existing Google account instead of creating a new password.	Given When Then	"1. The system shall display a ""Continue with Google"" button on the login screen and the registration screen, next to the username and password option."	
 					"A. First-time Google user
 
 Given the user has no account and is on the login or registration screen
@@ -802,7 +880,7 @@ When the user continues with Google
 Then the system shall display ""An account with this email already exists. Log in to link your Google account."" and open the linking screen (USR - 34)
 
 Sample Data:
-maria.santos@gmail.com belongs to msantos."	4. The system shall not create a second account and shall display "An account with this email already exists. Log in to link your Google account." when the Google email belongs to an account that is not linked to Google, and then open the linking screen (USR - 34).	
+maria.santos@gmail.com belongs to msantos."	"4. The system shall not create a second account and shall display ""An account with this email already exists. Log in to link your Google account."" when the Google email belongs to an account that is not linked to Google, and then open the linking screen (USR - 34)."	
 					"D. Cancelled, refused or failed sign-in
 
 Given the Google window is open
@@ -814,13 +892,13 @@ Then the system shall display ""Continue with Google needs your name and email a
 
 When there is no internet or Google is unavailable
 Then the system shall display ""Unable to continue with Google. Please check your connection and try again.""
-"	5. The system shall return to the previous screen without creating or changing any account and display "Sign in with Google was cancelled." when the user closes or cancels the Google window.	
+"	"5. The system shall return to the previous screen without creating or changing any account and display ""Sign in with Google was cancelled."" when the user closes or cancels the Google window."	
 					"E. Inactive account
 
 Given the account linked to the Google account is inactive
 When the user continues with Google
 Then the system shall display ""This account is inactive. Please contact support.""
-"	6. The system shall display "Continue with Google needs your name and email address to create your account." and create nothing when the user refuses to share the name or email.	
+"	"6. The system shall display ""Continue with Google needs your name and email address to create your account."" and create nothing when the user refuses to share the name or email."	
 					"F. Several Google accounts
 
 Given the phone has two Google accounts
@@ -828,15 +906,15 @@ When the user selects ""Continue with Google""
 Then the system shall show the account picker and use the chosen account, treating each as a separate user account
 
 Sample Data:
-maria.santos@gmail.com and msantos.work@gmail.com."	7. The system shall display "Unable to continue with Google. Please check your connection and try again." when Google cannot be reached or returns an error.	
+maria.santos@gmail.com and msantos.work@gmail.com."	"7. The system shall display ""Unable to continue with Google. Please check your connection and try again."" when Google cannot be reached or returns an error."	
 					"G. Stay logged in
 
 Given the user ticked ""Keep me logged in"" and logged in with Google
 When the user closes and reopens the app
 Then the system shall keep the user logged in and record the login and logout times
-"	8. The system shall display "This account is inactive. Please contact support." when the linked account is inactive.	
+"	"8. The system shall display ""This account is inactive. Please contact support."" when the linked account is inactive."	
 						9. The system shall show the Google account picker when more than one Google account is on the device, and shall treat each Google account as a separate user account.	
-						10. The system shall record the date and time of every login and logout, and shall apply the "Keep me logged in" option, as in USR - 02, USR - 03, and USR - 06.	
+						"10. The system shall record the date and time of every login and logout, and shall apply the ""Keep me logged in"" option, as in USR - 02, USR - 03, and USR - 06."	
 						11. The system shall ask for the registration type (For Myself or Family Member) before creating a new Google account when none has been chosen yet (USR - 43).	
 						Passed	
 						Failed	
@@ -849,7 +927,7 @@ When the user enters a contact number, ticks the Terms and Conditions and saves
 Then the system shall make the account ready, send no code to the Google email, and open the meal menu
 
 Sample Data:
-Maria / Santos, maria.santos@gmail.com, contact 09171234567."	2. The system shall display "Please fill in all required fields." when a required field is left blank.	
+Maria / Santos, maria.santos@gmail.com, contact 09171234567."	"2. The system shall display ""Please fill in all required fields."" when a required field is left blank."	
 					"B. Blank or invalid entries
 
 Given the user is on the profile screen
@@ -860,7 +938,7 @@ When the contact number is not 11 digits or contains letters
 Then the system shall display ""Please enter a valid contact number.""
 
 Sample Data:
-Contact numbers: 0917123 and 0917ABC4567."	3. The system shall display "Please enter a valid contact number." when the value is not 11 digits or contains letters.	
+Contact numbers: 0917123 and 0917ABC4567."	"3. The system shall display ""Please enter a valid contact number."" when the value is not 11 digits or contains letters."	
 					"C. Duplicate contact number
 
 Given another account already uses 09171234567
@@ -875,13 +953,13 @@ Then the system shall display ""You must accept the Terms and Conditions to cont
 
 When the box is ticked
 Then the system shall record the date and time of acceptance (USR - 15)
-"	5. The system shall display "This username or contact number is already registered." when the contact number belongs to another account, and shall not link the two accounts.	
+"	"5. The system shall display ""This username or contact number is already registered."" when the contact number belongs to another account, and shall not link the two accounts."	
 					"E. Unfinished profile
 
 Given the user closed the app before finishing
 When the user signs in again
 Then the system shall show this screen again and not allow the meal menu or an order until the profile is complete
-"	6. The system shall require the Terms and Conditions to be accepted, display "You must accept the Terms and Conditions to continue." otherwise, and record the date and time of acceptance (USR - 15).	
+"	"6. The system shall require the Terms and Conditions to be accepted, display ""You must accept the Terms and Conditions to continue."" otherwise, and record the date and time of acceptance (USR - 15)."	
 					"F. Family Member
 
 Given the user continued with Google and chose Family Member
@@ -894,7 +972,7 @@ Carlos Dizon continues with Google, enters 09175550123, then enters Lia Dizon's 
 						Passed	
 						Failed	
 						Total	
-USR - 32	Authentication & Account Management	As a User	use my username and password instead of Google	so that I can still use the app if I prefer not to use another account.	Given When Then	1. The system shall keep "Continue with Google" optional, so that registration (USR - 01) and login (USR - 02) with a username and password work fully when it is not selected.	
+USR - 32	Authentication & Account Management	As a User	use my username and password instead of Google	so that I can still use the app if I prefer not to use another account.	Given When Then	"1. The system shall keep ""Continue with Google"" optional, so that registration (USR - 01) and login (USR - 02) with a username and password work fully when it is not selected."	
 					"A. Use the app without Google
 
 Given the user does not tap ""Continue with Google""
@@ -928,7 +1006,7 @@ Sample Data:
 						Passed	
 						Failed	
 						Total	
-USR - 33	Authentication & Account Management	As a User	verify my account with a code sent by SMS or email	so that the service knows my contact details are mine and my account is protected.	Given When Then	1. The system shall show a "Verify your account" screen after registration with two options, "Send code by SMS" (to the contact number) and "Send code by email" (to the email address), and shall hide part of the number or address (e.g., 0917*****67 and m*****s@gmail.com). The code shall always go to the user's own contact number or email address, never to the meal recipient's.	
+USR - 33	Authentication & Account Management	As a User	verify my account with a code sent by SMS or email	so that the service knows my contact details are mine and my account is protected.	Given When Then	"1. The system shall show a ""Verify your account"" screen after registration with two options, ""Send code by SMS"" (to the contact number) and ""Send code by email"" (to the email address), and shall hide part of the number or address (e.g., 0917*****67 and m*****s@gmail.com). The code shall always go to the user's own contact number or email address, never to the meal recipient's."	
 					"A. Choose how to receive the code
 
 Given the user has just registered
@@ -940,13 +1018,13 @@ Then the system shall send a 6-digit code by that method
 
 Sample Data:
 0917*****67 and m*****s@gmail.com.
-Test environment code: 123456. Email subject: ""Your verification code""."	2. The system shall send a 6-digit numeric verification code by the chosen channel. SMS text: "Your verification code is 123456. It expires in 10 minutes. Do not share this code." Email subject: "Your verification code"; email body: "Your verification code is 123456. It expires in 10 minutes. If you did not ask for this code, ignore this email."	
+Test environment code: 123456. Email subject: ""Your verification code""."	"2. The system shall send a 6-digit numeric verification code by the chosen channel. SMS text: ""Your verification code is 123456. It expires in 10 minutes. Do not share this code."" Email subject: ""Your verification code""; email body: ""Your verification code is 123456. It expires in 10 minutes. If you did not ask for this code, ignore this email."""	
 					"B. Correct code
 
 Given a code has been sent
 When the user enters the correct code within 10 minutes
 Then the system shall display ""Your account is verified."" and open the profile screen
-"	3. The system shall mark the account as verified only when the correct, unexpired code is entered, and display "Your account is verified."	
+"	"3. The system shall mark the account as verified only when the correct, unexpired code is entered, and display ""Your account is verified."""	
 					"C. Wrong, expired or too many codes
 
 Given a code has been sent
@@ -960,7 +1038,7 @@ When a wrong code is entered five times in a row
 Then the system shall display ""Too many incorrect attempts. Please request a new code.""
 
 Sample Data:
-Wrong code: 000000. Correct code entered after 11 minutes."	4. The system shall display "The verification code has expired." when the code is used after 10 minutes.	
+Wrong code: 000000. Correct code entered after 11 minutes."	"4. The system shall display ""The verification code has expired."" when the code is used after 10 minutes."	
 					"D. Resend or switch method
 
 Given a code has been sent
@@ -969,7 +1047,7 @@ Then the system shall send a new code and invalidate the earlier one
 
 When the user taps ""Send code by email instead"" after choosing SMS
 Then the system shall send a new code by email and stop the SMS code from working
-"	5. The system shall display "Incorrect verification code." when a wrong code is entered.	
+"	"5. The system shall display ""Incorrect verification code."" when a wrong code is entered."	
 					"E. Code limits
 
 Given a code was accepted or replaced
@@ -987,7 +1065,7 @@ Then the system shall display ""Too many code requests. Please try again in an h
 Given the user has chosen a method
 When the SMS or email cannot be sent
 Then the system shall display ""We could not send the code. Please try again or use the other method.""
-"	7. The system shall display "Too many incorrect attempts. Please request a new code." and require a new code after five consecutive incorrect entries.	
+"	"7. The system shall display ""Too many incorrect attempts. Please request a new code."" and require a new code after five consecutive incorrect entries."	
 					"G. Unverified login
 
 Given the user closed the app before verifying
@@ -995,14 +1073,14 @@ When the user logs in
 Then the system shall display ""Please verify your account first."" (USR - 02) and not allow orders
 "	8. The system shall not allow an unverified account to log in (USR - 02), place an order.	
 						9. The system shall use these same code rules and messages for password reset (USR - 04) and for a changed contact number or email address (USR - 08).	
-						10. The system shall display "We could not send the code. Please try again or use the other method." when the SMS or email cannot be sent.	
-						11. The system shall accept each code only once. A code that was already used, or replaced by a newer one, is rejected with "Incorrect verification code."	
-						12. The system shall allow a new code to be requested only 60 seconds after the last one and display "Please wait [n] seconds before requesting a new code."	
-						13. The system shall allow no more than five codes per hour for the same contact number or email address and display "Too many code requests. Please try again in an hour." These rules also apply to password reset (USR - 04) and to changed contact numbers and emails (USR - 08).	
+						"10. The system shall display ""We could not send the code. Please try again or use the other method."" when the SMS or email cannot be sent."	
+						"11. The system shall accept each code only once. A code that was already used, or replaced by a newer one, is rejected with ""Incorrect verification code."""	
+						"12. The system shall allow a new code to be requested only 60 seconds after the last one and display ""Please wait [n] seconds before requesting a new code."""	
+						"13. The system shall allow no more than five codes per hour for the same contact number or email address and display ""Too many code requests. Please try again in an hour."" These rules also apply to password reset (USR - 04) and to changed contact numbers and emails (USR - 08)."	
 						Passed	
 						Failed	
 						Total	
-USR - 34	Authentication & Account Management	As a User	link my Google account to my existing account	so that I can sign in with one tap and keep my orders and profile.	Given When Then	1. The system shall show the linking screen with the message "An account with this email already exists. Log in to link your Google account." and username and password fields when the Google email belongs to an account that is not yet linked to Google.	
+USR - 34	Authentication & Account Management	As a User	link my Google account to my existing account	so that I can sign in with one tap and keep my orders and profile.	Given When Then	"1. The system shall show the linking screen with the message ""An account with this email already exists. Log in to link your Google account."" and username and password fields when the Google email belongs to an account that is not yet linked to Google."	
 					"A. Link the accounts
 
 Given the Google email belongs to an account not yet linked to Google
@@ -1022,7 +1100,7 @@ Then the system shall display ""Invalid username or password.""
 
 When it is wrong five times in a row
 Then the system shall lock the account as in USR - 02
-"	3. The system shall display "Invalid username or password." for a wrong password and apply the five-attempt lockout from USR - 02.	
+"	"3. The system shall display ""Invalid username or password."" for a wrong password and apply the five-attempt lockout from USR - 02."	
 					"C. Cancel or forgot password
 
 Given the user is on the linking screen
@@ -1037,7 +1115,7 @@ Then the system shall open the reset flow in USR - 04
 Given a Google account is linked to one user account
 When it is linked to a second account
 Then the system shall display ""This Google account is already linked to another account.""
-"	5. The system shall allow a Google account to be linked to only one user account, and display "This Google account is already linked to another account." otherwise.	
+"	"5. The system shall allow a Google account to be linked to only one user account, and display ""This Google account is already linked to another account."" otherwise."	
 					"E. After linking
 
 Given the Google account is linked to msantos
@@ -1052,7 +1130,9 @@ USR - 35	Home & Navigation	As a User	view meal recommendations based on my aller
 
 Given I have completed my profile and signed in
 When the Home or Order page loads
-Then the system shall show available meal recommendations that match my recorded allergies, health conditions and doctor-provided restrictions."	2. Only available meals that pass the suitability checks shall be recommended.	
+Then the system shall show available meal recommendations that match my recorded allergies, health conditions and doctor-provided restrictions."	"2. Only available meals that pass the suitability checks shall be recommended.
+
+3. Meals containing a recorded allergen shall be disabled and blocked from selection and ordering, with an explanation shown to the user."	
 					"B. No suitable meals
 
 Given I have completed my profile and signed in
@@ -1061,7 +1141,7 @@ Then the system shall explain that there are currently no matching meals and sha
 						Passed	
 						Failed	
 						Total	
-USR - 36	Home & Navigation	As a User	use the Home screen shortcuts to reach common tasks	so that I can get to meals, my current order, or my profile in one or two taps.	Given When Then	1. The system shall display shortcuts for "Browse Meals", "My Orders", and "My Account" on Home.	
+USR - 36	Home & Navigation	As a User	use the Home screen shortcuts to reach common tasks	so that I can get to meals, my current order, or my profile in one or two taps.	Given When Then	"1. The system shall display shortcuts for ""Browse Meals"", ""My Orders"", and ""My Account"" on Home."	
 					"A. Home shortcuts
 
 Given the user is on the Home screen
@@ -1069,7 +1149,7 @@ When the user selects ""Browse Meals"", ""My Orders"" or ""My Account""
 Then the system shall open Meals, Orders or Account
 
 Sample Data:
-Shortcut labels exactly: ""Browse Meals"", ""My Orders"", ""My Account"" (not ""Order a meal"", ""Track my order"" or ""My health profile"")."	2. The system shall keep the same shortcut labels ("Browse Meals", "My Orders", "My Account") and destinations throughout the application, and shall not use other labels for them.	
+Shortcut labels exactly: ""Browse Meals"", ""My Orders"", ""My Account"" (not ""Order a meal"", ""Track my order"" or ""My health profile"")."	"2. The system shall keep the same shortcut labels (""Browse Meals"", ""My Orders"", ""My Account"") and destinations throughout the application, and shall not use other labels for them."	
 					"B. No current order
 
 Given the user has no current order
@@ -1105,7 +1185,7 @@ Hover over (or tap) ""Meal"": the meal catalog and search tools open. Orders: cu
 Given the visitor has not logged in
 When the visitor taps Orders or Account
 Then the system shall display ""Log in to continue"" with a Log in button, and open the tapped destination after the user logs in
-"	3. The system shall require sign-in before showing private profile information, health information, or order details, and shall display "Log in to continue" with a Log in button when a visitor who is not logged in taps Orders or Account.	
+"	"3. The system shall require sign-in before showing private profile information, health information, or order details, and shall display ""Log in to continue"" with a Log in button when a visitor who is not logged in taps Orders or Account."	
 					"C. Help access
 
 Given the user is on a main screen
@@ -1123,7 +1203,7 @@ When the change is saved
 Then the system shall record the previous value, new value, actor and timestamp
 
 Sample Data:
-Add Peanuts to allergies. Remove Diabetes from health conditions. Change the Peanuts note from ""Skin rash"" to ""Hives"".
+Add Peanuts to allergies. Update the Low-sodium restriction. Change the Peanuts note from ""Skin rash"" to ""Hives"".
 Family Member: Carlos Dizon adds Peanuts to Lia Dizon's allergies. Actor: Carlos Dizon. Meal recipient: Lia Dizon."	2. The system shall display the change history of the account (the user's own and the meal recipient's information) in Account, newest first, with the date and time, the field changed, and the old and new value for each entry.	
 					"B. View the history
 
@@ -1146,7 +1226,7 @@ When the user tries to edit or delete one
 Then the system shall not allow it and shall flag a broken hash chain as a possible alteration when integrity is checked
 "	5. The system shall verify the hash chain when audit-log integrity is checked and flag a broken chain as a possible alteration.	
 						6. The user-facing history shall show only the user's permitted information; internal security metadata need not be exposed in the regular profile view.	
-						7. The system shall display "No changes yet." when no profile changes have been recorded.	
+						"7. The system shall display ""No changes yet."" when no profile changes have been recorded."	
 						Passed	
 						Failed	
 						Total	
@@ -1155,7 +1235,9 @@ USR - 39	Meals & Ordering	As a User	see meal suggestions that match my recorded 
 
 Given my dietary profile is saved
 When meal suggestions are generated
-Then the system shall consider allergies, HTN, Diabetes, Gout, Kidney Problem, Low-Cholesterol Diet, other doctor-provided restrictions and my food preferences."	2. The system shall exclude meals that conflict with known allergies or restrictions.	
+Then the system shall consider allergies, HTN, Diabetes, Gout, Kidney Problem, Low-Cholesterol Diet, other doctor-provided restrictions and my food preferences."	"2. The system shall exclude meals that conflict with known allergies or restrictions.
+
+3. Meals containing a recorded allergen shall be disabled and cannot be selected or ordered."	
 						3. The Dietitian shall be able to review suitability before an order proceeds to payment.	
 						Passed	
 						Failed	
@@ -1234,10 +1316,10 @@ Then the system shall show only the user's own events and no other users' events
 						Passed	
 						Failed	
 						Total	
-USR - 43	Authentication & Account Management	As a User	choose whether I am registering For Myself or for a Family Member	so that the service knows whether I will receive the meals myself or I am managing the account for another person who will receive them.	Given When Then	1. The system shall display a "Who is this meal subscription for?" screen with the options "Signing Up for Myself" and "Signing Up for a Family Member" before the registration form.	Screen wording follows the design (Part 1): "Signing Up for Myself" / "Signing Up for a Family Member". The stored account type is still shown as "For Myself" / "Family Member" in the profile and in the rest of this module.
+USR - 43	Authentication & Account Management	As a User	choose whether I am registering For Myself or for a Family Member	so that the service knows whether I will receive the meals myself or I am managing the account for another person who will receive them.	Given When Then	"1. The system shall display a ""Who is this meal subscription for?"" screen with the options ""Signing Up for Myself"" and ""Signing Up for a Family Member"" before the registration form."	"Screen wording follows the design (Part 1): ""Signing Up for Myself"" / ""Signing Up for a Family Member"". The stored account type is still shown as ""For Myself"" / ""Family Member"" in the profile and in the rest of this module."
 					"A. Choose ""Signing Up for Myself""
 
-Given the user has selected Register
+Given the user has selected Sign Up
 When the registration type screen opens
 Then the system shall display ""Who is this meal subscription for?"" with two options, ""Signing Up for Myself"" (description: ""I will receive and consume the meals."") and ""Signing Up for a Family Member"" (description: ""Ordering for a parent, senior relative, or loved one.""), and a Continue button
 
@@ -1245,7 +1327,7 @@ When the user selects ""Signing Up for Myself"" and Continue
 Then the system shall open the registration form for the user's own details (USR - 01) and treat the user as the meal recipient, so no separate meal recipient details are asked
 
 Sample Data:
-Maria Santos (msantos) selects ""Signing Up for Myself"". The user and the meal recipient are the same person: Maria Santos."	2. The system shall show a short description under each option: "I will receive and consume the meals." (Signing Up for Myself) and "Ordering for a parent, senior relative, or loved one." (Signing Up for a Family Member).	
+Maria Santos (msantos) selects ""Signing Up for Myself"". The user and the meal recipient are the same person: Maria Santos."	"2. The system shall show a short description under each option: ""I will receive and consume the meals."" (Signing Up for Myself) and ""Ordering for a parent, senior relative, or loved one."" (Signing Up for a Family Member)."	
 					"B. Choose ""Signing Up for a Family Member""
 
 Given the user is on the registration type screen
@@ -1253,7 +1335,7 @@ When the user selects ""Signing Up for a Family Member"" and Continue
 Then the system shall open the registration form for the user's own details (USR - 01) and, after the account is verified, ask for the details of the family member who will receive the meals (USR - 44)
 
 Sample Data:
-Carlos Dizon (cdizon) selects ""Signing Up for a Family Member"" to register for his daughter, Lia Dizon. Carlos is the user (he logs in and manages the app). Lia is the meal recipient (she receives the meals)."	3. The system shall require one option to be selected and shall display "Please choose Signing Up for Myself or Signing Up for a Family Member to continue." when Continue is selected without a choice.	
+Carlos Dizon (cdizon) selects ""Signing Up for a Family Member"" to register for his daughter, Lia Dizon. Carlos is the user (he logs in and manages the app). Lia is the meal recipient (she receives the meals)."	"3. The system shall require one option to be selected and shall display ""Please choose Signing Up for Myself or Signing Up for a Family Member to continue."" when Continue is selected without a choice."	
 					"C. No option selected
 
 Given the user is on the registration type screen and has not selected an option
@@ -1261,7 +1343,7 @@ When the user selects Continue
 Then the system shall display ""Please choose Signing Up for Myself or Signing Up for a Family Member to continue."" and stay on the screen
 
 Sample Data:
-Continue selected with neither option chosen."	4. The system shall treat the user and the meal recipient as the same person when "Signing Up for Myself" is chosen, and shall not ask for separate meal recipient details.	
+Continue selected with neither option chosen."	"4. The system shall treat the user and the meal recipient as the same person when ""Signing Up for Myself"" is chosen, and shall not ask for separate meal recipient details."	
 					"D. Continue with Google
 
 Given the user selects ""Continue with Google"" and the Google account has no account yet
@@ -1272,7 +1354,7 @@ When the user already chose a type before selecting ""Continue with Google""
 Then the system shall use that choice and not ask again
 
 Sample Data:
-maria.santos@gmail.com continues with Google and chooses ""Signing Up for Myself""."	5. The system shall treat the user and the meal recipient as two different people when "Signing Up for a Family Member" is chosen. The login details, verification codes, and notifications stay with the user, and the meal recipient's details are entered separately (USR - 44).	
+maria.santos@gmail.com continues with Google and chooses ""Signing Up for Myself""."	"5. The system shall treat the user and the meal recipient as two different people when ""Signing Up for a Family Member"" is chosen. The login details, verification codes, and notifications stay with the user, and the meal recipient's details are entered separately (USR - 44)."	
 					"E. Registration type shown
 
 Given the user has finished registration
@@ -1302,7 +1384,7 @@ When the contact number, middle name and suffix are left blank
 Then the system shall accept the details because these fields are optional
 
 Sample Data:
-Lia Dizon saved with no contact number, middle name or suffix."	3. The system shall display "Please fill in all required fields." when a required field is blank and "Please enter a valid contact number." when the contact number is not 11 digits or contains letters.	
+Lia Dizon saved with no contact number, middle name or suffix."	"3. The system shall display ""Please fill in all required fields."" when a required field is blank and ""Please enter a valid contact number."" when the contact number is not 11 digits or contains letters."	
 					"C. Blank or invalid entries
 
 Given the user is on the meal recipient details screen
@@ -1318,7 +1400,7 @@ Then the system shall display ""Please confirm that you are allowed to manage th
 Sample Data:
 Blank delivery address.
 Contact number: 0917123.
-Confirmation: unticked."	4. The system shall require the user to tick "I confirm that I am allowed to manage this person's meals and health information." and shall display "Please confirm that you are allowed to manage this person's information." when it is unticked.	
+Confirmation: unticked."	"4. The system shall require the user to tick ""I confirm that I am allowed to manage this person's meals and health information."" and shall display ""Please confirm that you are allowed to manage this person's information."" when it is unticked."	
 					"D. The meal recipient does not log in
 
 Given the meal recipient has been saved
@@ -1349,7 +1431,7 @@ msantos (For Myself): no meal recipient screen is shown."	7. The system shall us
 						Passed	
 						Failed	
 						Total	
-USR - 45	User Profile & Dietary Information	As a User	update the details of the meal recipient	so that the name, contact details, and delivery address of the person receiving the meals stay correct without changing my own account details.	Given When Then	1. The system shall show an "Edit meal recipient" option in the profile of Family Member accounts, separate from "Edit profile" for the user's own details (USR - 08).	
+USR - 45	User Profile & Dietary Information	As a User	update the details of the meal recipient	so that the name, contact details, and delivery address of the person receiving the meals stay correct without changing my own account details.	Given When Then	"1. The system shall show an ""Edit meal recipient"" option in the profile of Family Member accounts, separate from ""Edit profile"" for the user's own details (USR - 08)."	
 					"A. Edit the meal recipient (Family Member)
 
 Given the user registered as Family Member and is on the Edit meal recipient screen
@@ -1376,7 +1458,7 @@ When the user edits the name, contact number or address in Edit profile (USR - 0
 Then the system shall apply the change to the meal recipient as well, because they are the same person, and shall not show a separate Edit meal recipient screen
 
 Sample Data:
-Maria Santos changes the address to 45 Rizal Ave., Quezon City. Her orders are delivered to the new address."	4. The system shall display "Meal recipient updated successfully." after the changes are saved and shall leave the user's own details unchanged.	
+Maria Santos changes the address to 45 Rizal Ave., Quezon City. Her orders are delivered to the new address."	"4. The system shall display ""Meal recipient updated successfully."" after the changes are saved and shall leave the user's own details unchanged."	
 					"D. Leave with unsaved changes
 
 Given the user has edited a field without saving
@@ -1395,7 +1477,7 @@ When the user opens Home, Profile, the health and dietary screens, or the order 
 Then the system shall use ""you"" and ""your"" (for example ""Meals for you"" and ""Your health conditions"") and shall not show a separate meal recipient
 
 Sample Data:
-Maria Santos sees ""Meals for you"" on Home and ""Your health conditions""."	2. The system shall use "you" and "your" and show no separate meal recipient for For Myself accounts.	
+Maria Santos sees ""Meals for you"" on Home and ""Your health conditions""."	"2. The system shall use ""you"" and ""your"" and show no separate meal recipient for For Myself accounts."	
 					"B. Family Member labels
 
 Given the user registered as Family Member and is logged in
@@ -1415,7 +1497,7 @@ Then the system shall show the same person once as ""Ordered by and for""
 
 Sample Data:
 Family Member: Ordered by Carlos Dizon. Meal recipient: Lia Dizon, 8 Sampaguita St., Quezon City.
-For Myself: Ordered by and for Maria Santos."	4. The system shall show "Ordered by" (the user) and "Meal recipient" (name and delivery address) in the order summary and the order details, and "Ordered by and for" for a For Myself account.	
+For Myself: Ordered by and for Maria Santos."	"4. The system shall show ""Ordered by"" (the user) and ""Meal recipient"" (name and delivery address) in the order summary and the order details, and ""Ordered by and for"" for a For Myself account."	
 					"D. Warnings name the right person
 
 Given Peanuts is recorded as an allergy of the meal recipient
@@ -1424,7 +1506,7 @@ Then the system shall display ""This meal contains Peanuts, which is listed in y
 And ""This meal contains Peanuts, which is listed in Lia Dizon's profile."" for a Family Member account (USR - 17 and USR - 20)
 
 Sample Data:
-msantos (For Myself) and cdizon (Family Member, meal recipient Lia Dizon)."	5. The system shall word allergy and dietary warnings with the meal recipient: "... which is listed in your profile." (For Myself) or "... which is listed in [meal recipient's name]'s profile." (Family Member).	
+msantos (For Myself) and cdizon (Family Member, meal recipient Lia Dizon)."	"5. The system shall word allergy and dietary warnings with the meal recipient: ""... which is listed in your profile."" (For Myself) or ""... which is listed in [meal recipient's name]'s profile."" (Family Member)."	
 					"E. Notifications go to the user
 
 Given an order exists for the meal recipient
@@ -1437,7 +1519,7 @@ Carlos Dizon receives ""Order TRK-2026-0004 for Lia Dizon is now Out for Deliver
 						Passed	
 						Failed	
 						Total	
-USR - 47	Authentication & Account Management	As a User	delete my account	so that I can stop using the service and have my personal and health information removed.	Given When Then	1. The system shall provide a "Delete account" option in Account (reachable from the main navigation, USR - 37) and shall require the user's password, or a new Google sign-in for an account that continues with Google, and a final confirmation before the account is deleted.	
+USR - 47	Authentication & Account Management	As a User	delete my account	so that I can stop using the service and have my personal and health information removed.	Given When Then	"1. The system shall provide a ""Delete account"" option in Account (reachable from the main navigation, USR - 37) and shall require the user's password, or a new Google sign-in for an account that continues with Google, and a final confirmation before the account is deleted."	
 					"A. Delete the account
 
 Given the user is logged in and has no order in progress
@@ -1445,7 +1527,7 @@ When the user selects Delete account, enters the password and selects Yes on the
 Then the system shall delete the account, end the session, show ""Your account has been deleted."" and open the login screen
 
 Sample Data:
-Username: msantos. Password: Meal@2026."	2. The system shall show this warning before the final confirmation: "Delete your account? This will permanently remove your profile and your health, dietary and allergy information. This cannot be undone." with Yes and No.	
+Username: msantos. Password: Meal@2026."	"2. The system shall show this warning before the final confirmation: ""Delete your account? This will permanently remove your profile and your health, dietary and allergy information. This cannot be undone."" with Yes and No."	
 					"B. Cancel or wrong password
 
 Given the user is on the Delete account screen
@@ -1456,7 +1538,7 @@ When the password entered is wrong
 Then the system shall display ""Incorrect password. Your account was not deleted."" and keep the account
 
 Sample Data:
-Wrong password: Meal@2025."	3. The system shall keep the account unchanged when the user cancels or enters a wrong password, and shall display "Incorrect password. Your account was not deleted." for a wrong password.	
+Wrong password: Meal@2025."	"3. The system shall keep the account unchanged when the user cancels or enters a wrong password, and shall display ""Incorrect password. Your account was not deleted."" for a wrong password."	
 					"C. Account that continues with Google
 
 Given the account continues with Google and has no password
@@ -1464,7 +1546,7 @@ When the user selects Delete account
 Then the system shall ask the user to sign in with Google again and, once confirmed, show the same warning as for other accounts
 
 Sample Data:
-Google account: maria.santos@gmail.com."	4. The system shall not delete an account that has an order in Pending, Preparing, Ready for pickup, or Out for delivery status, and shall display "You have an order in progress. Please wait until it is delivered or cancelled before deleting your account."	
+Google account: maria.santos@gmail.com."	"4. The system shall not delete an account that has an order in Pending, Preparing, Ready for pickup, or Out for delivery status, and shall display ""You have an order in progress. Please wait until it is delivered or cancelled before deleting your account."""	
 					"D. Order in progress
 
 Given the user has an order that is not yet Delivered or Cancelled
@@ -1483,7 +1565,7 @@ When the user confirms the deletion
 Then the system shall delete the user's account and the meal recipient's profile and health, dietary and allergy information, and the warning shall have named the meal recipient
 
 Sample Data:
-Carlos Dizon deletes the account; the warning names Lia Dizon."	6. The system shall end every active session of the account on every device when it is deleted, including sessions kept with "Keep me logged in" (USR - 03).	
+Carlos Dizon deletes the account; the warning names Lia Dizon."	"6. The system shall end every active session of the account on every device when it is deleted, including sessions kept with ""Keep me logged in"" (USR - 03)."	
 					"F. Logged in on another device
 
 Given the user is also logged in on a second device
@@ -1491,7 +1573,7 @@ When the account is deleted on the first device
 Then the system shall end the session on the second device and open the login screen the next time the app is used there
 
 Sample Data:
-Phone and tablet, both logged in as msantos."	7. The system shall treat a deleted account as unregistered: login shall display "Invalid username or password.", password recovery shall display "No account found with this contact number." or "No account found with this email address.", and the username, contact number and email address shall be free to register again as a new, empty account (USR - 01).	
+Phone and tablet, both logged in as msantos."	"7. The system shall treat a deleted account as unregistered: login shall display ""Invalid username or password."", password recovery shall display ""No account found with this contact number."" or ""No account found with this email address."", and the username, contact number and email address shall be free to register again as a new, empty account (USR - 01)."	
 					"G. After deletion
 
 Given the account has been deleted
@@ -1600,7 +1682,7 @@ When the sections are displayed
 Then the system shall state that an account cannot be deleted while an order is in progress and that the user will be asked to accept any new version
 
 Sample Data:
-Order #00350 is Preparing, so account deletion is blocked (USR - 47)."	8. Section 7 shall state that the user can delete the account from Account, that deletion is not possible while an order is in progress, and that deleting a Family Member account also deletes the meal recipient's information (USR - 47).	
+Order ORD-2026-0002 is Preparing, so account deletion is blocked (USR - 47)."	8. Section 7 shall state that the user can delete the account from Account, that deletion is not possible while an order is in progress, and that deleting a Family Member account also deletes the meal recipient's information (USR - 47).	
 					"H. Terms and Conditions cannot be loaded
 
 Given the device has no connection
@@ -1609,25 +1691,27 @@ Then the system shall display ""The Terms and Conditions could not be loaded. Pl
 
 Sample Data:
 Airplane mode is on. After the connection returns, Try again loads the text."	9. Section 8 shall state that the Terms and Conditions may change and that the user will be asked to accept the new version (USR - 50). Section 9 shall give the service contact information shown in Help (USR - 37).	
-						10. The system shall display the version number and the "Last updated" date of the Terms and Conditions.	
+						"10. The system shall display the version number and the ""Last updated"" date of the Terms and Conditions."	
 						11. The system shall make the Terms and Conditions reachable from the registration page, the profile screen of a user who continued with Google, Profile and Account, and shall use text of at least 16 px (USR - 26).	
-						12. The system shall display "The Terms and Conditions could not be loaded. Please try again." with a Try again button when they cannot be loaded, and shall not let the user accept them until the text has loaded.	
+						"12. The system shall display ""The Terms and Conditions could not be loaded. Please try again."" with a Try again button when they cannot be loaded, and shall not let the user accept them until the text has loaded."	
 						Passed	
 						Failed	
 						Total	
-USR - 50	User Profile & Dietary Information	As a User	accept or decline the Terms and Conditions, and accept again when they change	so that my agreement is recorded with the version I accepted and I stay in control of how my information is used.	Given When Then	1. The system shall display an unticked box "I have read and agree to the Terms and Conditions" with a link to the Terms and Conditions (USR - 49) on the registration page and on the profile screen of a user who continued with Google (USR - 31).	New story. Applies to registration, Continue with Google and every login after an update (USR - 15, USR - 31, USR - 44).
+USR - 50	User Profile & Dietary Information	As a User	accept or decline the Terms and Conditions, and accept again when they change	so that my agreement is recorded with the version I accepted and I stay in control of how my information is used.	Given When Then	"1. The system shall display an unticked box ""I have read and agree to the Terms and Conditions"" with a link to the Terms and Conditions (USR - 49) on the registration page and on the profile screen of a user who continued with Google (USR - 31).
+
+The Terms and Conditions acceptance step shall be part of the Sign Up process in USR - 01. The system shall not create the account unless the user accepts the current Terms and Conditions."	New story. Applies to registration, Continue with Google and every login after an update (USR - 15, USR - 31, USR - 44).
 					"A. Accept and register
 
 Given the user is on the registration page with the registration details filled in
-When the user ticks ""I have read and agree to the Terms and Conditions"" and selects Register
+When the user ticks ""I have read and agree to the Terms and Conditions"" and selects Sign Up
 Then the system shall create the account and record the date and time, the user ID and the version number of the accepted Terms and Conditions
 
 Sample Data:
-Maria Santos (msantos) ticks the box on 2026-11-12 09:00 AM. Version 1.0 accepted."	2. The system shall display "You must accept the Terms and Conditions to continue." when the user selects Register or Save with the box unticked, and shall not create the account or save the profile (USR - 15).	
+Maria Santos (msantos) ticks the box on 2026-11-12 09:00 AM. Version 1.0 accepted."	"2. The system shall display ""You must accept the Terms and Conditions to continue."" when the user selects Sign Up or Save with the box unticked, and shall not create the account or save the profile (USR - 15)."	
 					"B. Box left unticked
 
 Given the user is on the registration page with the box unticked
-When the user selects Register
+When the user selects Sign Up
 Then the system shall display ""You must accept the Terms and Conditions to continue."" and not create the account
 
 Sample Data:
@@ -1658,23 +1742,23 @@ When the user saves the meal recipient's details without the confirmation tick
 Then the system shall display ""Please confirm that you are allowed to manage this person's information."" and not save the details (USR - 44)
 
 Sample Data:
-Carlos Dizon ticked the Terms and Conditions box. Confirmation for Lia Dizon: unticked."	6. The system shall record only one acceptance for a version, even when Register or Save is selected twice.	
+Carlos Dizon ticked the Terms and Conditions box. Confirmation for Lia Dizon: unticked."	6. The system shall record only one acceptance for a version, even when Sign Up or Save is selected twice.	
 					"F. Acceptance cannot be saved
 
 Given the user ticked the box
-When the user selects Register and the connection fails
+When the user selects Sign Up and the connection fails
 Then the system shall display ""We could not save your acceptance. Please try again."" and not create the account
 
 Sample Data:
-Connection lost while registering."	7. For a Family Member, the system shall still require the separate confirmation "I confirm that I am allowed to manage this person's meals and health information." (USR - 44). Ticking the Terms and Conditions box shall not replace it.	
-					"G. Register selected twice
+Connection lost while registering."	"7. For a Family Member, the system shall still require the separate confirmation ""I confirm that I am allowed to manage this person's meals and health information."" (USR - 44). Ticking the Terms and Conditions box shall not replace it."	
+					"G. Sign Up selected twice
 
 Given the user ticked the box
-When the user selects Register twice in a row
+When the user selects Sign Up twice in a row
 Then the system shall record only one acceptance for this version
 
 Sample Data:
-Two taps within one second. One acceptance record: 2026-11-12 09:00 AM."	8. When a new version is published, the system shall display "We updated our Terms and Conditions. Please review and accept to continue." the next time the user logs in or opens the app, and shall require acceptance before the user continues.	
+Two taps within one second. One acceptance record: 2026-11-12 09:00 AM."	"8. When a new version is published, the system shall display ""We updated our Terms and Conditions. Please review and accept to continue."" the next time the user logs in or opens the app, and shall require acceptance before the user continues."	
 					"H. Terms and Conditions updated
 
 Given the user has an account and accepted version 1.0, and version 1.1 has been published
@@ -1685,7 +1769,7 @@ When the user opens the new version, ticks the box and selects Accept
 Then the system shall record the date and time, the user ID and version 1.1, and continue to the Home screen
 
 Sample Data:
-msantos accepted version 1.0 on 2026-11-12. Version 1.1 is published later."	9. When the user declines the updated version, the system shall end the session, keep the account unchanged, and display "You need to accept the updated Terms and Conditions to keep using F.I.L. Foods." The user shall be able to log in again later to review and accept.	
+msantos accepted version 1.0 on 2026-11-12. Version 1.1 is published later."	"9. When the user declines the updated version, the system shall end the session, keep the account unchanged, and display ""You need to accept the updated Terms and Conditions to keep using F.I.L. Foods."" The user shall be able to log in again later to review and accept."	
 					"I. Decline the updated terms
 
 Given the updated Terms and Conditions are displayed
@@ -1704,7 +1788,7 @@ When the user has not yet accepted the new version
 Then the system shall keep preparing and delivering the order, shall not cancel or change it, and shall still send its status notifications
 
 Sample Data:
-Order #00350 is Preparing when version 1.1 is published."	11. The system shall display "We could not save your acceptance. Please try again." and shall not create the account when the acceptance cannot be saved.	
+Order ORD-2026-0002 is Preparing when version 1.1 is published."	"11. The system shall display ""We could not save your acceptance. Please try again."" and shall not create the account when the acceptance cannot be saved."	
 					"K. Acceptance record
 
 Given the user has accepted a version
@@ -1715,4 +1799,6 @@ Sample Data:
 Accepted Terms and Conditions version 1.0, 2026-11-12 09:00 AM."	12. The system shall use the same box, messages and acceptance record for sign-up with a username and password and for Continue with Google (USR - 01 and USR - 30).	
 						Passed	
 						Failed	
-						Total
+						Total	
+COMPONENT CONNECTIONS							
+User (USR - 20) submits order → Dietitian reviews suitability (DIT - 15) → User pays after approval → Kitchen receives approved, paid order (KIT - 11 to KIT - 13) → Admin assigns delivery staff where needed (ADM - 12) → Delivery Staff updates delivery status (DEL - 15 to DEL - 17). For pickup, Kitchen marks Ready for Pickup and the order is completed after collection. Admin manages the menu and availability used by the User menu (ADM - 17 and ADM - 18).

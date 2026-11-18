@@ -8,9 +8,9 @@ This is the cross-module index for the User 5 specification set. Each module has
 |---|---|---|---|---|---|
 | User (client app) | USR-01–USR-50 | [`user-module.md`](./user-module.md) | [`FIL_Foods_User_Module.pdf`](./FIL_Foods_User_Module.pdf) | [`.github/Meal_Service_User_Stories_AI_Agent_Handoff.md`](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md) | [`implementation-traceability.md`](../implementation-traceability.md) |
 | Admin | ADM-01–ADM-21 | [`admin-module.md`](./admin-module.md) | [`FIL_Foods_Admin_Module.pdf`](./FIL_Foods_Admin_Module.pdf) | [`.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
-| Dietitian | DIT-01–DIT-17 | [`dietitian-module.md`](./dietitian-module.md) | [`FIL_Foods_Dietitian_Module.pdf`](./FIL_Foods_Dietitian_Module.pdf) | [`.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
+| Dietitian | DIT-01–DIT-16 (DIT-17 beyond spec) | [`dietitian-module.md`](./dietitian-module.md) | [`FIL_Foods_Dietitian_Module.pdf`](./FIL_Foods_Dietitian_Module.pdf) | [`.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 | Kitchen | KIT-01–KIT-15 | [`kitchen-module.md`](./kitchen-module.md) | [`FIL_Foods_Kitchen_Module.pdf`](./FIL_Foods_Kitchen_Module.pdf) | [`.github/Meal_Service_Kitchen_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Kitchen_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
-| Delivery | DEL-01–DEL-17 | [`delivery-module.md`](./delivery-module.md) | [`FIL_Foods_Delivery_Module.pdf`](./FIL_Foods_Delivery_Module.pdf) | [`.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
+| Delivery | DEL-01–DEL-17 (no DEL-14) | [`delivery-module.md`](./delivery-module.md) | [`FIL_Foods_Delivery_Module.pdf`](./FIL_Foods_Delivery_Module.pdf) | [`.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md`](../.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 
 ## Shared staff entry
 
@@ -38,8 +38,8 @@ After Dietitian approval and payment, Kitchen moves the order through preparatio
 
 | Data | Primary owner module | Consumed by |
 |---|---|---|
-| Menu items, prices, availability | Admin (ADM-17, ADM-18) | User browse (USR-16, USR-17), Dietitian read-only menu (DIT-14), Kitchen menu view (KIT-15) |
-| Customer profile & meal recipient health/diet | User (USR-07–USR-15, USR-43–USR-46) | Admin customer list (ADM-19), Dietitian review (DIT-11–DIT-15, DIT-17) |
+| Menu items, prices, availability | Admin (ADM-17, ADM-18) | User browse (USR-16, USR-17), Dietitian read-only menu (DIT-14), Kitchen availability only (KIT-15) |
+| Customer profile & meal recipient health/diet | User (USR-07–USR-15, USR-43–USR-46) | Admin customer list (ADM-19), Dietitian review (DIT-11–DIT-15; DIT-17 beyond spec) |
 | Staff accounts & roles | Admin (ADM-13–ADM-16) | All staff logins; Dietitian excluded from staff CRUD (DIT-16) |
 | Order status & history | Shared contract | User tracking (USR-21–USR-24); Admin (ADM-11, ADM-12); Dietitian (DIT-15); Kitchen (KIT-11–KIT-13); Delivery (DEL-11–DEL-17) |
 | Audit log | Admin view (ADM-20); User profile history (USR-38, USR-42) | Security stories across modules |

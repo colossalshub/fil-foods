@@ -8,7 +8,7 @@ Full module map: [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-
 |---|---|---|
 | User (client) | USR-01–USR-50 | [`docs/specs/user-module.md`](docs/specs/user-module.md) |
 | Admin | ADM-01–ADM-21 | [`docs/specs/admin-module.md`](docs/specs/admin-module.md) |
-| Dietitian | DIT-01–DIT-17 | [`docs/specs/dietitian-module.md`](docs/specs/dietitian-module.md) |
+| Dietitian | DIT-01–DIT-16 | [`docs/specs/dietitian-module.md`](docs/specs/dietitian-module.md) |
 | Kitchen | KIT-01–KIT-15 | [`docs/specs/kitchen-module.md`](docs/specs/kitchen-module.md) |
 | Delivery | DEL-01–DEL-17 | [`docs/specs/delivery-module.md`](docs/specs/delivery-module.md) |
 

@@ -1,6 +1,6 @@
 # Admin Module Requirements - ADM-01 through ADM-21
 
-**Source:** Updated spreadsheet export (Nov 2026). Canonical text: [`docs/specs/canonical/admin-module.export.md`](../docs/specs/canonical/admin-module.export.md). PDF (may lag): [`docs/specs/FIL_Foods_Admin_Module.pdf`](../docs/specs/FIL_Foods_Admin_Module.pdf). Story index: [`docs/specs/admin-module.md`](../docs/specs/admin-module.md). Cross-module: [`docs/specs/meal-service-modules.md`](../docs/specs/meal-service-modules.md).
+**Source:** Revised module workbook (Nov 19, 2026). Canonical text: [`docs/specs/canonical/admin-module.export.md`](../docs/specs/canonical/admin-module.export.md). PDF (may lag): [`docs/specs/FIL_Foods_Admin_Module.pdf`](../docs/specs/FIL_Foods_Admin_Module.pdf). Story index: [`docs/specs/admin-module.md`](../docs/specs/admin-module.md). Cross-module: [`docs/specs/meal-service-modules.md`](../docs/specs/meal-service-modules.md).
 **Authority:** Requirements and acceptance criteria below must be followed as written; record cross-module conflicts instead of inventing staff behavior.
 
 ## Implementation instructions
@@ -32,7 +32,7 @@ Then the system shall return to Select Your Role without losing the chosen role 
 						Passed	
 						Failed	
 						Total	
-ADM - 02	Authentication & Account Management	As an Admin	log in with my work email and password	so that only authorised Admin staff can open the Admin Panel and its information.	Given When Then	1. The system shall show the Log in screen with: email field (mail icon, placeholder "Email Address"), password field (lock icon, eye icon), the "Remember me" tick box, the "Forgot password?" link, a primary "Log In" button, an "or" divider and a "Continue with Google" button.	
+ADM - 02	Authentication & Account Management	As an Admin	log in with my work email and password	so that only authorised Admin staff can open the Admin Panel and its information.	Given When Then	"1. The system shall show the Log in screen with: email field (mail icon, placeholder ""Email Address""), password field (lock icon, eye icon), the ""Remember me"" tick box, the ""Forgot password?"" link, a primary ""Log In"" button, an ""or"" divider and a ""Continue with Google"" button."	
 					"A. Valid credentials
 
 Given the Admin is on the Admin Panel Log in screen showing the F.I.L Foods logo, the title ""F.I.L Foods"", the label ""Admin Panel"", the tagline and the footer ""F.I.L Foods © 2026""
@@ -42,7 +42,7 @@ And a green banner shall show ""Logged in successfully"" at the top of the Dashb
 And the bottom navigation shall show only: Dashboard, Orders, Menu, Staff and Settings, with Dashboard marked active
 
 Sample Data:
-Email: admin@filfoods.ph. Password: ••••••••••."	2. The system shall validate that the email contains "@" and that both fields are filled before checking credentials.	
+Email: admin@filfoods.ph. Password: ••••••••••."	"2. The system shall validate that the email contains ""@"" and that both fields are filled before checking credentials."	
 					"B. Wrong email format
 
 Given the Log in screen is open
@@ -52,7 +52,7 @@ And the email field shall get a red border and show ""Invalid email. Add an @ be
 And the password dots and the Remember me tick shall stay as entered
 
 Sample Data:
-Email: adminfilfoods.ph. Password: ••••••••••."	3. The system shall display the exact messages: "Invalid email. Add an @ before filfoods.ph and try again.", "Incorrect password. Try again or tap Forgot password?", "Email and password are required." and "Could not connect".	
+Email: adminfilfoods.ph. Password: ••••••••••."	"3. The system shall display the exact messages: ""Invalid email. Add an @ before filfoods.ph and try again."", ""Incorrect password. Try again or tap Forgot password?"", ""Email and password are required."" and ""Could not connect""."	
 					"C. Wrong password
 
 Given the Log in screen is open
@@ -61,14 +61,14 @@ Then the system shall show ""Incorrect password. Try again or tap Forgot passwor
 And no session shall be created
 
 Sample Data:
-Email: admin@filfoods.ph. Password: wrong value."	4. The system shall open the Dashboard of the signed-in role only and show the "Logged in successfully" banner once.	
+Email: admin@filfoods.ph. Password: wrong value."	"4. The system shall open the Dashboard of the signed-in role only and show the ""Logged in successfully"" banner once."	
 					"D. Blank fields
 
 Given the Log in screen is open with empty inputs (placeholders ""Email Address"" and ""Password"")
 When Log In is selected with both inputs empty
 Then the system shall stay on Log in and show the heading ""Please check your details""
 And the inputs shall show the prompts ""Enter your email"" and ""Enter your password""
-And the message ""Email and password are required."" shall be shown (outcome H03)"	5. The system shall show the role label "Admin Panel" and not any other role's label on this screen (Figma Dietitian Log in currently reads "Admin Panel" and must read "Dietitian").	
+And the message ""Email and password are required."" shall be shown (outcome H03)"	"5. The system shall show the role label ""Admin Panel"" and not any other role's label on this screen (Figma Dietitian Log in currently reads ""Admin Panel"" and must read ""Dietitian"")."	
 					"E. Show / hide password and Remember me
 
 Given the Log in screen is open
@@ -86,7 +86,7 @@ And the entered details shall be kept, no success message shall appear, and the 
 						Passed	
 						Failed	
 						Total	
-ADM - 03	Authentication & Account Management	As an Admin	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	1. The system shall send a reset link only to an existing account but shall always show the neutral wording "If an account exists for this email…".	
+ADM - 03	Authentication & Account Management	As an Admin	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	"1. The system shall send a reset link only to an existing account but shall always show the neutral wording ""If an account exists for this email…""."	
 					"A. Request a reset link
 
 Given the Log in screen is open
@@ -147,7 +147,7 @@ Given Google confirms the identity but the account has no Admin role
 When the account is continued
 Then the system shall show ""Account not authorized"" and ""This account is not allowed to access the selected role.""
 And it shall add ""No session has been created."" and ""Contact your administrator if you need access.""
-And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	3. The system shall show the Google "G" mark beside the label "Continue with Google".	
+And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	"3. The system shall show the Google ""G"" mark beside the label ""Continue with Google""."	
 						Passed	
 						Failed	
 						Total	
@@ -156,7 +156,7 @@ ADM - 05	Home & Navigation	As an Admin	open my notifications from the bell icon	
 
 Given the Admin is on a screen whose header shows the bell icon
 When the bell is selected
-Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order #00350 is pending"" and ""Menu item updated"" followed by ""No more notifications""
+Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order ORD-2026-0002 is pending"" and ""Menu item updated"" followed by ""No more notifications""
 And selecting an order notification shall open that order's detail screen for this role; Back returns to the source screen (S01)"	2. The system shall mark an item as read when opened without changing the order or menu data.	
 					"B. Empty inbox
 
@@ -220,7 +220,7 @@ When the message is empty
 Then the system shall show ""Please enter a message before sending."" (S14)
 
 Sample Data:
-Topic: Account access. Message: I need help with my account."	2. The brand name appears as "F.I.L Foods" in Figma screens and "filfoods Food" in some outcome screens; the final app shall use one name consistently.	
+Topic: Account access. Message: I need help with my account."	"2. The brand name appears as ""F.I.L Foods"" in Figma screens and ""filfoods Food"" in some outcome screens; the final app shall use one name consistently."	
 					"B. About
 
 Given About F.I.L Foods is selected
@@ -265,7 +265,7 @@ Orders 124 / Sales ₱8,750.00 / Customers 892 / Menu items 24."	2. Metric value
 
 Given the Dashboard is open
 When the Recent Orders card is displayed
-Then it shall list #00350 Juan Dela Cruz Pending Oct 29, 2026 08:45 PM; #00349 Maria Santos Preparing 08:30 PM; #00348 Carlos Reyes Delivered 07:50 PM, each with a food image and status badge
+Then it shall list ORD-2026-0002 Juan Dela Cruz Pending Oct 29, 2026 08:45 PM; ORD-2026-0003 Maria Santos Preparing 08:30 PM; ORD-2026-0004 Carlos Reyes Delivered 07:50 PM, each with a food image and status badge
 And ""View all"" shall open Admin Orders; selecting a row shall open that order's detail (A09)"	3. The percentage arrows shall be green when positive.	
 					"C. Sales Overview
 
@@ -277,18 +277,20 @@ And Month + Apply shall show ""This Month"", ""Period selection applied"" and ""
 						Passed	
 						Failed	
 						Total	
-ADM - 11	Orders	As an Admin	view, search and filter all customer orders and open any order	so that I can monitor every order in the business.	Given When Then	1. The system shall show every order to the Admin including full customer name and price.	
+ADM - 11	Orders	As an Admin	view, search and filter all customer orders and open any order	so that I can monitor every order in the business.	Given When Then	"1. The system shall show every order to the Admin including full customer name and price.
+
+The system shall display the shared order reference in the format ORD-YYYY-NNNN and use the same reference in order details, status updates and staff assignment."	
 					"A. Order list
 
 Given the Admin selects Orders in the bottom navigation
 When the screen opens
 Then the title ""Orders"" and a basket icon shall be shown with the search box ""Search orders..."" and filters All, Pending, Preparing, Delivered
-And each card shall show food image, order number, FULL customer name, date and time, status badge and price: #00350 Juan Dela Cruz Pending ₱120.00 08:45 PM; #00349 Maria Santos Preparing ₱99.00 08:30 PM; #00348 Carlos Reyes Delivered ₱180.00 07:50 PM; #00347 Ana Garcia Cancelled ₱85.00 07:20 PM; #00346 Mark Villanueva Delivered ₱140.00 06:55 PM (all Oct 29, 2026)"	2. The system shall keep the chosen search and filter when Back is used.	
+And each card shall show food image, order number, FULL customer name, date and time, status badge and price: ORD-2026-0002 Juan Dela Cruz Pending ₱120.00 08:45 PM; ORD-2026-0003 Maria Santos Preparing ₱99.00 08:30 PM; ORD-2026-0004 Carlos Reyes Delivered ₱180.00 07:50 PM; ORD-2026-0005 Ana Garcia Cancelled ₱85.00 07:20 PM; ORD-2026-0006 Mark Villanueva Delivered ₱140.00 06:55 PM (all Oct 29, 2026)"	2. The system shall keep the chosen search and filter when Back is used.	
 					"B. Search and filter
 
 Given Orders is open
 When ""Maria"" is typed
-Then only #00349 Maria Santos shall be listed (O01)
+Then only ORD-2026-0003 Maria Santos shall be listed (O01)
 
 When ""xyz-no-match"" is typed
 Then the system shall show ""No orders found"", ""Try another name or order number."" and ""Clear search"" (O02)
@@ -298,10 +300,10 @@ Then only orders with that status shall be listed (O04 / O05 / O06); All restore
 					"C. Order detail
 
 Given an order card is selected
-When #00350 is opened
-Then ""Order Details"" shall show ""#00350 · Juan Dela Cruz"", Pending, ""Oct 29, 2026 · 08:45 PM"", ""Recorded total ₱120.00"" and ""Back to Orders"" (A09)
+When ORD-2026-0002 is opened
+Then ""Order Details"" shall show ""ORD-2026-0002 · Juan Dela Cruz"", Pending, ""Oct 29, 2026 · 08:45 PM"", ""Recorded total ₱120.00"" and ""Back to Orders"" (A09)
 
-When #00348 or #00347 is opened
+When ORD-2026-0004 or ORD-2026-0005 is opened
 Then the detail shall be read-only: Delivered ""Total ₱180.00"" with ""No further kitchen action."" (O07) or Cancelled ""Recorded amount ₱85.00"" (O08)
 
 When the basket icon is selected
@@ -310,24 +312,24 @@ Then the system shall show ""Order Summary"", ""No order selected"", ""No checko
 
 Given Orders is open with the five sample orders listed
 When ""Mria"" is typed (a missing letter)
-Then #00349 Maria Santos shall be listed
+Then ORD-2026-0003 Maria Santos shall be listed
 
 When ""carols"" is typed (two letters swapped)
-Then #00348 Carlos Reyes shall be listed
+Then ORD-2026-0004 Carlos Reyes shall be listed
 
 When ""Villanueba"" is typed (one wrong letter)
-Then #00346 Mark Villanueva shall be listed
+Then ORD-2026-0006 Mark Villanueva shall be listed
 
 When ""Garcia Ana"" is typed (words in a different order)
-Then #00347 Ana Garcia shall be listed
+Then ORD-2026-0005 Ana Garcia shall be listed
 
 When ""Mar"" is typed (a partial name)
-Then #00349 Maria Santos and #00346 Mark Villanueva shall be listed, newest first"	5. The system shall also match partial names, match several typed words in any order (every word must match), and list exact and partial matches before spelling-corrected matches; matches of the same kind are listed newest first.	
+Then ORD-2026-0003 Maria Santos and ORD-2026-0006 Mark Villanueva shall be listed, newest first"	5. The system shall also match partial names, match several typed words in any order (every word must match), and list exact and partial matches before spelling-corrected matches; matches of the same kind are listed newest first.	
 					"E. Fuzzy search: limits and combined filters
 
 Given Orders is open with the five sample orders listed
-When ""350"" or ""#00350"" is typed
-Then only #00350 Juan Dela Cruz shall be listed
+When ""350"" or ""ORD-2026-0002"" is typed
+Then only ORD-2026-0002 Juan Dela Cruz shall be listed
 
 When ""00359"" is typed (one wrong digit)
 Then the system shall show ""No orders found"", ""Try another name or order number."" and ""Clear search"", because order numbers are never spelling-corrected
@@ -339,7 +341,7 @@ When ""Mria"" is typed and Delivered is selected
 Then the system shall show ""No orders found"", because Maria Santos is Preparing
 
 When the search box is cleared
-Then the full list shall be restored"	6. The system shall match order numbers only exactly or partially, never by spelling correction. Search shall start from 2 typed characters, work together with the status filter, and show "No orders found" when nothing is close enough.	
+Then the full list shall be restored"	"6. The system shall match order numbers only exactly or partially, never by spelling correction. Search shall start from 2 typed characters, work together with the status filter, and show ""No orders found"" when nothing is close enough."	
 						Passed	
 						Failed	
 						Total	
@@ -393,7 +395,7 @@ Then the system shall show ""Email is already used by another staff account."" a
 						Passed	
 						Failed	
 						Total	
-ADM - 15	Staff Management	As an Admin	edit a staff member and confirm before saving	so that corrections are intentional.	Given When Then	1. The system shall change nothing until "Save changes" is selected.	
+ADM - 15	Staff Management	As an Admin	edit a staff member and confirm before saving	so that corrections are intentional.	Given When Then	"1. The system shall change nothing until ""Save changes"" is selected."	
 					"A. Edit confirmation
 
 Given the Admin selects the pencil on Ana Reyes
@@ -429,7 +431,8 @@ Then the list shall stay unchanged"	2. The system shall not allow an Admin to de
 						Passed	
 						Failed	
 						Total	
-ADM - 17	Menu Management	As an Admin	view the menu, meal categories, prices and availability	so that I can keep the available breakfast, lunch and dinner choices accurate.	Given When Then	1. The Admin shall be able to view meal categories, ingredients, allergens, prices and availability.	
+ADM - 17	Menu Management	As an Admin	view the menu, meal categories, prices and availability	so that I can keep the available breakfast, lunch and dinner choices accurate.	Given When Then	"1. The Admin shall be able to view meal categories, ingredients, allergens, prices and availability.
+2. The menu shall contain five available food items per day, grouped under Breakfast, Lunch and Dinner. Admin maintains the menu items; Kitchen Staff controls availability."	
 					"A. View the menu
 
 Given I open Menu Management
@@ -440,18 +443,20 @@ The standard meal price shall be ₱300. The weekly, monthly and yearly plans sh
 						Passed	
 						Failed	
 						Total	
-ADM - 18	Menu Management	As an Admin	add, edit, delete and set availability of menu items	so that the menu stays correct.	Given When Then	1. The system shall require name, category, price greater than 0 and availability.	
+ADM - 18	Menu Management	As an Admin	add, edit and delete menu items and manage their details	so that the official menu, meal descriptions, prices and categories are controlled centrally by Admin.	Given When Then	"1. Only Admin shall add, edit or delete menu items and change menu details such as name, description, ingredients, nutrition information, allergens, meal time/category and price.
+
+2. Kitchen Staff shall be responsible only for setting or updating the availability of existing menu items (KIT - 15). Admin may view availability but shall not change it."	
 					"A. Add
 
 Given the Admin selects Add Menu Item
-When Item name, Category, Price and Availability are entered and ""Add item"" is selected
-Then the system shall show ""Menu item added successfully"" with the item, category and price (M05, M06)
+When the item name, meal time (Breakfast, Lunch or Dinner), price, ingredients, nutrition information and allergen information are entered and ""Add item"" is selected
+Then the system shall show ""Menu item added successfully"" with the item, meal time and price (M05, M06)
 
 When the price is 0.00
 Then the system shall show ""Enter a numeric price greater than ₱0.00."" (M07)
 
 Sample Data:
-Vegetable Wrap / Meals / 110.00 / Available."	2. The system shall change nothing until the confirmation is accepted.	
+Vegetable Wrap / Lunch / 110.00."	2. The system shall change nothing until the confirmation is accepted.	
 					"B. Edit confirmation
 
 Given the Admin selects the pencil on Fried Chicken
@@ -468,25 +473,27 @@ And red line ""Warning: this item will no longer be available for new orders."" 
 
 When ""Yes, delete"" is selected
 Then ""Menu item deleted successfully"" and ""Fried Chicken was removed from the menu."" shall appear"		
-					"D. Availability
+					"D. Availability is controlled by Kitchen Staff
 
-Given a menu item is open
-When Unavailable is saved
-Then the badge shall change and the item shall show ""Not selectable for new orders."" and ""Existing orders unchanged."" (M10)"		
+Given the Admin opens a menu item
+When the availability information is displayed
+Then the Admin may view the current availability but shall not change it. Only Kitchen Staff may set or update availability (KIT - 15)."		
 						Passed	
 						Failed	
 						Total	
-ADM - 19	Customers	As an Admin	view the customer list and each customer's allergies and nutritional preferences	so that I have the same information as the dietitian and can answer questions about the 892 customers.	Given When Then	1. The system shall show allergies and nutritional preferences to the Admin.	
+ADM - 19	Customers	As an Admin	view the customer list and each customer's allergies and nutritional preferences	so that I have the same information as the dietitian and can answer questions about the 892 customers.	Given When Then	"1. The system shall show allergies and nutritional preferences to the Admin.
+
+The system shall show the calculated sodium content and whether it is within the meal recipient’s applicable sodium limit."	
 					"A. Customer details
 
 Given the Admin opens a customer such as Ana Garcia
 When Customer Details opens
-Then it shall show ""Ana Garcia"", anagarcia@gmail.com, Allergies: Peanuts, Dairy, and Preferred Nutritional Levels: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium Low (≤ 400 mg on the Dietitian screens, ≤ 2.00 mg on the Kitchen customer screen, ≤ 2g on the Kitchen order screen: unresolved source conflict); Protein High ≥ 25g
+Then it shall show ""Ana Garcia"", anagarcia@gmail.com, Allergies: Peanuts, Dairy, and Preferred Nutritional Levels: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium Low (calculated value compared with the applicable sodium limit); Protein High ≥ 25g
 And Order History shall list Spring Salad, Oct 29, 2026 • 07:20 PM, Delivered, ₱100.00"	2. The system shall keep customer health data read-only for the Admin unless a customer-edit story is added.	
 						Passed	
 						Failed	
 						Total	
-ADM - 20	Security & Auditability	As an Admin	see an audit log of staff, menu and order changes	so that every important action has a name and time.	Given When Then	1. The system shall write an audit entry for every create, edit and delete, and for every Dietitian decision on a health-condition removal request (DIT - 17).	
+ADM - 20	Security & Auditability	As an Admin	see an audit log of staff, menu and order changes	so that every important action has a name and time.	Given When Then		
 					"A. Audit entry
 
 Given an Admin deletes Ana Reyes
@@ -521,7 +528,7 @@ Then the system shall treat it as notifications OFF for that role
 
 Sample Data:
 Kitchen Staff: New order ON, Menu item updated ON.
-Delivery Staff: Order ready for pickup ON, Menu item updated OFF."	3. The system shall display "Notification settings saved." after a change is saved.	
+Delivery Staff: Order ready for pickup ON, Menu item updated OFF."	"3. The system shall display ""Notification settings saved."" after a change is saved."	
 					"C. Staff cannot change their notifications
 
 Given a Kitchen Staff or Delivery Staff member is signed in

@@ -34,7 +34,7 @@ KIT-01 through KIT-15 (15 stories in this PDF).
 | KIT-12 | Orders | open an order to see its food and the customer's allergies and nutritional preferences |
 | KIT-13 | Orders | update a paid, Dietitian-approved order from Preparing to Ready for Pickup |
 | KIT-14 | Customers | see a customer's allergies and preferred low or high sugar, calories, sodium and protein |
-| KIT-15 | Menu | see all menu items and manage them |
+| KIT-15 | Menu | view the menu items and update their availability (availability only; Admin owns menu details) |
 
 ## User Module touchpoints
 

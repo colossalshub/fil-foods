@@ -8,7 +8,7 @@ Do not treat spreadsheet Passed / Failed / Total rows as features. Unresolved co
 
 ## Scope
 
-DIT-01 through DIT-17 (17 stories in this PDF).
+DIT-01 through DIT-16 (16 stories in the revised workbook of 2026-11-19). DIT-17 was removed from the workbook; the app keeps condition-removal approval as an extra beyond the spec (owner decision, see the staff traceability doc).
 
 ## Module precondition and postcondition
 
@@ -36,7 +36,7 @@ DIT-01 through DIT-17 (17 stories in this PDF).
 | DIT-14 | Menu | view all menu items without being able to change them |
 | DIT-15 | Orders | review submitted meal selections and the user's dietary information |
 | DIT-16 | Access Control | be blocked from staff management, sales figures and menu management |
-| DIT-17 | Health Information Approval | review a request to remove a customer's health condition and approve or reject it |
+| ~~DIT-17~~ | Health Information Approval | *Removed in the revised workbook — kept in the app as an extra beyond spec.* |
 
 ## User Module touchpoints
 
@@ -44,7 +44,7 @@ DIT-01 through DIT-17 (17 stories in this PDF).
 - **USR-18** — Customizations pending Dietitian review
 - **USR-20** — Payment gate after Dietitian approval (DIT-15)
 - **USR-35 / USR-39** — Clinical suitability vs client-side filtering
-- **DIT-17** — Health-condition removal approval
+- **DIT-17 (beyond spec)** — Health-condition removal approval, kept by owner decision
 
 ## Cross-module chain
 

@@ -29,11 +29,11 @@ DEL-01 through DEL-17 (17 stories in this PDF).
 | DEL-07 | Settings & Profile | set language and appearance |
 | DEL-08 | Settings & Profile | open Help & Support and About F.I.L Foods |
 | DEL-09 | Authentication & Account Management | log out of the app |
-| DEL-10 | Dashboard | see my Dashboard with shortcuts to Orders and Menu |
+| DEL-10 | Dashboard | see my Dashboard with shortcuts to Orders and delivery tasks |
 | DEL-11 | Orders | see the orders list with only the food, the customer's first name and the Order ID |
 | DEL-12 | Orders | open an order to see its food and the customer's allergies and nutritional preferences |
 | DEL-13 | Customers | see a customer's allergies and preferred low or high sugar, calories, sodium and protein |
-| DEL-14 | Menu | see all menu items and manage them |
+| ~~DEL-14~~ | Menu | *Removed in the revised workbook (2026-11-19): Delivery Staff have no menu.* |
 | DEL-15 | Delivery | see the delivery address information of an order |
 | DEL-16 | Delivery | see a map of the delivery location |
 | DEL-17 | Delivery | update a delivery order from Out for Delivery to Completed (start from Ready for Pickup when assigned) |

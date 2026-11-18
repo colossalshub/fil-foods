@@ -37,7 +37,7 @@ ADM-01 through ADM-21 (21 stories in this PDF).
 | ADM-15 | Staff Management | edit a staff member and confirm before saving |
 | ADM-16 | Staff Management | delete a staff member after a clear warning |
 | ADM-17 | Menu Management | view the menu (Breakfast / Lunch / Dinner, plans), categories, prices and availability |
-| ADM-18 | Menu Management | add, edit, delete and set availability of menu items |
+| ADM-18 | Menu Management | add, edit and delete menu items and manage their details (availability is set by Kitchen Staff, KIT-15) |
 | ADM-19 | Customers | view the customer list and each customer's allergies and nutritional preferences |
 | ADM-20 | Security & Auditability | see an audit log of staff, menu and order changes |
 | ADM-21 | Settings & Profile | control which notifications Kitchen Staff and Delivery Staff receive |

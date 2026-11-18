@@ -19,7 +19,7 @@ Then the system shall return to Select Your Role without losing the chosen role 
 						Passed	
 						Failed	
 						Total	
-DIT - 02	Authentication & Account Management	As a Dietitian	log in with my work email and password	so that only authorised Dietitian staff can open the Dietitian and its information.	Given When Then	1. The system shall show the Log in screen with: email field (mail icon, placeholder "Email Address"), password field (lock icon, eye icon), the "Remember me" tick box, the "Forgot password?" link, a primary "Log In" button, an "or" divider and a "Continue with Google" button.	
+DIT - 02	Authentication & Account Management	As a Dietitian	log in with my work email and password	so that only authorised Dietitian staff can open the Dietitian and its information.	Given When Then	"1. The system shall show the Log in screen with: email field (mail icon, placeholder ""Email Address""), password field (lock icon, eye icon), the ""Remember me"" tick box, the ""Forgot password?"" link, a primary ""Log In"" button, an ""or"" divider and a ""Continue with Google"" button."	
 					"A. Valid credentials
 
 Given the Dietitian is on the Dietitian Log in screen showing the F.I.L Foods logo, the title ""F.I.L Foods"", the label ""Dietitian"", the tagline and the footer ""F.I.L Foods © 2026""
@@ -29,7 +29,7 @@ And a green banner shall show ""Logged in successfully"" at the top of the Dashb
 And the bottom navigation shall show only: Dashboard, Orders, Menu and Settings, with Dashboard marked active
 
 Sample Data:
-Email: dietitian@filfoods.ph. Password: ••••••••••."	2. The system shall validate that the email contains "@" and that both fields are filled before checking credentials.	
+Email: dietitian@filfoods.ph. Password: ••••••••••."	"2. The system shall validate that the email contains ""@"" and that both fields are filled before checking credentials."	
 					"B. Wrong email format
 
 Given the Log in screen is open
@@ -39,7 +39,7 @@ And the email field shall get a red border and show ""Invalid email. Add an @ be
 And the password dots and the Remember me tick shall stay as entered
 
 Sample Data:
-Email: dietitianfilfoods.ph. Password: ••••••••••."	3. The system shall display the exact messages: "Invalid email. Add an @ before filfoods.ph and try again.", "Incorrect password. Try again or tap Forgot password?", "Email and password are required." and "Could not connect".	
+Email: dietitianfilfoods.ph. Password: ••••••••••."	"3. The system shall display the exact messages: ""Invalid email. Add an @ before filfoods.ph and try again."", ""Incorrect password. Try again or tap Forgot password?"", ""Email and password are required."" and ""Could not connect""."	
 					"C. Wrong password
 
 Given the Log in screen is open
@@ -48,14 +48,14 @@ Then the system shall show ""Incorrect password. Try again or tap Forgot passwor
 And no session shall be created
 
 Sample Data:
-Email: dietitian@filfoods.ph. Password: wrong value."	4. The system shall open the Dashboard of the signed-in role only and show the "Logged in successfully" banner once.	
+Email: dietitian@filfoods.ph. Password: wrong value."	"4. The system shall open the Dashboard of the signed-in role only and show the ""Logged in successfully"" banner once."	
 					"D. Blank fields
 
 Given the Log in screen is open with empty inputs (placeholders ""Email Address"" and ""Password"")
 When Log In is selected with both inputs empty
 Then the system shall stay on Log in and show the heading ""Please check your details""
 And the inputs shall show the prompts ""Enter your email"" and ""Enter your password""
-And the message ""Email and password are required."" shall be shown (outcome H03)"	5. The system shall show the role label "Dietitian" and not any other role's label on this screen (Figma Dietitian Log in currently reads "Admin Panel" and must read "Dietitian").	
+And the message ""Email and password are required."" shall be shown (outcome H03)"	"5. The system shall show the role label ""Dietitian"" and not any other role's label on this screen (Figma Dietitian Log in currently reads ""Admin Panel"" and must read ""Dietitian"")."	
 					"E. Show / hide password and Remember me
 
 Given the Log in screen is open
@@ -73,7 +73,7 @@ And the entered details shall be kept, no success message shall appear, and the 
 						Passed	
 						Failed	
 						Total	
-DIT - 03	Authentication & Account Management	As a Dietitian	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	1. The system shall send a reset link only to an existing account but shall always show the neutral wording "If an account exists for this email…".	
+DIT - 03	Authentication & Account Management	As a Dietitian	recover my password through my account email	so that I can regain access without asking the Admin to do it for me.	Given When Then	"1. The system shall send a reset link only to an existing account but shall always show the neutral wording ""If an account exists for this email…""."	
 					"A. Request a reset link
 
 Given the Log in screen is open
@@ -134,7 +134,7 @@ Given Google confirms the identity but the account has no Dietitian role
 When the account is continued
 Then the system shall show ""Account not authorized"" and ""This account is not allowed to access the selected role.""
 And it shall add ""No session has been created."" and ""Contact your administrator if you need access.""
-And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	3. The system shall show the Google "G" mark beside the label "Continue with Google".	
+And the buttons ""Choose another account"" and ""Back to login"" shall be shown (H09)"	"3. The system shall show the Google ""G"" mark beside the label ""Continue with Google""."	
 						Passed	
 						Failed	
 						Total	
@@ -143,7 +143,7 @@ DIT - 05	Home & Navigation	As a Dietitian	open my notifications from the bell ic
 
 Given the Dietitian is on a screen whose header shows the bell icon
 When the bell is selected
-Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order #00350 is pending"" and ""Menu item updated"" followed by ""No more notifications""
+Then the system shall open ""Notifications"" listing only items allowed for this role, for example ""Order ORD-2026-0002 is pending"" and ""Menu item updated"" followed by ""No more notifications""
 And selecting an order notification shall open that order's detail screen for this role; Back returns to the source screen (S01)"	2. The system shall mark an item as read when opened without changing the order or menu data.	
 					"B. Empty inbox
 
@@ -210,7 +210,7 @@ When the message is empty
 Then the system shall show ""Please enter a message before sending."" (S14)
 
 Sample Data:
-Topic: Account access. Message: I need help with my account."	2. The brand name appears as "F.I.L Foods" in Figma screens and "filfoods Food" in some outcome screens; the final app shall use one name consistently.	
+Topic: Account access. Message: I need help with my account."	"2. The brand name appears as ""F.I.L Foods"" in Figma screens and ""filfoods Food"" in some outcome screens; the final app shall use one name consistently."	
 					"B. About
 
 Given About F.I.L Foods is selected
@@ -248,7 +248,7 @@ When the Dashboard loads
 Then the header shall show ""Dietitian"" and ""Nutrition Specialist""
 And the greeting shall read ""Welcome back, Dietitian!"" and ""Here's an overview of your nutrition insights.""
 And two cards shall show ""Allergies / View Only"" and ""Customer / Preferences""
-And ""Menu Overview"" with ""View All"" shall list Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00, Fruit Bowl ₱70.00 in a two-column grid"	2. The bottom navigation shall have no Staff item.	
+And ""Menu Overview"" with ""View All"" shall list Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00 in a two-column grid"	2. The bottom navigation shall have no Staff item.	
 						Passed	
 						Failed	
 						Total	
@@ -268,8 +268,10 @@ DIT - 12	Allergies & Preferences	As a Dietitian	see each customer's preferred lo
 Given the Dietitian is on Allergies & Preferences or Customer details
 When the section ""Preferred Nutritional Levels"" is shown
 Then subtitle ""Customer's preferred range""
-And four tiles: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium Low ≤ 400 mg; Protein High ≥ 25g
-And the footer ""These preferences help you plan suitable meal options."""	2. Values are read-only for the Dietitian.	
+And four tiles: Sugar Low ≤ 5g; Calories Moderate 400 – 600 kcal; Sodium: calculated value compared with the applicable limit; Protein High ≥ 25g
+And the footer ""These preferences help you plan suitable meal options."""	"2. Values are read-only for the Dietitian.
+
+5. The system shall display the calculated sodium content for a meal and compare it with the applicable sodium limit for the meal recipient; the screen shall not use conflicting fixed sodium values."	
 						Passed	
 						Failed	
 						Total	
@@ -294,7 +296,7 @@ DIT - 14	Menu	As a Dietitian	view all menu items without being able to change th
 
 Given the Dietitian selects Menu
 When the screen opens
-Then the title ""Menu"", tabs All, Meals, Desserts, Drinks and six cards with name and price (Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00, Fruit Bowl ₱70.00)
+Then the title ""Menu"", tabs Breakfast, Lunch, Dinner and five cards with name and price (Fried Chicken ₱120.00, Pasta Carbonara ₱150.00, Spring Salad ₱100.00, Grilled Salmon ₱200.00, Miso Soup ₱80.00)
 And there shall be no Add, Edit, Delete or availability control
 
 When an item is selected
@@ -330,45 +332,6 @@ Then the system shall not show these screens or controls and shall return ""You 
 						Passed	
 						Failed	
 						Total	
-DIT - 17	Health Information Approval	As a Dietitian	review a request to remove a customer's health condition and approve or reject it	so that a condition is taken off a meal recipient's profile, and the kitchen stops preparing meals for it, only after a qualified person has confirmed that it is safe.	Given When Then	1. The system shall list pending removal requests on the Dietitian Dashboard (a "Condition Removal Requests" card with the pending count) and in the bell notifications, oldest first, showing the meal recipient, the condition, the reason, who asked and when. The list shall stay available when the Notifications switch (DIT - 07) is OFF.	
-					"A. Review pending requests
-
-Given a user has asked to remove Diabetes from Lia Dizon's health conditions
-When the Dietitian opens ""Condition Removal Requests"" from the Dashboard
-Then the system shall list ""Lia Dizon · Diabetes"", the reason and the date requested, and open the request with Lia Dizon's other conditions, allergies and nutritional preferences
-
-Sample Data:
-Requested by Carlos Dizon on 2026-11-07. Reason: Doctor's note says blood sugar is back to normal."	2. The system shall show, on each request, the meal recipient's other health conditions, allergies and nutritional preferences (DIT - 11, DIT - 12, DIT - 13) so that the Dietitian can decide.	
-					"B. Approve
-
-Given the request for Diabetes is open
-When the Dietitian selects Approve
-Then the system shall remove Diabetes from Lia Dizon's profile, update the ""last updated"" date and notify Carlos Dizon ""Your request to remove Diabetes from Lia Dizon's health conditions was approved.""
-
-Sample Data:
-Approved on 2026-11-08."	3. The system shall, when the Dietitian approves a request, remove the condition from the meal recipient's profile, update the "last updated" date and notify the user (USR - 09).	
-					"C. Reject with a reason
-
-Given the request for Diabetes is open
-When the Dietitian selects Reject, enters a reason and confirms
-Then the system shall keep Diabetes and notify Carlos Dizon ""Your request to remove Diabetes from Lia Dizon's health conditions was not approved."" with the reason
-
-When the reason is blank
-Then the system shall display ""Please enter a reason for rejecting this request."" and not reject the request
-
-Sample Data:
-Reason: Please send a recent doctor's note."	4. The system shall require a reason when the Dietitian rejects a request and display "Please enter a reason for rejecting this request." when it is blank. On rejection the condition shall stay and the user shall be notified with the reason.	
-					"D. Already decided
-
-Given two Dietitians have the same request open
-When the second Dietitian decides after the first
-Then the system shall display ""This request has already been decided."" and change nothing"	5. The system shall let only one decision be made per request and display "This request has already been decided." if another Dietitian decided it first.	
-					"E. Other roles blocked
-
-Given the Admin, Kitchen Staff or Delivery Staff is signed in
-When the person opens a removal request by direct link or tries to approve or reject it
-Then the system shall refuse and display ""You do not have access to this page."""	6. The server shall allow only the Dietitian role to decide a request. The user who made the request, the Admin, Kitchen Staff and Delivery Staff shall be refused, and a direct link shall return "You do not have access to this page." (DIT - 16).	
-						7. The system shall record every decision in the audit log (ADM - 20) with the Dietitian account, meal recipient, condition, decision, reason and time, and in the meal recipient's change history (USR - 38).	
 						Passed	
 						Failed	
 						Total
