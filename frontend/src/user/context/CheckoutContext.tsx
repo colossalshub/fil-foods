@@ -10,7 +10,6 @@ export interface CheckoutDraft {
   scheduleDate: Date | null;
   scheduleTime: Date | null;
   instructions: string;
-  allergenAck: boolean;
 }
 
 interface CheckoutValue extends CheckoutDraft {
@@ -20,7 +19,6 @@ interface CheckoutValue extends CheckoutDraft {
   setScheduleDate: (value: Date | null) => void;
   setScheduleTime: (value: Date | null) => void;
   setInstructions: (value: string) => void;
-  setAllergenAck: (value: boolean) => void;
   resetCheckout: () => void;
 }
 
@@ -31,7 +29,6 @@ const defaultDraft: CheckoutDraft = {
   scheduleDate: null,
   scheduleTime: null,
   instructions: '',
-  allergenAck: false,
 };
 
 const CheckoutContext = createContext<CheckoutValue | null>(null);
@@ -55,7 +52,6 @@ export function CheckoutProvider({ children }: { children?: ReactNode }) {
     setScheduleDate: (scheduleDate) => patch({ scheduleDate }),
     setScheduleTime: (scheduleTime) => patch({ scheduleTime }),
     setInstructions: (instructions) => patch({ instructions }),
-    setAllergenAck: (allergenAck) => patch({ allergenAck }),
     resetCheckout,
   }), [draft, patch, resetCheckout]);
 

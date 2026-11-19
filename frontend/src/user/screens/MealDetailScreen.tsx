@@ -132,7 +132,7 @@ export default function MealDetailScreen({ route, navigation }: {
   };
 
   const allergenWarningBody = allergens.length
-    ? ORDER_MSG.mealAllergen(allergens.join(', '), warningRecipient || null)
+    ? ORDER_MSG.mealAllergenBlocked(allergens.join(', '), warningRecipient || null)
     : '';
 
   const profileRef = profileReferenceLabel(user?.accountFor, recipientName);

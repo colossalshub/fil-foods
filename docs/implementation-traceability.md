@@ -13,7 +13,7 @@ The User sheet of the revised workbook changes these stories (canonical export r
 | Story | Change | State |
 |---|---|---|
 | USR-15, USR-43, USR-50 | "Register" is now "Sign Up" | Done (button, terms error and code all say Sign Up; "Registered for: …" labels are spec wording) |
-| USR-11, USR-12, USR-35, USR-39 | Meals with a recorded allergen are disabled and blocked, with an explanation — not listed last with a warning | Pending |
+| USR-11, USR-12, USR-35, USR-39 | Meals with a recorded allergen are disabled and blocked, with an explanation — not listed last with a warning | Done — Menu rows, Build Today's Meals cards and the Customize "Next" button are disabled with "Unavailable: this meal contains …, a recorded allergy in … profile." (new wording); recommendations already excluded them; checkout has no "I understand" override and the send button is disabled; `place_order` still raises `allergen_conflict` on the server. |
 | USR-21, USR-22, USR-23, USR-49, USR-50 | Order reference `ORD-YYYY-NNNN`; delivery tracking number `TRK-YYYY-NNNN` shown separately | Pending |
 | USR-20, USR-21, USR-23 | "Returned for Changes": the user edits and resubmits after a double confirmation; the order goes back to the Dietitian | Pending |
 | USR-20 (payments) | GCash, Maya, COD, separate payment status, failed/cancelled/retry, transaction reference. Owner decision: COD orders may reach the Kitchen unpaid | Not started (large; payment not launching yet) |

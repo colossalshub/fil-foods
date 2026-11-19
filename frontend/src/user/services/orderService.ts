@@ -13,6 +13,11 @@ export const ORDER_MSG = {
   noSuggestions: 'No suggestions match your dietary information right now.',
   mealAllergen: (allergen: string, recipientName?: string | null) =>
     `This meal contains ${allergen}, which is listed in ${recipientName ? `${recipientName}'s profile` : 'your profile'}.`,
+  // USR-11 B / USR-12 (revised workbook): allergen meals are disabled with an explanation. New wording.
+  mealAllergenBlocked: (allergen: string, recipientName?: string | null) =>
+    `Unavailable: this meal contains ${allergen}, a recorded allergy in ${recipientName ? `${recipientName}'s profile` : 'your profile'}.`,
+  lineAllergenBlocked: (mealName: string, allergen: string, recipientName?: string | null) =>
+    `${mealName} cannot be ordered because it contains ${allergen}, a recorded allergy in ${recipientName ? `${recipientName}'s profile` : 'your profile'}. Remove it to continue.`,
   mealUnavailable: 'This meal is no longer available.',
   quantityInvalid: 'Quantity must be greater than zero.',
   addressRequired: 'Please enter a delivery address.',
@@ -553,7 +558,7 @@ export function collectOrderAllergenWarnings(
         mealId: row.meal.id,
         mealName: row.meal.name,
         allergen,
-        message: ORDER_MSG.lineAllergen(row.meal.name, allergen, recipientName),
+        message: ORDER_MSG.lineAllergenBlocked(row.meal.name, allergen, recipientName),
       });
     }
     const custom = customizationConflict(row.customization, profile);
@@ -661,8 +666,9 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
       : '';
     const warnings = collectOrderAllergenWarnings(lineItems, profile, recipientName);
-    if (warnings.length && !payload.allergenAcknowledged) {
-      return { ok: false, messages: warnings.map((w) => w.message), needsAcknowledgement: true };
+    // USR-11/12/35/39 (revised): a meal with a recorded allergen is blocked; no acknowledgement overrides it.
+    if (warnings.length) {
+      return { ok: false, messages: warnings.map((w) => w.message), allergenBlocked: true };
     }
 
     const totals = checkoutTotal(lineItems, payload.planId, user);

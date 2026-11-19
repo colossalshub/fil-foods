@@ -556,6 +556,7 @@ export interface ConfirmOrderPayload {
   items?: ConfirmOrderItem[];
   fulfillment: ConfirmFulfillment;
   now?: ScheduleInput;
+  /** Ignored since the revised workbook: allergen meals are always blocked. */
   allergenAcknowledged?: boolean;
   clientRequestId?: string | null;
   /** 'standard' (default) or a plan id from PLAN_PRICES (USR-20). */

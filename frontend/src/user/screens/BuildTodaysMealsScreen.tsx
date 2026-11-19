@@ -39,7 +39,8 @@ function MealChoice({ meal, selected, warnings, onPress, onRemove }: {
     <View style={[styles.card, selected && styles.cardSelected, warnings.length > 0 && styles.cardWarn]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ selected }}
+        accessibilityState={{ selected, disabled: warnings.length > 0 }}
+        disabled={warnings.length > 0}
         accessibilityLabel={`${meal.name}, ${meal.calories} Kcal, ${meal.price} pesos${warnings.length ? `, ${warnings.join(' ')}` : ''}`}
         onPress={onPress}
         style={styles.cardPress}
@@ -50,7 +51,7 @@ function MealChoice({ meal, selected, warnings, onPress, onRemove }: {
         <View style={styles.cardBody}>
           <Text style={styles.mealName}>{meal.name}</Text>
           <Text style={styles.mealMeta}>{meal.calories} Kcal · ₱{meal.price}</Text>
-          <Text style={styles.available}>Available</Text>
+          {warnings.length ? null : <Text style={styles.available}>Available</Text>}
           <Text style={styles.note}>{meal.note}</Text>
           {warnings.map((text) => (
             <Text key={text} style={styles.warning}>{text}</Text>
@@ -150,10 +151,11 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     const catalogItem = MENU_CATALOG.find((item) => item.id === meal.id);
     if (!catalogItem || !profile) return [];
     return profileAllergensInMeal(resolveMenuMeal(catalogItem), profile)
-      .map((allergen) => ORDER_MSG.mealAllergen(allergen, recipientName));
+      .map((allergen) => ORDER_MSG.mealAllergenBlocked(allergen, recipientName));
   };
 
   const selectMeal = (meal: TodayMeal) => {
+    if (warningsFor(meal).length) return;
     if (meal.customizable) {
       navigation.navigate('BuildMealCustomize', { todayMealId: meal.id, slot: meal.slot });
       return;

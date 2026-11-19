@@ -38,13 +38,17 @@ function MenuRow({ item, warnings, onPress }: {
   warnings: string[];
   onPress: () => void;
 }) {
-  const available = item.available;
+  // USR-11 B / USR-12 (revised): a meal with a recorded allergen is disabled, with the reason shown.
+  const blocked = warnings.length > 0;
+  const available = item.available && !blocked;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: blocked }}
       accessibilityLabel={`${item.name}, ${formatPeso(item.price ?? 300)}${available ? ', available' : ', not available'}${warnings.length ? `, ${warnings.join(' ')}` : ''}`}
       onPress={onPress}
-      style={styles.row}
+      disabled={blocked}
+      style={[styles.row, blocked && styles.rowBlocked]}
     >
       <View style={styles.rowMain}>
         <Text style={styles.rowName}>{item.name}</Text>
@@ -81,7 +85,7 @@ function groupBySection(rows: Row[]) {
  * Menu (USR-16, USR-12, USR-13, USR-17, USR-46): browse by meal time, search all
  * meals (OSA fuzzy search, USR-28 "Menu: browse and search meals"), filter with
  * the saved nutritional preferences, and rank by the meal recipient's
- * preferences with allergen meals listed last and warned.
+ * preferences. Meals with a recorded allergen are disabled and explained (revised USR-11/12).
  */
 export default function MealsScreen({ navigation }: {
   navigation: {
@@ -113,7 +117,7 @@ export default function MealsScreen({ navigation }: {
   }, [slot, query, searching, useGoals, hasGoals, profile]);
 
   const warningsFor = (meal: Meal) => (profile
-    ? profileAllergensInMeal(meal, profile).map((allergen) => ORDER_MSG.mealAllergen(allergen, recipientName))
+    ? profileAllergensInMeal(meal, profile).map((allergen) => ORDER_MSG.mealAllergenBlocked(allergen, recipientName))
     : []);
 
   const groups = useMemo(() => {
@@ -187,7 +191,7 @@ export default function MealsScreen({ navigation }: {
         ) : null}
 
         {profile && !searching ? (
-          <Text style={styles.hint}>{`${forWhom}: best matches first. Meals with a listed allergen are last.`}</Text>
+          <Text style={styles.hint}>{`${forWhom}: best matches first. Meals with a recorded allergen are disabled.`}</Text>
         ) : null}
         {useGoals && hasGoals ? <Text style={styles.hint}>Only matching meals are shown.</Text> : null}
 
@@ -223,6 +227,7 @@ const styles = StyleSheet.create({
   search: { marginTop: spacing.lg, marginBottom: spacing.sm },
   hint: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, marginBottom: spacing.sm },
   empty: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 22, color: colors.text, marginTop: spacing.lg, textAlign: 'center' },
+  rowBlocked: { opacity: 0.6 },
   warning: { fontFamily: fonts.semibold, marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.danger },
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.md },
   slot: {

@@ -38,6 +38,17 @@ test('meal allergen warning names the meal recipient on family accounts (USR-46)
   );
 });
 
+test('allergen meals are disabled with an explanation (revised USR-11 B)', () => {
+  assert.equal(
+    ORDER_MSG.mealAllergenBlocked('Peanuts', 'Lia Dizon'),
+    "Unavailable: this meal contains Peanuts, a recorded allergy in Lia Dizon's profile.",
+  );
+  assert.equal(
+    ORDER_MSG.mealAllergenBlocked('Peanuts', null),
+    'Unavailable: this meal contains Peanuts, a recorded allergy in your profile.',
+  );
+});
+
 test('fuzzy search ranks Chicken Tinola for common typos and partial names', () => {
   const tinola = MEALS.find((m) => m.name === 'Chicken Tinola');
   assert.ok(tinola);
@@ -282,7 +293,7 @@ test('confirmOrder is idempotent for the same cart and fulfillment', () => {
   assert.equal(getDb().orders.length, countAfter);
 });
 
-test('family recipient allergies are used for order warnings and the kitchen record', () => {
+test('family recipient allergies block allergen meals and reach the kitchen record', () => {
   resetStore();
   __testResetConfirmState();
   const user = getDb().users.find((item) => item.id === 'user-maria');
@@ -314,10 +325,16 @@ test('family recipient allergies are used for order warnings and the kitchen rec
   };
 
   const blocked = confirmOrder(user.id, payload);
-  assert.equal(blocked.needsAcknowledgement, true);
-  assert.match(blocked.messages[0], /Peanuts/);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.allergenBlocked, true);
+  assert.match(blocked.messages[0], /Chicken Satay cannot be ordered because it contains Peanuts/);
 
-  const placed = confirmOrder(user.id, { ...payload, allergenAcknowledged: true });
+  // Revised USR-11/12: acknowledging does not unlock an allergen meal.
+  const stillBlocked = confirmOrder(user.id, { ...payload, allergenAcknowledged: true });
+  assert.equal(stillBlocked.ok, false);
+
+  const tinola = MEALS.find((meal) => meal.name === 'Chicken Tinola');
+  const placed = confirmOrder(user.id, { ...payload, items: [{ meal: tinola, quantity: 1 }] });
   assert.equal(placed.ok, true);
   assert.deepEqual(placed.order.kitchenView.allergies, [{ name: 'Peanuts', note: 'Rash' }]);
   assert.deepEqual(placed.order.kitchenView.healthConditions, ['Diabetes']);

@@ -45,14 +45,15 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     ok: boolean;
     order?: Order | null;
     messages?: string[];
-    needsAcknowledgement?: boolean;
+    allergenBlocked?: boolean;
     placing?: boolean;
   }> => {
     if (!user?.id || !lineItems.length) {
       return { ok: false, messages: ['No meals selected.'] };
     }
-    if (warnings.length && !checkout.allergenAck) {
-      return { ok: false, needsAcknowledgement: true, messages: warnings.map((w) => w.message) };
+    // Revised USR-11/12: allergen meals cannot be ordered; there is no "I understand" override.
+    if (warnings.length) {
+      return { ok: false, allergenBlocked: true, messages: warnings.map((w) => w.message) };
     }
 
     const fulfillment = {
@@ -89,7 +90,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     let result: (ServiceResult & {
       order?: Order | null;
       placing?: boolean;
-      needsAcknowledgement?: boolean;
+      allergenBlocked?: boolean;
     }) | undefined;
     try {
       if (isSupabaseConfigured) {
@@ -145,7 +146,6 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           fulfillment,
           now: new Date(),
           clientRequestId: attemptRef.current.id || '',
-          allergenAcknowledged: checkout.allergenAck || warnings.length === 0,
           planId: checkout.planId,
         }) as NonNullable<typeof result>;
         if (result?.ok && checkout.planId !== 'standard') {
@@ -161,14 +161,13 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
 
     if (!result?.ok) {
       if (result?.placing) return { ok: false, placing: true };
-      if (result?.needsAcknowledgement) {
-        return { ok: false, needsAcknowledgement: true, messages: result.messages };
+      if (result?.allergenBlocked) {
+        return { ok: false, allergenBlocked: true, messages: result.messages };
       }
       return { ok: false, messages: result?.messages || [fieldError || 'Unable to place order.'] };
     }
 
     clearCart();
-    checkout.setAllergenAck(false);
     return { ok: true, order: result.order ?? null };
   };
 

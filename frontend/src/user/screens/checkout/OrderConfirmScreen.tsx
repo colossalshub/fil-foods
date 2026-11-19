@@ -51,11 +51,8 @@ export default function OrderConfirmScreen({ navigation }: {
 
   const onConfirm = async () => {
     const result = await placeOrder();
-    if (result.needsAcknowledgement) {
-      Alert.alert('Allergen warning', (result.messages || []).join('\n'), [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'I understand', onPress: () => { checkout.setAllergenAck(true); } },
-      ]);
+    if (result.allergenBlocked) {
+      Alert.alert('Allergy check', (result.messages || []).join('\n'));
       return;
     }
     if (!result.ok) {
@@ -103,16 +100,6 @@ export default function OrderConfirmScreen({ navigation }: {
         {warnings.map((w) => (
           <Text key={`${w.mealId}-${w.allergen}`} style={checkoutFlow.error}>{w.message}</Text>
         ))}
-        {warnings.length ? (
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: checkout.allergenAck }}
-            onPress={() => checkout.setAllergenAck(!checkout.allergenAck)}
-            style={{ marginTop: 8, minHeight: 48, justifyContent: 'center' }}
-          >
-            <Text style={checkoutFlow.line}>I understand the allergen warnings</Text>
-          </Pressable>
-        ) : null}
         {fieldError ? <Text style={checkoutFlow.error}>{fieldError}</Text> : null}
       </ScrollView>
 
@@ -121,8 +108,9 @@ export default function OrderConfirmScreen({ navigation }: {
           accessibilityRole="button"
           accessibilityLabel={CHECKOUT_MSG.confirmSend}
           onPress={onConfirm}
-          disabled={placing}
-          style={[checkoutFlow.primary, { marginTop: 0 }, placing && checkoutFlow.primaryDisabled]}
+          disabled={placing || warnings.length > 0}
+          accessibilityState={{ disabled: placing || warnings.length > 0 }}
+          style={[checkoutFlow.primary, { marginTop: 0 }, (placing || warnings.length > 0) && checkoutFlow.primaryDisabled]}
         >
           <Text style={checkoutFlow.primaryLabel}>{placing ? 'Sending…' : CHECKOUT_MSG.confirmSend}</Text>
         </Pressable>

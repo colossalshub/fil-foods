@@ -124,6 +124,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const nextLabel = upcoming ? `Next · Choose ${upcoming} →` : 'Save · Review today\'s meals';
 
   const onSave = () => {
+    if (allergens.length) return;
     const targetItem = chosenItem || MENU_CATALOG.find((item) => item.id === todayMeal.id);
     const mealForCart = targetItem ? resolveMenuMeal(targetItem) : catalogMeal;
     const cartMeal = { ...mealForCart, name: displayName, allergens: plate.allergens, ingredients: plate.ingredients };
@@ -189,7 +190,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
               <Text style={styles.allergyTitle}>Allergy check</Text>
               {allergens.map((item) => (
                 <Text key={item} style={styles.allergyText}>
-                  {ORDER_MSG.mealAllergen(item, recipientName)}
+                  {ORDER_MSG.mealAllergenBlocked(item, recipientName)}
                 </Text>
               ))}
             </View>
@@ -203,7 +204,9 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
           accessibilityRole="button"
           accessibilityLabel={upcoming ? `Next, choose ${upcoming}` : 'Save and review today\'s meals'}
           onPress={onSave}
-          style={styles.next}
+          disabled={allergens.length > 0}
+          accessibilityState={{ disabled: allergens.length > 0 }}
+          style={[styles.next, allergens.length > 0 && { opacity: 0.5 }]}
         >
           <Text style={styles.nextLabel}>{nextLabel}</Text>
         </Pressable>
