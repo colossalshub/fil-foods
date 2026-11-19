@@ -54,3 +54,6 @@ android/
 
 # Editor settings
 .vscode/
+
+# Supabase CLI temp files
+supabase/.temp/
