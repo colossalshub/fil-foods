@@ -14,6 +14,7 @@ import { spacing } from '../../theme/theme';
 import { formatScheduleSummary } from '../../components/scheduleValue';
 import { useMealProfile } from '../../hooks/useMealProfile';
 import { usePlaceOrder } from '../../hooks/usePlaceOrder';
+import { ORDERS_COPY } from '../../data/messages';
 
 export default function OrderConfirmScreen({ navigation }: {
   navigation: { navigate: (name: string, params?: object) => void; goBack: () => void };
@@ -49,7 +50,7 @@ export default function OrderConfirmScreen({ navigation }: {
     ? checkout.address
     : 'Pickup at F.I.L Foods counter';
 
-  const onConfirm = async () => {
+  const send = async () => {
     const result = await placeOrder();
     if (result.allergenBlocked) {
       Alert.alert('Allergy check', (result.messages || []).join('\n'));
@@ -60,6 +61,19 @@ export default function OrderConfirmScreen({ navigation }: {
       return;
     }
     navigation.navigate('OrderSubmitted', { order: result.order });
+  };
+
+  // Revised USR-23: resubmitting a returned order asks once more before it goes back to the Dietitian.
+  const onConfirm = () => {
+    if (!checkout.resubmitOrderId) {
+      send();
+      return;
+    }
+    const ref = checkout.resubmitOrderRef || '';
+    Alert.alert(ORDERS_COPY.resubmitConfirmTitle, ORDERS_COPY.resubmitConfirmBody(ref), [
+      { text: 'Cancel', style: 'cancel' },
+      { text: ORDERS_COPY.resubmitConfirm, onPress: () => { send(); } },
+    ]);
   };
 
   return (
@@ -94,7 +108,11 @@ export default function OrderConfirmScreen({ navigation }: {
         </View>
 
         <View style={checkoutFlow.notice}>
-          <Text style={checkoutFlow.noticeText}>{CHECKOUT_MSG.dietitianNotice}</Text>
+          <Text style={checkoutFlow.noticeText}>
+            {checkout.resubmitOrderId
+              ? ORDERS_COPY.resubmitBanner(checkout.resubmitOrderRef || '')
+              : CHECKOUT_MSG.dietitianNotice}
+          </Text>
         </View>
 
         {warnings.map((w) => (
@@ -112,7 +130,9 @@ export default function OrderConfirmScreen({ navigation }: {
           accessibilityState={{ disabled: placing || warnings.length > 0 }}
           style={[checkoutFlow.primary, { marginTop: 0 }, (placing || warnings.length > 0) && checkoutFlow.primaryDisabled]}
         >
-          <Text style={checkoutFlow.primaryLabel}>{placing ? 'Sending…' : CHECKOUT_MSG.confirmSend}</Text>
+          <Text style={checkoutFlow.primaryLabel}>
+            {placing ? 'Sending…' : checkout.resubmitOrderId ? ORDERS_COPY.resubmitAction : CHECKOUT_MSG.confirmSend}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"

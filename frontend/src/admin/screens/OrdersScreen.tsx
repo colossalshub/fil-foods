@@ -283,7 +283,7 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
         ) : null}
 
         {closed ? <Text style={{ color: colors.muted, textAlign: 'center' }}>{COPY.readOnlyOrder}</Text> : null}
-        {order.status === 'Cancelled' && order.reviewDecision === 'returned' && order.reviewReason ? (
+        {(order.status === 'Returned for Changes' || order.status === 'Cancelled') && order.reviewDecision === 'returned' && order.reviewReason ? (
           <Card><Text style={{ color: colors.text }}>Returned by the Dietitian: {order.reviewReason}</Text></Card>
         ) : null}
 

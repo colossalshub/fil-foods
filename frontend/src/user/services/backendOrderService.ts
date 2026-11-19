@@ -56,8 +56,11 @@ export async function placeOrderWithBackend({
   specialInstructions,
   items,
   planId,
+  resubmitOrderId,
 }: {
   planId?: string | null;
+  /** Revised USR-23: edit this Returned for Changes order instead of placing a new one. */
+  resubmitOrderId?: string | null;
   authSession?: AuthTokenSession | null;
   clientRequestId: string;
   fulfillmentType?: string | null;
@@ -113,15 +116,17 @@ export async function placeOrderWithBackend({
       : { meal_id: backendMealId, quantity: item.quantity };
   });
 
-  const { data, error } = await client.rpc('place_order', {
-    p_client_request_id: clientRequestId,
+  const common = {
     p_fulfillment_type: fulfillmentType === 'delivery' ? 'delivery' : 'pick_up',
     p_schedule: schedule,
     p_address: address || null,
     p_special_instructions: specialInstructions || null,
     p_items: backendItems,
     p_plan_id: planId && planId !== 'standard' ? planId : null,
-  }).setHeader('Authorization', authorization);
+  };
+  const { data, error } = resubmitOrderId
+    ? await client.rpc('resubmit_order', { p_order_id: resubmitOrderId, ...common }).setHeader('Authorization', authorization)
+    : await client.rpc('place_order', { p_client_request_id: clientRequestId, ...common }).setHeader('Authorization', authorization);
   if (error) throw new Error(backendOrderErrorMessage(error));
   return Array.isArray(data) ? data[0] : data;
 }
@@ -138,6 +143,8 @@ const ORDER_ERRORS: Record<string, string> = {
   lead_time: 'Please choose a time at least 24 hours from now.',
   kitchen_closed: 'The kitchen is closed at that time. Orders can be scheduled Monday to Saturday, 7:00 AM to 6:00 PM.',
   address_required: 'Please enter a delivery address.',
+  order_not_returned: 'This order was already resubmitted.',
+  order_not_found: 'This order is no longer available.',
   recipient_name_required: "Please enter the meal recipient's first and last name.",
   invalid_contact: 'Please enter a valid 11-digit contact number.',
 };

@@ -341,3 +341,41 @@ test('family recipient allergies block allergen meals and reach the kitchen reco
   assert.deepEqual(placed.order.kitchenView.allergies, [{ name: 'Peanuts', note: 'Rash' }]);
   assert.deepEqual(placed.order.kitchenView.healthConditions, ['Diabetes']);
 });
+
+test('a Returned for Changes order is edited in place and goes back to the Dietitian (revised USR-23)', () => {
+  resetStore();
+  __testResetConfirmState();
+  const tinola = MEALS.find((m) => m.name === 'Chicken Tinola');
+  const payload = {
+    items: [{ meal: tinola, quantity: 1 }],
+    fulfillment: { type: 'pickup', scheduledAt: new Date('2026-10-13T10:00:00'), instructions: '' },
+    now: SAMPLE_NOW,
+  };
+  const first = confirmOrder('user-maria', payload);
+  assert.equal(first.ok, true);
+  const id = first.order.id;
+  const ref = first.order.orderRef;
+
+  // Not yet returned: resubmitting is refused.
+  const early = confirmOrder('user-maria', { ...payload, instructions: 'x', resubmitOrderId: id });
+  assert.equal(early.ok, false);
+  assert.deepEqual(early.messages, [ORDER_MSG.alreadyResubmitted]);
+
+  first.order.status = 'Returned for Changes';
+  const count = getDb().orders.length;
+  const edited = confirmOrder('user-maria', {
+    ...payload,
+    fulfillment: { ...payload.fulfillment, instructions: 'Less rice please' },
+    resubmitOrderId: id,
+  });
+  assert.equal(edited.ok, true);
+  assert.equal(edited.message, ORDER_MSG.orderResubmitted);
+  assert.equal(edited.order.id, id);
+  assert.equal(edited.order.orderRef, ref);
+  assert.equal(edited.order.status, 'For Dietitian Review');
+  assert.equal(getDb().orders.length, count);
+
+  // Someone else's order or an unknown id cannot be resubmitted.
+  const other = confirmOrder('user-maria', { ...payload, resubmitOrderId: 'nope' });
+  assert.equal(other.ok, false);
+});

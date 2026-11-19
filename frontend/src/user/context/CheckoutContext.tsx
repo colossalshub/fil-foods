@@ -10,6 +10,9 @@ export interface CheckoutDraft {
   scheduleDate: Date | null;
   scheduleTime: Date | null;
   instructions: string;
+  /** Revised USR-23: the Returned for Changes order being edited, if any. */
+  resubmitOrderId: string | null;
+  resubmitOrderRef: string | null;
 }
 
 interface CheckoutValue extends CheckoutDraft {
@@ -19,6 +22,7 @@ interface CheckoutValue extends CheckoutDraft {
   setScheduleDate: (value: Date | null) => void;
   setScheduleTime: (value: Date | null) => void;
   setInstructions: (value: string) => void;
+  setResubmit: (orderId: string | null, orderRef?: string | null) => void;
   resetCheckout: () => void;
 }
 
@@ -29,6 +33,8 @@ const defaultDraft: CheckoutDraft = {
   scheduleDate: null,
   scheduleTime: null,
   instructions: '',
+  resubmitOrderId: null,
+  resubmitOrderRef: null,
 };
 
 const CheckoutContext = createContext<CheckoutValue | null>(null);
@@ -52,6 +58,7 @@ export function CheckoutProvider({ children }: { children?: ReactNode }) {
     setScheduleDate: (scheduleDate) => patch({ scheduleDate }),
     setScheduleTime: (scheduleTime) => patch({ scheduleTime }),
     setInstructions: (instructions) => patch({ instructions }),
+    setResubmit: (resubmitOrderId, resubmitOrderRef = null) => patch({ resubmitOrderId, resubmitOrderRef }),
     resetCheckout,
   }), [draft, patch, resetCheckout]);
 

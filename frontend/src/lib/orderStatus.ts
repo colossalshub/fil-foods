@@ -2,6 +2,8 @@
 
 export const CLIENT_ORDER_STATUS = {
   FOR_DIETITIAN_REVIEW: 'For Dietitian Review',
+  /** Revised USR-23 / DIT-15: the Dietitian asks for changes; the user edits and resubmits. */
+  RETURNED_FOR_CHANGES: 'Returned for Changes',
   AWAITING_PAYMENT: 'Awaiting Payment',
   PAID: 'Paid',
   PREPARING: 'Preparing',
@@ -22,6 +24,7 @@ export const TERMINAL_STATUSES: ClientOrderStatus[] = [
 
 export const DB_TO_CLIENT: Record<string, ClientOrderStatus> = {
   for_dietitian_review: CLIENT_ORDER_STATUS.FOR_DIETITIAN_REVIEW,
+  returned_for_changes: CLIENT_ORDER_STATUS.RETURNED_FOR_CHANGES,
   awaiting_payment: CLIENT_ORDER_STATUS.AWAITING_PAYMENT,
   paid: CLIENT_ORDER_STATUS.PAID,
   confirmed: CLIENT_ORDER_STATUS.CONFIRMED,
@@ -37,6 +40,7 @@ export const DB_TO_CLIENT: Record<string, ClientOrderStatus> = {
 
 export const CLIENT_TO_DB: Record<string, string> = {
   [CLIENT_ORDER_STATUS.FOR_DIETITIAN_REVIEW]: 'for_dietitian_review',
+  [CLIENT_ORDER_STATUS.RETURNED_FOR_CHANGES]: 'returned_for_changes',
   [CLIENT_ORDER_STATUS.AWAITING_PAYMENT]: 'awaiting_payment',
   [CLIENT_ORDER_STATUS.PAID]: 'paid',
   [CLIENT_ORDER_STATUS.CONFIRMED]: 'confirmed',
@@ -63,6 +67,7 @@ function keyFallback(status: string): string {
 
 export const STAFF_WORKFLOW_STATUSES: ClientOrderStatus[] = [
   CLIENT_ORDER_STATUS.FOR_DIETITIAN_REVIEW,
+  CLIENT_ORDER_STATUS.RETURNED_FOR_CHANGES,
   CLIENT_ORDER_STATUS.AWAITING_PAYMENT,
   CLIENT_ORDER_STATUS.PAID,
   CLIENT_ORDER_STATUS.PREPARING,

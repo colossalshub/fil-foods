@@ -1,5 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Alert, Pressable, View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import BackHeader from '../components/BackHeader';
@@ -7,6 +7,10 @@ import AppPageShell from '../components/AppPageShell';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import FormMessage from '../components/FormMessage';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useCheckout } from '../context/CheckoutContext';
+import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
+import type { DaySlot } from '../data/todayMenu';
 import { ORDERS_COPY } from '../data/messages';
 import { orderPartyLines } from '../domain/audience';
 import {
@@ -39,6 +43,7 @@ export default function OrderDetailScreen() {
     id?: string;
     orderRef?: string;
     trackingNumber?: string;
+    reviewReason?: string;
     status?: string;
     paymentStatusLabel?: string;
     placedDateLabel?: string;
@@ -107,6 +112,32 @@ export default function OrderDetailScreen() {
     }, [pollRefresh]),
   );
 
+  const { addItem, clearCart } = useCart();
+  const checkout = useCheckout();
+
+  /** Revised USR-23: back to the start of the order process with this order's meals pre-filled. */
+  const editAndResubmit = () => {
+    if (!order?.id) return;
+    clearCart();
+    checkout.resetCheckout();
+    checkout.setResubmit(order.id, order.orderRef || null);
+    if (order.fulfillment?.type) checkout.setFulfillmentType(order.fulfillment.type);
+    if (order.fulfillment?.type === 'delivery' && order.fulfillment.address) checkout.setAddress(order.fulfillment.address);
+    let missing = false;
+    for (const row of order.items || []) {
+      const item = MENU_CATALOG.find((entry) => entry.name === row.name && entry.slot === row.slot)
+        || MENU_CATALOG.find((entry) => entry.name === row.name);
+      if (!item || !item.available || row.customizationLabel) {
+        missing = true;
+        continue;
+      }
+      if (addItem(resolveMenuMeal(item), 1, undefined, { daySlot: item.slot as DaySlot, todayMealId: item.id })) missing = true;
+    }
+    (navigation.getParent() as { navigate: (name: string, params?: object) => void } | undefined)
+      ?.navigate('Meals', { screen: 'MealsList' });
+    if (missing) Alert.alert(ORDERS_COPY.editAndResubmit, ORDERS_COPY.resubmitMissingMeals);
+  };
+
   const partyLines = order
     ? orderPartyLines({
         accountFor: order.accountFor,
@@ -160,6 +191,22 @@ export default function OrderDetailScreen() {
                 </MetaLine>
               ))}
             </View>
+
+            {order.status === 'Returned for Changes' ? (
+              <View style={[styles.card, styles.returnedCard]}>
+                <Text style={styles.cardTitle} accessibilityRole="header">{ORDERS_COPY.returnedReasonLabel}</Text>
+                <Text style={styles.value}>{order.reviewReason || '—'}</Text>
+                <Text style={styles.metaLabel}>{ORDERS_COPY.progressReturnedForChanges}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={ORDERS_COPY.editAndResubmit}
+                  onPress={editAndResubmit}
+                  style={styles.resubmitButton}
+                >
+                  <Text style={styles.resubmitLabel}>{ORDERS_COPY.editAndResubmit}</Text>
+                </Pressable>
+              </View>
+            ) : null}
 
             <View style={styles.card}>
               <Text style={styles.cardTitle} accessibilityRole="header">Meals</Text>
@@ -226,6 +273,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
   card: { ...card, padding: spacing.lg, gap: spacing.md },
+  returnedCard: { borderWidth: 1, borderColor: colors.danger },
+  resubmitButton: {
+    minHeight: 48, borderRadius: radius.pill, backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg,
+  },
+  resubmitLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
   cardTitle: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.text },
   metaRow: { gap: 6 },
   metaLabel: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted },

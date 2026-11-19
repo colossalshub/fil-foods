@@ -27,6 +27,7 @@ export const TRACKING_MSG = {
 
 export const ORDER_STATUS = {
   FOR_DIETITIAN_REVIEW: 'For Dietitian Review',
+  RETURNED_FOR_CHANGES: 'Returned for Changes',
   AWAITING_PAYMENT: 'Awaiting Payment',
   PAID: 'Paid',
   CONFIRMED: 'Confirmed',
@@ -40,6 +41,7 @@ export const ORDER_STATUS = {
 
 const ALL_FILTER_STATUSES = [
   ORDER_STATUS.FOR_DIETITIAN_REVIEW,
+  ORDER_STATUS.RETURNED_FOR_CHANGES,
   ORDER_STATUS.AWAITING_PAYMENT,
   ORDER_STATUS.PAID,
   ORDER_STATUS.PREPARING,
@@ -52,6 +54,7 @@ const ALL_FILTER_STATUSES = [
 
 const STATUS_META: Record<string, { label: string; colorKey: string }> = {
   [ORDER_STATUS.FOR_DIETITIAN_REVIEW]: { label: 'For Dietitian Review', colorKey: 'warning' },
+  [ORDER_STATUS.RETURNED_FOR_CHANGES]: { label: 'Returned for Changes', colorKey: 'danger' },
   [ORDER_STATUS.AWAITING_PAYMENT]: { label: 'Awaiting Payment', colorKey: 'warning' },
   [ORDER_STATUS.PAID]: { label: 'Paid', colorKey: 'action' },
   [ORDER_STATUS.CONFIRMED]: { label: 'Confirmed', colorKey: 'muted' },
@@ -67,6 +70,7 @@ export const POLL_INTERVAL_MS = 4000;
 
 const BACKEND_STATUS: Record<string, string> = {
   for_dietitian_review: ORDER_STATUS.FOR_DIETITIAN_REVIEW,
+  returned_for_changes: ORDER_STATUS.RETURNED_FOR_CHANGES,
   awaiting_payment: ORDER_STATUS.AWAITING_PAYMENT,
   paid: ORDER_STATUS.PAID,
   confirmed: ORDER_STATUS.CONFIRMED,
@@ -81,6 +85,7 @@ const BACKEND_STATUS: Record<string, string> = {
 
 const PROGRESS_HINTS: Record<string, string> = {
   [ORDER_STATUS.FOR_DIETITIAN_REVIEW]: ORDERS_COPY.progressForDietitianReview,
+  [ORDER_STATUS.RETURNED_FOR_CHANGES]: ORDERS_COPY.progressReturnedForChanges,
   [ORDER_STATUS.AWAITING_PAYMENT]: ORDERS_COPY.progressAwaitingPayment,
   [ORDER_STATUS.PAID]: ORDERS_COPY.progressPaid,
   [ORDER_STATUS.CONFIRMED]: ORDERS_COPY.progressPaid,
@@ -93,6 +98,7 @@ const PROGRESS_HINTS: Record<string, string> = {
 
 const HISTORY_LABELS: Record<string, string> = {
   [ORDER_STATUS.FOR_DIETITIAN_REVIEW]: ORDERS_COPY.historySentToDietitian,
+  [ORDER_STATUS.RETURNED_FOR_CHANGES]: ORDERS_COPY.historyReturnedForChanges,
   [ORDER_STATUS.AWAITING_PAYMENT]: ORDERS_COPY.historyApprovedByDietitian,
   [ORDER_STATUS.PAID]: ORDERS_COPY.historyPaid,
   [ORDER_STATUS.CONFIRMED]: ORDERS_COPY.historySentToKitchen,
@@ -185,6 +191,7 @@ interface BackendOrder {
   client_id: string;
   order_ref?: string | null;
   tracking_number?: string | null;
+  review_reason?: string | null;
   status?: string;
   created_at?: string;
   updated_at?: string;
@@ -215,6 +222,7 @@ export function mapBackendOrder(order: BackendOrder): Order {
     userId: order.client_id,
     orderRef: orderRefOf({ orderRef: order.order_ref, trackingNumber: order.tracking_number }),
     trackingNumber: order.fulfillment_type === 'delivery' ? order.tracking_number || undefined : undefined,
+    reviewReason: order.review_reason || undefined,
     status: backendStatusLabel(order.status),
     placedAt: order.created_at,
     lastUpdatedAt: order.updated_at,
@@ -329,7 +337,7 @@ export function getStatusesForFulfillment(type: string | null | undefined) {
 }
 
 export function getOrderProgressSteps(order: Pick<Order, 'status' | 'fulfillment'>) {
-  if (order.status === ORDER_STATUS.CANCELLED) {
+  if (order.status === ORDER_STATUS.CANCELLED || order.status === ORDER_STATUS.RETURNED_FOR_CHANGES) {
     return [];
   }
   const timeline = getStatusesForFulfillment(order.fulfillment?.type || 'delivery');
@@ -410,6 +418,7 @@ function toDetail(order: Order) {
     id: order.id,
     orderRef: orderRefOf(order),
     trackingNumber: deliveryTrackingOf(order),
+    reviewReason: order.status === ORDER_STATUS.RETURNED_FOR_CHANGES ? order.reviewReason || '' : undefined,
     status: order.status,
     statusMeta: getStatusMeta(order.status),
     paymentStatusLabel: paymentStatusLabel(order.status),
@@ -733,7 +742,7 @@ export function payClientOrder(userId: string, orderId: string) {
 
 export function paymentStatusLabel(status: string) {
   if (status === ORDER_STATUS.CANCELLED) return ORDER_STATUS.CANCELLED;
-  if (status === ORDER_STATUS.FOR_DIETITIAN_REVIEW) return ORDERS_COPY.paymentPending;
+  if (status === ORDER_STATUS.FOR_DIETITIAN_REVIEW || status === ORDER_STATUS.RETURNED_FOR_CHANGES) return ORDERS_COPY.paymentPending;
   if (status === ORDER_STATUS.AWAITING_PAYMENT) return ORDER_STATUS.AWAITING_PAYMENT;
   return ORDER_STATUS.PAID;
 }

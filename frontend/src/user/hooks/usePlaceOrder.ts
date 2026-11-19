@@ -119,12 +119,15 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
             };
           }),
         };
+        const resubmitOrderId = checkout.resubmitOrderId;
         let backendOrder = await placeOrderWithBackend({
           ...payload,
           clientRequestId: attemptRef.current.id || '',
+          resubmitOrderId,
         });
         const createdAt = new Date(backendOrder?.created_at).getTime();
-        if (Number.isFinite(createdAt) && createdAt < Date.now() - 15000) {
+        // A resubmitted order keeps its original created_at, so it is never mistaken for a stale replay.
+        if (!resubmitOrderId && Number.isFinite(createdAt) && createdAt < Date.now() - 15000) {
           attemptRef.current = { id: createRequestId(), key: attemptKey };
           backendOrder = await placeOrderWithBackend({
             ...payload,
@@ -134,7 +137,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
         result = {
           ok: true,
           order: mapBackendOrder(backendOrder as Parameters<typeof mapBackendOrder>[0]),
-          message: ORDER_MSG.orderSuccess,
+          message: resubmitOrderId ? ORDER_MSG.orderResubmitted : ORDER_MSG.orderSuccess,
         };
         attemptRef.current = { id: null, key: '' };
         if (result?.ok && checkout.planId !== 'standard') {
@@ -147,6 +150,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           now: new Date(),
           clientRequestId: attemptRef.current.id || '',
           planId: checkout.planId,
+          resubmitOrderId: checkout.resubmitOrderId,
         }) as NonNullable<typeof result>;
         if (result?.ok && checkout.planId !== 'standard') {
           confirmChoosePlan(user.id, checkout.planId as 'weekly' | 'monthly' | 'yearly');
@@ -168,6 +172,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     }
 
     clearCart();
+    checkout.setResubmit(null, null);
     return { ok: true, order: result.order ?? null };
   };
 

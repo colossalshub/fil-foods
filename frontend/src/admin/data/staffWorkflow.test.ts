@@ -70,11 +70,11 @@ test('full lifecycle: dietitian → payment → kitchen → admin assign → del
   assert.ok(getAdminDb().auditLog.some((e) => e.action === 'order.review'));
 });
 
-test('returned order is cancelled with the reason', async () => {
+test('returned order is Returned for Changes with the reason', async () => {
   const result = await reviewOrderAsync(dietitian, '00350', false, 'Contains shellfish; choose another meal.');
   assert.equal(result.ok, true);
   const row = orderFor(admin, '00350');
-  assert.equal(row?.status, 'Cancelled');
+  assert.equal(row?.status, 'Returned for Changes');
   assert.equal(row?.reviewDecision, 'returned');
   assert.equal(row?.reviewReason, 'Contains shellfish; choose another meal.');
   assert.equal(orderFor(kitchen, '00350'), null);

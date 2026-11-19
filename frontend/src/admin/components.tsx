@@ -305,6 +305,7 @@ export function FilterChips({
 
 const BADGE: Record<OrderStatus, { bg: string; fg: string }> = {
   'For Dietitian Review': { bg: '#FFDDBF', fg: '#8A4B12' },
+  'Returned for Changes': { bg: '#FBD3D3', fg: '#8C1D1D' },
   'Awaiting Payment': { bg: '#FFE8A3', fg: '#7A5B00' },
   Paid: { bg: '#CDE9FF', fg: '#1456A0' },
   Confirmed: { bg: '#B8E0CF', fg: '#0D5C36' },

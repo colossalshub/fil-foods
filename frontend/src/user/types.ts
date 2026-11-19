@@ -292,6 +292,8 @@ export interface Order {
   orderRef?: string;
   /** TRK-YYYY-NNNN delivery tracking number; delivery orders only (revised USR-13 AC 5). */
   trackingNumber?: string;
+  /** The Dietitian's reason when the order is Returned for Changes (revised USR-23). */
+  reviewReason?: string;
   status: string;
   statusHistory: OrderStatusChange[];
   lastUpdatedAt?: string;
@@ -565,4 +567,6 @@ export interface ConfirmOrderPayload {
   clientRequestId?: string | null;
   /** 'standard' (default) or a plan id from PLAN_PRICES (USR-20). */
   planId?: string | null;
+  /** Revised USR-23: replaces the meals of this Returned for Changes order instead of placing a new one. */
+  resubmitOrderId?: string | null;
 }

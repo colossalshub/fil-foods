@@ -226,8 +226,41 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1
 select public.dietitian_review_order(:'order2', false, 'Swap the dessert for fruit.') is not null as returned;
 commit;
 select pg_temp.check((select status::text || '|' || review_decision || '|' || review_reason from public.orders where id = :'order2')
-  = 'cancelled|returned|Swap the dessert for fruit.', 'returned order records decision and reason');
+  = 'returned_for_changes|returned|Swap the dessert for fruit.', 'returned order is Returned for Changes with decision and reason');
 select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order2' and body like '%Swap the dessert for fruit.%'), 'user is told the reason');
+select pg_temp.check(public.order_status_label('returned_for_changes') = 'Returned for Changes', 'exact status label');
+
+-- USR-23 (revised): the user edits and resubmits; it goes back to the Dietitian ----------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true);
+select pg_temp.expect_error($$select public.resubmit_order('$$ || :'order2' || $$', 'pick_up', '$$ || :'slot2' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'meal_id' || $$', 'quantity', 1)))$$, 'order_not_found');
+commit;
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
+select pg_temp.expect_error($$select public.resubmit_order('$$ || :'order2' || $$', 'pick_up', '$$ || :'slot2' || $$', null, null, '[]'::jsonb)$$, 'items_required');
+select public.resubmit_order(:'order2', 'delivery', :'slot2'::timestamptz, '42 Maharlika St, Quezon City', 'Leave at the gate',
+  jsonb_build_array(jsonb_build_object('meal_id', :'meal_id', 'quantity', 1))) is not null as resubmitted;
+select pg_temp.expect_error($$select public.resubmit_order('$$ || :'order2' || $$', 'pick_up', '$$ || :'slot2' || $$', null, null,
+  jsonb_build_array(jsonb_build_object('meal_id', '$$ || :'meal_id' || $$', 'quantity', 1)))$$, 'order_not_returned');
+commit;
+select pg_temp.check((select status::text || '|' || coalesce(review_decision, '-') || '|' || coalesce(review_reason, '-') || '|' || fulfillment_type::text
+  from public.orders where id = :'order2') = 'for_dietitian_review|-|-|delivery', 'resubmitted order is back For Dietitian Review with the edits');
+select pg_temp.check((select tracking_number = 'TRK-' || substr(order_ref, 5) from public.orders where id = :'order2'),
+  'switching to delivery gives the order its TRK- number; the ORD- reference is kept');
+select pg_temp.check((select count(*) from public.order_items where order_id = :'order2') = 1, 'items are replaced, not added');
+select pg_temp.check((select array_agg(status::text order by changed_at, status::text) from public.order_status_history where order_id = :'order2')
+  @> array['for_dietitian_review', 'returned_for_changes'], 'history keeps the return and the resubmission');
+select pg_temp.check(exists (select 1 from public.staff_notifications n join public.profiles p on p.id = n.recipient_id
+  where p.role = 'dietitian_staff' and n.order_id = :'order2' and n.body = 'The customer edited and resubmitted this order.'), 'the Dietitian is asked to review again');
+select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order2' and title = 'Order resubmitted'), 'user sees the resubmission');
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
+select public.dietitian_review_order(:'order2', true, null) is not null as approved_after_resubmit;
+commit;
 
 -- DIT-17 removal requests ---------------------------------------------------------------
 begin;

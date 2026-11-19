@@ -7,6 +7,7 @@ import { getUser } from './authService.js';
 import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } from './profileService.js';
 import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
 import { ORDER_REF_PREFIX, TRACKING_PREFIX, formatOrderRef, orderRefOf } from '../domain/orderReference.js';
+import { CLIENT_ORDER_STATUS } from '../../lib/orderStatus.js';
 export { solveNutritionPlan } from './nutritionService.js';
 
 export const ORDER_MSG = {
@@ -28,6 +29,8 @@ export const ORDER_MSG = {
   kitchenClosed:
     'The kitchen is closed at that time. Orders can be scheduled Monday to Saturday, 7:00 AM to 6:00 PM.',
   orderSuccess: 'Order placed successfully.',
+  orderResubmitted: 'Order resubmitted for Dietitian review.',
+  alreadyResubmitted: 'This order was already resubmitted.',
   placingOrder: 'Placing your order...',
   lineAllergen: (mealName: string, allergen: string, recipientName?: string | null) =>
     `${mealName} contains ${allergen}, which is listed in ${recipientName ? `${recipientName}'s profile` : 'your profile'}.`,
@@ -603,6 +606,7 @@ function confirmFingerprint(userId: string, payload: ConfirmOrderPayload) {
     address: payload.fulfillment.address || '',
     scheduledAt: payload.fulfillment.scheduledAt,
     instructions: payload.fulfillment.instructions || '',
+    resubmit: payload.resubmitOrderId || '',
   });
 }
 
@@ -612,9 +616,19 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
 
   const key = confirmFingerprint(userId, payload);
   const orders = ensureOrdersArray();
+  // Revised USR-23: a Returned for Changes order is edited in place and keeps its reference.
+  const resubmitTarget = payload.resubmitOrderId
+    ? orders.find((o) => o.id === payload.resubmitOrderId && o.userId === userId)
+    : undefined;
+  if (payload.resubmitOrderId && !resubmitTarget) {
+    return { ok: false, messages: ['This order is no longer available.'] };
+  }
   const existing = orders.find((o) => o.clientConfirmKey === key && o.userId === userId);
   if (existing) {
     return { ok: true, order: existing, message: ORDER_MSG.orderSuccess, duplicate: true };
+  }
+  if (resubmitTarget && resubmitTarget.status !== CLIENT_ORDER_STATUS.RETURNED_FOR_CHANGES) {
+    return { ok: false, messages: [ORDER_MSG.alreadyResubmitted] };
   }
 
   if (inFlightConfirm.has(key)) {
@@ -675,7 +689,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
 
     const totals = checkoutTotal(lineItems, payload.planId, user);
     const placedIso = payload.now ? parseScheduleDate(payload.now)?.toISOString() || stamp() : stamp();
-    const orderRef = nextOrderRef();
+    const orderRef = resubmitTarget ? orderRefOf(resubmitTarget) : nextOrderRef();
     const order = {
       id: nextId('order'),
       userId,
@@ -720,6 +734,24 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       kitchenView,
     };
 
+    if (resubmitTarget) {
+      Object.assign(resubmitTarget, {
+        ...order,
+        id: resubmitTarget.id,
+        placedAt: resubmitTarget.placedAt,
+        reviewReason: undefined,
+        statusHistory: [...(resubmitTarget.statusHistory || []), { status: CLIENT_ORDER_STATUS.FOR_DIETITIAN_REVIEW, at: placedIso }],
+      });
+      appendAuditEvent(getDb(), {
+        action: 'record.updated',
+        userId,
+        targetId: resubmitTarget.id,
+        metadata: { type: 'order', orderRef, resubmitted: true },
+        at: placedIso,
+      });
+      inFlightConfirm.set(key, { order: resubmitTarget, placing: false });
+      return { ok: true, order: resubmitTarget, message: ORDER_MSG.orderResubmitted, duplicate: false };
+    }
     orders.push(order);
     appendAuditEvent(getDb(), {
       action: 'record.created',

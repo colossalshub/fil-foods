@@ -975,7 +975,8 @@ export async function reviewOrderAsync(actor: Actor, orderId: string, approve: b
     await syncStaffData(actor);
     await loadOrderDetail(orderId);
   } else {
-    const target: OrderStatus = approve ? 'Awaiting Payment' : 'Cancelled';
+    // Revised DIT-15 / USR-23: a return is Returned for Changes, not a cancellation.
+    const target: OrderStatus = approve ? 'Awaiting Payment' : 'Returned for Changes';
     order.reviewDecision = approve ? 'approved' : 'returned';
     order.reviewReason = approve ? (note || null) : note;
     const from = order.status;
