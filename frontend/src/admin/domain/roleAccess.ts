@@ -77,6 +77,12 @@ export function detailStatusLabel(role: StaffRole, status: OrderStatus): string 
   return status;
 }
 
+const DELIVERY_VISIBLE: OrderStatus[] = [
+  CLIENT_ORDER_STATUS.READY_DELIVERY,
+  CLIENT_ORDER_STATUS.OUT_FOR_DELIVERY,
+  CLIENT_ORDER_STATUS.COMPLETED,
+];
+
 const KITCHEN_VISIBLE: OrderStatus[] = [
   CLIENT_ORDER_STATUS.PAID,
   CLIENT_ORDER_STATUS.CONFIRMED,
@@ -94,10 +100,12 @@ export function canSeeOrder(role: StaffRole, staffId: string, order: AdminOrder)
     case 'dietitian':
       return true;
     case 'kitchen':
-      return KITCHEN_VISIBLE.includes(order.status)
-        || (order.status === CLIENT_ORDER_STATUS.CANCELLED && !!order.wasPaid);
+      // KIT-11 AC 2 (revised): confirmed payment only (COD exception arrives with payments).
+      return (KITCHEN_VISIBLE.includes(order.status) || order.status === CLIENT_ORDER_STATUS.CANCELLED) && !!order.wasPaid;
     case 'delivery':
-      return (order.fulfillment ?? 'delivery') === 'delivery' && order.assigneeId === staffId;
+      // DEL-11 AC 2 (revised): assigned to this staff member and Ready for Pickup or later.
+      return (order.fulfillment ?? 'delivery') === 'delivery' && order.assigneeId === staffId
+        && DELIVERY_VISIBLE.includes(order.status);
     default:
       return false;
   }

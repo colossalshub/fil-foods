@@ -93,6 +93,9 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
 select pg_temp.check(jsonb_array_length(public.staff_orders()) = 0, 'kitchen cannot see unpaid orders');
 select pg_temp.check((select count(*) from public.orders) = 0, 'kitchen cannot read orders table directly');
+-- KIT-12 AC 4 (revised): the Kitchen cannot prepare an order without confirmed payment.
+select pg_temp.expect_error($$select public.transition_order_status('$$ || :'order_id' || $$', 'preparing')$$, 'payment_not_confirmed');
+select pg_temp.expect_error($$select public.staff_order_detail('$$ || :'order_id' || $$')$$, 'order_not_found');
 commit;
 begin;
 set local role authenticated;
@@ -137,6 +140,14 @@ select pg_temp.check((public.staff_order_detail(:'order_id') -> 'delivery' ->> '
 select pg_temp.check(jsonb_array_length(public.staff_customers()) = 1, 'admin customer list has only clients');
 select pg_temp.check(exists (select 1 from jsonb_array_elements(public.admin_audit_log(50)) e where e ->> 'event_type' = 'menu.update'), 'menu change by kitchen is in the audit log');
 select pg_temp.expect_error($$select public.dietitian_removal_requests('pending')$$, 'not_authorized');
+commit;
+
+-- DEL-11 AC 2 (revised): assigned, but not Ready for Pickup yet -> not in Mark's queue ------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e2', true);
+select pg_temp.check(jsonb_array_length(public.staff_orders()) = 0, 'delivery staff do not see assigned orders before Ready for Pickup');
+select pg_temp.expect_error($$select public.transition_order_status('$$ || :'order_id' || $$', 'out_for_delivery')$$, 'order_not_ready');
 commit;
 
 -- Kitchen marks ready -> Mark notified; Ana cannot see it ---------------------------------

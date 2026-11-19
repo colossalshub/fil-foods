@@ -66,9 +66,12 @@ test('visibility follows staff_can_see_order', () => {
   assert.equal(canSeeOrder('kitchen', 'k', order({ status: 'Paid' })), true);
   assert.equal(canSeeOrder('kitchen', 'k', order({ status: 'Cancelled', wasPaid: false })), false);
   assert.equal(canSeeOrder('kitchen', 'k', order({ status: 'Cancelled', wasPaid: true })), true);
-  assert.equal(canSeeOrder('delivery', 'd1', order({})), true);
-  assert.equal(canSeeOrder('delivery', 'd2', order({})), false);
-  assert.equal(canSeeOrder('delivery', 'd1', order({ fulfillment: 'pick_up' })), false);
+  assert.equal(canSeeOrder('kitchen', 'k', order({ status: 'Confirmed', wasPaid: false })), false);
+  assert.equal(canSeeOrder('delivery', 'd1', order({})), false);
+  assert.equal(canSeeOrder('delivery', 'd1', order({ status: 'Ready for Delivery' })), true);
+  assert.equal(canSeeOrder('delivery', 'd1', order({ status: 'Out for Delivery' })), true);
+  assert.equal(canSeeOrder('delivery', 'd2', order({ status: 'Ready for Delivery' })), false);
+  assert.equal(canSeeOrder('delivery', 'd1', order({ status: 'Ready for Delivery', fulfillment: 'pick_up' })), false);
   assert.equal(canSeeOrder('dietitian', 'x', order({ status: 'For Dietitian Review' })), true);
 });
 

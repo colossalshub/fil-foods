@@ -45,6 +45,10 @@ const MESSAGES: Record<string, string> = {
   already_decided: 'This request has already been decided.',
   already_reviewed: 'This order has already been reviewed.',
   not_assigned: 'This order is not assigned to you.',
+  // Revised KIT-12 AC 4 / DEL-17 AC 5 (new wording).
+  payment_not_confirmed: 'This order cannot be prepared until its payment is confirmed.',
+  order_not_ready: 'This order is not Ready for Pickup yet.',
+  meal_not_found: 'Menu item not found.',
   role_cannot_transition: 'This status change is not allowed for your role.',
   invalid_status_transition: 'That status change is not allowed for this order.',
   not_delivery_staff: 'Choose a delivery staff member.',

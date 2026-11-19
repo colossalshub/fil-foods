@@ -52,10 +52,13 @@ test('full lifecycle: dietitian → payment → kitchen → admin assign → del
   // Admin assigns Mark; Ana can't see it.
   assert.equal((await assignDeliveryAsync(admin, '00350', 'staff-mark')).ok, true);
   assert.equal(orderFor(ana, '00350'), null);
-  assert.equal(orderFor(mark, '00350')?.status, 'Preparing');
+  // DEL-11 AC 2 (revised): not in Mark's queue until it is Ready for Pickup.
+  assert.equal(orderFor(mark, '00350'), null);
+  assert.equal((await setOrderStatusAsync(mark, '00350', 'Out for Delivery')).ok, false);
   const markNotices = noticesFor('delivery', 'staff-mark').length;
   assert.equal((await setOrderStatusAsync(kitchen, '00350', 'Ready for Delivery')).ok, true);
   assert.equal(noticesFor('delivery', 'staff-mark').length, markNotices + 1);
+  assert.equal(orderFor(mark, '00350')?.status, 'Ready for Delivery');
   assert.equal(noticesFor('delivery', 'staff-ana').some((n) => n.orderId === '00350'), false);
 
   // Delivery (DEL-17).
