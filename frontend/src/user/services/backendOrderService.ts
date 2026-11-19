@@ -1,5 +1,7 @@
 import type { AuthTokenSession } from '../types.js';
 import { ensureSession, requireSupabase } from '../../lib/supabaseClient.js';
+import { cleanSpecialRequest } from '../domain/specialRequest.js';
+import { SPECIAL_REQUEST_COPY } from '../data/messages.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -8,6 +10,7 @@ export interface PlaceOrderLineItem {
   mealName?: string;
   mealCategory?: string;
   quantity: number;
+  specialRequest?: { options: string[]; note: string } | null;
 }
 
 interface BackendMealLookupRow {
@@ -111,9 +114,11 @@ export async function placeOrderWithBackend({
     if (!backendMealId || !UUID_RE.test(backendMealId)) {
       throw new Error(`Meal "${item.mealName || item.mealId}" is not available in the backend catalog.`);
     }
-    return item.mealCategory
+    const request = cleanSpecialRequest(item.specialRequest);
+    const line = item.mealCategory
       ? { meal_id: backendMealId, quantity: item.quantity, meal_time: item.mealCategory }
       : { meal_id: backendMealId, quantity: item.quantity };
+    return request ? { ...line, special_request: request } : line;
   });
 
   const common = {
@@ -145,6 +150,8 @@ const ORDER_ERRORS: Record<string, string> = {
   address_required: 'Please enter a delivery address.',
   order_not_returned: 'This order was already resubmitted.',
   order_not_found: 'This order is no longer available.',
+  special_request_too_long: SPECIAL_REQUEST_COPY.tooLong,
+  special_request_allergen: SPECIAL_REQUEST_COPY.allergen,
   recipient_name_required: "Please enter the meal recipient's first and last name.",
   invalid_contact: 'Please enter a valid 11-digit contact number.',
 };

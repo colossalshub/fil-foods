@@ -14,6 +14,8 @@ import { confirmChoosePlan, setPendingPlanPeriod } from '../services/planService
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { placeOrderWithBackend, saveMealRecipientWithBackend } from '../services/backendOrderService.js';
 import { mapBackendOrder } from '../services/trackingService.js';
+import { orderCatalogIdentity } from '../domain/readyMeals.js';
+import { specialRequestLabel } from '../domain/specialRequest.js';
 import { combineSchedule } from '../components/scheduleValue';
 import type { MealMatchProfile } from '../types';
 
@@ -35,6 +37,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     meal: row.meal,
     quantity: row.quantity,
     customization: row.customization,
+    specialRequest: row.specialRequest,
   }));
 
   const warnings = profile
@@ -76,7 +79,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     }
 
     const attemptKey = JSON.stringify({
-      items: lineItems.map((row) => [row.meal.id, String(row.quantity)]),
+      items: lineItems.map((row) => [row.meal.id, String(row.quantity), specialRequestLabel(row.specialRequest)]),
       type: fulfillment.type,
       address: fulfillment.address,
       scheduledAt: fulfillment.scheduledAt,
@@ -111,11 +114,13 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           specialInstructions: fulfillment.instructions,
           items: lineItems.map((row) => {
             const parsed = parseQuantityInput(row.quantity);
+            const catalog = orderCatalogIdentity(row.meal);
             return {
-              mealId: row.meal.id,
-              mealName: row.meal.name,
+              mealId: catalog.mealId,
+              mealName: catalog.mealName,
               mealCategory: row.meal.category,
               quantity: parsed.ok ? parsed.value : 0,
+              specialRequest: row.specialRequest,
             };
           }),
         };

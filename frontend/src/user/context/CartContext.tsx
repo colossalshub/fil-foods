@@ -2,7 +2,7 @@ import {
   createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import type { DaySlot } from '../data/todayMenu';
-import type { Meal, MealCustomization } from '../types';
+import type { Meal, MealCustomization, SpecialRequest } from '../types';
 import { addCartLine } from './cartRules';
 
 import type { AddCartItemOptions, CartItem } from './cartRules';
@@ -21,6 +21,8 @@ interface CartValue {
   removeItem: (mealId: string) => void;
   /** Clears the meal chosen for one meal time (every meal time is optional). */
   removeSlot: (daySlot: DaySlot) => void;
+  /** USR-51. Replaces the special request on the meal already chosen for that meal time. */
+  setSpecialRequest: (daySlot: DaySlot, request: SpecialRequest | null) => void;
   clearCart: () => void;
   itemCount: number;
 }
@@ -31,6 +33,7 @@ const CartContext = createContext<CartValue>({
   updateQuantity: () => {},
   removeItem: () => {},
   removeSlot: () => {},
+  setSpecialRequest: () => {},
   clearCart: () => {},
   itemCount: 0,
 });
@@ -69,6 +72,10 @@ export function CartProvider({ children }: { children?: ReactNode }) {
     setItems((prev) => prev.filter((row) => row.daySlot !== daySlot));
   }, [setItems]);
 
+  const setSpecialRequest = useCallback((daySlot: DaySlot, request: SpecialRequest | null) => {
+    setItems((prev) => prev.map((row) => (row.daySlot === daySlot ? { ...row, specialRequest: request || undefined } : row)));
+  }, [setItems]);
+
   const clearCart = useCallback(() => setItems(() => []), [setItems]);
 
   const itemCount = useMemo(
@@ -78,9 +85,9 @@ export function CartProvider({ children }: { children?: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      items, addItem, updateQuantity, removeItem, removeSlot, clearCart, itemCount,
+      items, addItem, updateQuantity, removeItem, removeSlot, setSpecialRequest, clearCart, itemCount,
     }),
-    [items, addItem, updateQuantity, removeItem, removeSlot, clearCart, itemCount],
+    [items, addItem, updateQuantity, removeItem, removeSlot, setSpecialRequest, clearCart, itemCount],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

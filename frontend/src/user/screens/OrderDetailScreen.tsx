@@ -16,6 +16,7 @@ import { orderPartyLines } from '../domain/audience';
 import {
   TRACKING_MSG,
   POLL_INTERVAL_MS,
+  customerFacingStatus,
   refreshClientOrder,
   refreshBackendOrder,
 } from '../services/trackingService';
@@ -47,7 +48,14 @@ export default function OrderDetailScreen() {
     status?: string;
     paymentStatusLabel?: string;
     placedDateLabel?: string;
-    items?: { slot: string; name: string; lineTotalLabel?: string; customizationLabel?: string }[];
+    items?: {
+      slot: string;
+      name: string;
+      lineTotalLabel?: string;
+      customizationLabel?: string;
+      specialRequestLabel?: string;
+      specialRequestFeeLabel?: string;
+    }[];
     accountFor?: 'self' | 'family';
     orderedByName?: string;
     mealRecipientName?: string;
@@ -177,7 +185,7 @@ export default function OrderDetailScreen() {
                 </MetaLine>
               ) : null}
               <MetaLine label={ORDERS_COPY.status}>
-                <OrderStatusBadge status={order.status || ''} variant="outline" />
+                <OrderStatusBadge status={customerFacingStatus(order.status || '')} variant="outline" />
               </MetaLine>
               <MetaLine label={ORDERS_COPY.date}>
                 <Text style={styles.value}>{order.placedDateLabel}</Text>
@@ -218,6 +226,9 @@ export default function OrderDetailScreen() {
                       {row.name}
                       {row.customizationLabel ? ` (${row.customizationLabel})` : ''}
                     </Text>
+                    {row.specialRequestLabel ? (
+                      <Text style={styles.metaLabel}>{`${row.specialRequestLabel}${row.specialRequestFeeLabel ? ` · ${row.specialRequestFeeLabel}` : ''}`}</Text>
+                    ) : null}
                   </View>
                   <Text style={styles.mealPrice}>{row.lineTotalLabel}</Text>
                 </View>
@@ -271,7 +282,7 @@ export default function OrderDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl, gap: spacing.lg },
   card: { ...card, padding: spacing.lg, gap: spacing.md },
   returnedCard: { borderWidth: 1, borderColor: colors.danger },
   resubmitButton: {
@@ -302,7 +313,7 @@ const styles = StyleSheet.create({
   amountValue: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary },
   fulfillmentBox: {
     borderWidth: 2,
-    borderColor: '#9BBF9A',
+    borderColor: colors.border,
     borderRadius: radius.md,
     backgroundColor: colors.mint,
     padding: spacing.lg,

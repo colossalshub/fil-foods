@@ -41,7 +41,7 @@ const Stack = createNativeStackNavigator();
 // Sign-up confirmation and password-reset emails link back here (USR-01/USR-04).
 if (isSupabaseConfigured) configureAuthRedirect(authRedirectUrl());
 
-const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.background, primary: colors.primary } };
+const navTheme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: colors.page, primary: colors.primary } };
 
 export default function RootNavigator() {
   const [user, setUser] = useState<AuthUser | PublicUser | null>(null);

@@ -6,7 +6,7 @@ const edge = 20;
 const block = spacing.xl;
 
 export const checkoutFlow = StyleSheet.create({
-  scroll: { paddingHorizontal: edge, paddingTop: edge, paddingBottom: spacing.xxl },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl },
   title: { ...type.pageTitle },
   lead: { fontFamily: fonts.regular, marginTop: spacing.sm, fontSize: font.body, lineHeight: 22, color: colors.muted },
   card: {
@@ -52,8 +52,8 @@ export const checkoutFlow = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   primaryLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
-  primaryDisabled: { backgroundColor: '#E4E8E4' },
-  primaryLabelDisabled: { color: '#8A9A90' },
+  primaryDisabled: { backgroundColor: colors.soft },
+  primaryLabelDisabled: { color: colors.inactive },
   outline: {
     marginTop: spacing.md,
     minHeight: 52,
@@ -85,12 +85,12 @@ export const checkoutFlow = StyleSheet.create({
   notice: {
     marginTop: spacing.lg,
     borderWidth: 1,
-    borderColor: '#9BBF9A',
-    backgroundColor: colors.mint,
+    borderColor: colors.border,
+    backgroundColor: colors.soft,
     borderRadius: radius.lg,
     padding: spacing.lg,
   },
-  noticeText: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 22, color: '#1F6B45' },
+  noticeText: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.primary },
   statusIcon: {
     width: 72,
     height: 72,
@@ -101,7 +101,7 @@ export const checkoutFlow = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
-  statusIconPending: { backgroundColor: '#F6E7B4' },
+  statusIconPending: { backgroundColor: colors.accent },
   statusIconOk: { backgroundColor: colors.mintStrong },
   badge: {
     alignSelf: 'flex-start',
@@ -110,10 +110,10 @@ export const checkoutFlow = StyleSheet.create({
     paddingVertical: 4,
     marginTop: spacing.sm,
   },
-  badgeWarn: { backgroundColor: '#F6E7B4' },
-  badgeOk: { backgroundColor: colors.mintStrong },
-  badgeText: { fontFamily: fonts.bold, fontSize: font.sm, color: '#5C4D12' },
-  badgeTextOk: { color: '#2F6A45' },
+  badgeWarn: { backgroundColor: colors.accent },
+  badgeOk: { backgroundColor: colors.soft },
+  badgeText: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.heading },
+  badgeTextOk: { color: colors.primary },
   input: {
     fontFamily: fonts.regular,
     minHeight: control.minHeight,
@@ -130,7 +130,7 @@ export const checkoutFlow = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     borderWidth: 2,
-    borderColor: '#9BBF9A',
+    borderColor: colors.border,
     padding: spacing.lg,
   },
   fulfillmentTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
@@ -155,7 +155,7 @@ export const checkoutFlow = StyleSheet.create({
     paddingHorizontal: edge,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
-    backgroundColor: colors.authPage,
+    backgroundColor: colors.page,
   },
   footnote: {
     fontFamily: fonts.regular,
@@ -205,7 +205,7 @@ export const checkoutFlow = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#C5CDC4',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
@@ -317,7 +317,7 @@ export const checkoutFlow = StyleSheet.create({
     gap: spacing.md,
   },
   mealLeft: { flex: 1, gap: spacing.xs },
-  mealSlot: { fontFamily: fonts.semibold, fontSize: font.sm, color: colors.muted, lineHeight: 18 },
+  mealSlot: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.muted, lineHeight: 24 },
   mealName: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading, lineHeight: 22 },
   mealPrice: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading, lineHeight: 22 },
   summaryFulfillment: {
@@ -325,7 +325,7 @@ export const checkoutFlow = StyleSheet.create({
     backgroundColor: colors.mint,
     borderRadius: radius.md,
     borderWidth: 2,
-    borderColor: '#9BBF9A',
+    borderColor: colors.border,
     padding: spacing.lg,
     gap: spacing.xs,
   },

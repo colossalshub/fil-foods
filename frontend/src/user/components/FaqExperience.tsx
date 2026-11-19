@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     fontSize: font.body,
     lineHeight: 24,
-    color: '#6B9B7A',
+    color: colors.primary,
   },
   searchField: {
     ...card,

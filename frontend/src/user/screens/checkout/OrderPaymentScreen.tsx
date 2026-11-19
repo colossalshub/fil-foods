@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from '../../components/AppPageShell';
+import PageHeader from '../../components/PageHeader';
 import CheckoutOrderStatusCard from '../../components/CheckoutOrderStatusCard';
 import CheckoutRadio from '../../components/CheckoutRadio';
 import { useAuth } from '../../context/AuthContext';
@@ -75,11 +75,7 @@ export default function OrderPaymentScreen({ route, navigation }: {
     return (
       <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
         <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-          <View style={[checkoutFlow.statusIcon, checkoutFlow.statusIconPending]}>
-            <Ionicons name="ellipsis-horizontal" size={32} color="#8A6A12" />
-          </View>
-          <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.sentTitle}</Text>
-          <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.sentLead}</Text>
+          <PageHeader title={CHECKOUT_MSG.sentTitle} subtitle={CHECKOUT_MSG.sentLead} />
           {order ? (
             <CheckoutOrderStatusCard
               badge={ORDER_STATUS.FOR_DIETITIAN_REVIEW}
@@ -108,15 +104,10 @@ export default function OrderPaymentScreen({ route, navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[checkoutFlow.statusIcon, checkoutFlow.statusIconOk]}>
-          <Ionicons name="checkmark" size={36} color="#1E4D38" />
-        </View>
-        <Text style={checkoutFlow.title} accessibilityRole="header">
-          {alreadyPaid ? CHECKOUT_MSG.paidTitle : CHECKOUT_MSG.approvedTitle}
-        </Text>
-        <Text style={checkoutFlow.lead}>
-          {alreadyPaid ? CHECKOUT_MSG.paidLead : CHECKOUT_MSG.approvedLead}
-        </Text>
+        <PageHeader
+          title={alreadyPaid ? CHECKOUT_MSG.paidTitle : CHECKOUT_MSG.approvedTitle}
+          subtitle={alreadyPaid ? CHECKOUT_MSG.paidLead : CHECKOUT_MSG.approvedLead}
+        />
 
         {order ? (
           <>

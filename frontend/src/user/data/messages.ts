@@ -92,7 +92,7 @@ export const GUIDE_COPY = {
 /** USR-27 FAQ — Figma labels; empty state matches quoted story text. */
 export const FAQ_COPY = {
   title: 'FAQ',
-  subtitle: 'Answers to common questions about your account, orders, and delivery.',
+  subtitle: 'Common questions about orders and delivery.',
   searchPlaceholder: 'Search the FAQ',
   clearSearch: 'Clear search',
   tapToCollapse: 'Tap again to collapse',
@@ -115,7 +115,7 @@ export const FEEDBACK_COPY = {
 export const MEAL_DETAIL_COPY = {
   backToMeals: 'Back to meals',
   title: 'Meal details',
-  lead: 'Know what is in your meal before you choose it.',
+  lead: 'Check this meal before you choose it.',
   unavailableTitle: 'Not available',
   unavailableBody: 'This meal is currently unavailable. Please choose another meal.',
   allergenWarningTitle: 'Allergen warning',
@@ -149,17 +149,50 @@ export const HOME_COPY = {
   activeOrder: 'Active order',
   recommendedLead:
     "Meals that fit your allergies, health conditions and doctor's restrictions.",
+  recommendedLeadFor: (name: string) =>
+    `Meals that fit ${name}'s allergies, health conditions and doctor's restrictions.`,
   matchedToProfile: 'Matched to your profile',
+  matchedToYour: (details: string) => `Matched to your ${details}.`,
+  matchedToName: (name: string, details: string) => `Matched to ${name}'s ${details}.`,
   suitableForYou: '✓ Suitable for you',
+  orderAgain: 'Order again',
+  reorder: 'Reorder',
+  emptyOrdersBody: 'Nothing is on the way yet. Browse a meal, and your first order will show up here.',
   addMeal: 'Add',
   noMatchingTitle: 'No matching meals',
   noMatchingBody:
     "There are currently no matching meals. We only show meals that fit your allergies, health conditions and doctor's restrictions.",
+  noMatchingBodyFor: (name: string) =>
+    `There are currently no matching meals. We only show meals that fit ${name}'s allergies, health conditions and doctor's restrictions.`,
+  loadingOrders: 'Loading your orders…',
+  ordersLoadError: "Your orders didn't load. Try again.",
+  tryAgain: 'Try again',
   loadingRecommendations: 'Loading your recommendations…',
   openProfile: 'Open profile',
   browseMeals: 'Browse Meals',
   myOrders: 'My Orders',
   myAccount: 'My Account',
+  goBack: 'Go back',
+};
+
+/** Short lines under each finished dish on Home. */
+export const HOME_MEAL_NOTES: Record<string, { description: string; benefit: string }> = {
+  'ready-pork-adobo': {
+    description: 'Pork braised in vinegar, soy, and garlic.',
+    benefit: 'Savory and high in protein.',
+  },
+  'ready-beef-pinoy-steak': {
+    description: 'Beef simmered with onions and citrus.',
+    benefit: 'Hearty and high in protein.',
+  },
+  'ready-chicken-tinola': {
+    description: 'Chicken soup with ginger and papaya.',
+    benefit: 'A lighter, comforting bowl.',
+  },
+  'ready-fish-pinoy-steak': {
+    description: 'Fish in a savory sauce with citrus.',
+    benefit: 'A lighter, high-protein meal.',
+  },
 };
 
 /** USR-37 / Account hub — design strings. */
@@ -191,11 +224,11 @@ export const NOTIFICATIONS_COPY = {
 
 export const ORDERS_COPY = {
   listTitle: 'My Orders',
-  listSubtitle: 'View submitted orders and payment status.',
+  listSubtitle: 'Submitted orders and payment.',
   activeSection: 'Active',
   pastSection: 'Past orders',
   statusTitle: 'Order status',
-  statusSubtitle: 'Follow your order from review to completion.',
+  statusSubtitle: 'From review to completion.',
   detailsTitle: 'Order details',
   backToOrders: 'Back to orders',
   orderProgress: 'Order progress',
@@ -249,6 +282,20 @@ export const ORDERS_COPY = {
 
 export const waitForCode = (seconds: number) =>
   `Please wait ${seconds} seconds before requesting a new code.`;
+
+/** USR-51. Quoted labels and validation messages stay as written. */
+export const SPECIAL_REQUEST_COPY = {
+  add: 'Add special request',
+  remove: 'Remove special request',
+  heading: 'Special request',
+  prepare: 'How to prepare',
+  noteLabel: 'Note',
+  tooLong: 'Special requests can be up to 150 characters.',
+  allergen: "This request includes an ingredient listed in the recipient's allergies.",
+  feeLabel: 'Special request fee',
+  feesLine: 'Special request fees',
+  mealTotal: 'Meal total',
+};
 
 export const SMS_TEMPLATE =
   'Your verification code is 123456. It expires in 10 minutes. Do not share this code.';

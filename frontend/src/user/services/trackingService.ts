@@ -2,9 +2,10 @@
 
 import type { Announcement, AppNotification, Order, OrderItem } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
-import { ORDERS_COPY } from '../data/messages.js';
+import { ORDERS_COPY, SPECIAL_REQUEST_COPY } from '../data/messages.js';
 import { MEALS } from '../data/meals.js';
 import { formatPhp, formatPeso } from './orderService.js';
+import { specialRequestLabel } from '../domain/specialRequest.js';
 import { getUser } from './authService.js';
 import { formatTimestamp } from '../utils/time.js';
 import { deliveryTrackingOf, orderRefOf } from '../domain/orderReference.js';
@@ -15,6 +16,7 @@ import {
 } from './backendOrderService.js';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { bestWordMatch, normalizeText, osaDistance, substringMatch, textWords } from '../../lib/algorithms/stringMatch.js';
+import { recentOrderedMeals } from '../domain/homePresentation.js';
 
 export const TRACKING_MSG = {
   noOrders: 'You have no orders yet.',
@@ -158,9 +160,14 @@ export function progressHintForStatus(status: string) {
   return PROGRESS_HINTS[status] || '';
 }
 
-function normalizeStatus(status: string) {
-  if (status === ORDER_STATUS.CONFIRMED) return ORDER_STATUS.PAID;
+/** Confirmed is the legacy "sent to the kitchen" status. Customers see it as Preparing. */
+export function customerFacingStatus(status: string) {
+  if (status === ORDER_STATUS.CONFIRMED) return ORDER_STATUS.PREPARING;
   return status;
+}
+
+function normalizeStatus(status: string) {
+  return customerFacingStatus(status);
 }
 
 export function itemsWithMealSlots(items: OrderItem[] | null | undefined) {
@@ -171,6 +178,8 @@ export function itemsWithMealSlots(items: OrderItem[] | null | undefined) {
     quantity: number;
     lineTotalLabel: string;
     customizationLabel: string;
+    specialRequestLabel: string;
+    specialRequestFeeLabel: string;
   } => {
     const meal = MEALS.find((entry) => entry.id === row.mealId);
     const slot = meal?.category && MEAL_SLOTS.includes(meal.category)
@@ -182,6 +191,10 @@ export function itemsWithMealSlots(items: OrderItem[] | null | undefined) {
       quantity: row.quantity,
       lineTotalLabel: formatPhp(row.lineTotal),
       customizationLabel: row.customizationLabel || '',
+      specialRequestLabel: specialRequestLabel(row.specialRequest),
+      specialRequestFeeLabel: row.specialRequest?.fee
+        ? `${SPECIAL_REQUEST_COPY.feeLabel} ${formatPeso(row.specialRequest.fee)}`
+        : '',
     };
   });
 }
@@ -202,6 +215,9 @@ interface BackendOrder {
     quantity: number;
     unit_price: number | string;
     line_total: number | string;
+    meal_time?: string | null;
+    special_request?: { options?: string[]; note?: string } | null;
+    special_request_fee?: number | string | null;
     meals?: { name?: string } | null;
   }>;
   fulfillment_type?: string;
@@ -234,6 +250,13 @@ export function mapBackendOrder(order: BackendOrder): Order {
       quantity: item.quantity,
       unitPrice: Number(item.unit_price),
       lineTotal: Number(item.line_total),
+      specialRequest: item.special_request
+        ? {
+            options: item.special_request.options || [],
+            note: item.special_request.note || '',
+            fee: Number(item.special_request_fee || 0),
+          }
+        : undefined,
     })),
     fulfillment: {
       type: order.fulfillment_type === 'pick_up' ? 'pickup' : 'delivery',
@@ -254,6 +277,26 @@ export async function refreshBackendOrdersForUser(userId: string) {
   return sortOrdersForList(
     rows.filter((row) => row.client_id === userId).map((row) => toListItem(mapBackendOrder(row))),
   );
+}
+
+/** Active orders plus the meals from the customer's most recent orders, for Home. */
+export async function loadHomeOrders(userId: string) {
+  if (!isSupabaseConfigured) {
+    return {
+      active: listClientOrders(userId).filter((order) => order.status && !isTerminalStatus(order.status)),
+      recentMeals: recentOrderedMeals(filterClientOrders(userId), 3),
+    };
+  }
+  const rows = await getClientOrders();
+  const orders = sortOrdersForList(
+    rows.filter((row) => row.client_id === userId).map((row) => mapBackendOrder(row)),
+  );
+  return {
+    active: orders
+      .filter((order) => order.status && !isTerminalStatus(order.status))
+      .map(toListItem),
+    recentMeals: recentOrderedMeals(orders, 3),
+  };
 }
 
 export function detailFromBackendOrder(row: BackendOrder) {

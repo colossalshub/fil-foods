@@ -3,18 +3,20 @@ import { colors, font, radius, spacing, fonts } from '../theme/theme';
 import { getStatusMeta } from '../services/trackingService';
 
 const FILL_STYLES: Record<string, { backgroundColor: string; color: string; borderColor: string }> = {
-  muted: { backgroundColor: '#E8ECE9', color: colors.muted, borderColor: colors.border },
-  warning: { backgroundColor: '#F6E7B4', color: colors.warning, borderColor: '#E6CF7A' },
-  action: { backgroundColor: colors.mintStrong, color: colors.primary, borderColor: '#9BBF9A' },
-  primary: { backgroundColor: colors.mintStrong, color: colors.primary, borderColor: '#9BBF9A' },
-  success: { backgroundColor: colors.mintStrong, color: colors.primary, borderColor: '#9BBF9A' },
-  danger: { backgroundColor: '#FBEAEA', color: colors.danger, borderColor: '#F5C2C0' },
+  muted: { backgroundColor: colors.soft, color: colors.muted, borderColor: colors.border },
+  warning: { backgroundColor: colors.accent, color: colors.heading, borderColor: colors.accent },
+  action: { backgroundColor: colors.soft, color: colors.primary, borderColor: colors.border },
+  primary: { backgroundColor: colors.soft, color: colors.primary, borderColor: colors.border },
+  success: { backgroundColor: colors.soft, color: colors.primary, borderColor: colors.border },
+  danger: { backgroundColor: colors.white, color: colors.danger, borderColor: colors.danger },
 };
 
-export default function OrderStatusBadge({ status, style, variant = 'filled' }: {
+export default function OrderStatusBadge({ status, style, variant = 'filled', prominent = false }: {
   status: string;
   style?: StyleProp<ViewStyle>;
   variant?: 'filled' | 'outline';
+  /** Stronger fill for a status the customer needs to act on, such as Ready for Pickup. */
+  prominent?: boolean;
 }) {
   const meta = getStatusMeta(status);
   const fill = FILL_STYLES[meta.colorKey] || FILL_STYLES.muted;
@@ -33,17 +35,21 @@ export default function OrderStatusBadge({ status, style, variant = 'filled' }: 
     );
   }
 
+  const backgroundColor = prominent ? colors.primary : fill.backgroundColor;
+  const borderColor = prominent ? colors.primaryDark : fill.borderColor;
+  const textColor = prominent ? colors.white : fill.color;
+
   return (
     <View
       style={[
         styles.filledWrap,
-        { backgroundColor: fill.backgroundColor, borderColor: fill.borderColor },
+        { backgroundColor, borderColor },
         style,
       ]}
       accessibilityRole="text"
       accessibilityLabel={`Status: ${meta.label}`}
     >
-      <Text style={[styles.filledLabel, { color: fill.color }]}>{meta.label}</Text>
+      <Text style={[styles.filledLabel, { color: textColor }]}>{meta.label}</Text>
     </View>
   );
 }

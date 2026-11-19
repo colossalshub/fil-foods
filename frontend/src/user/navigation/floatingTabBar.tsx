@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { colors, radius, shadow, spacing, fonts } from '../theme/theme';
 
-export const FLOATING_TAB_BAR_HEIGHT = 64;
+export const FLOATING_TAB_BAR_HEIGHT = 72;
 const TAB_BOTTOM_GAP = spacing.md;
 const SHADOW_BLEED = spacing.sm;
 
@@ -58,8 +58,8 @@ export function floatingTabScreenOptions(
     tabBarLabel: TAB_ROUTE_LABELS[route.name] ?? route.name,
     tabBarLabelStyle: {
       fontFamily: fonts.semibold,
-      fontSize: 13,
-      lineHeight: 16,
+      fontSize: 16,
+      lineHeight: 20,
       marginTop: 2,
       marginBottom: 0,
     },
@@ -132,10 +132,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     ...shadow,
-    elevation: 16,
-    shadowOpacity: 0.22,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
   },
   barMerge: {
     backgroundColor: 'transparent',

@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   oldValue: { color: colors.muted, textDecorationLine: 'line-through' },
   badge: { borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 2 },
   badgeAdded: { backgroundColor: colors.mint, borderColor: colors.primary },
-  badgeRemoved: { backgroundColor: '#FDECEC', borderColor: colors.danger },
+  badgeRemoved: { backgroundColor: colors.white, borderColor: colors.danger },
   badgeText: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22 },
   badgeTextAdded: { color: colors.primary },
   badgeTextRemoved: { color: colors.danger },

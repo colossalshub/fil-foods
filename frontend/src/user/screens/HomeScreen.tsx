@@ -1,25 +1,28 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import PageHeader from '../components/PageHeader';
 import AppPageShell from '../components/AppPageShell';
+import PageHeader from '../components/PageHeader';
 import AppButton from '../components/AppButton';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import RecommendedForYouSection from '../components/RecommendedForYouSection';
 import { useAuth } from '../context/AuthContext';
-import { HOME_COPY, MSG } from '../data/messages';
+import { HOME_COPY, MEAL_DETAIL_COPY } from '../data/messages';
+import { readyLunchChoice } from '../domain/readyMeals';
 import { useMealProfile } from '../hooks/useMealProfile';
+import { useTabScrollInset } from '../hooks/useTabScrollInset';
 import { mealsForLabel, recipientDisplayName } from '../domain/audience';
 import { getProfile } from '../services/profileService';
+import { ORDER_MSG, profileAllergensInMeal } from '../services/orderService';
 import {
+  ORDER_STATUS,
+  customerFacingStatus,
   isTerminalStatus,
-  listClientOrders,
-  refreshBackendOrdersForUser,
+  loadHomeOrders,
 } from '../services/trackingService';
 import type { Meal } from '../types';
-import { isSupabaseConfigured } from '../../lib/supabaseClient';
-import { card, colors, font, radius, spacing, control, fonts } from '../theme/theme';
+import { card, colors, font, spacing, fonts } from '../theme/theme';
 
 type HomeNavigation = {
   navigate: (name: string, params?: object) => void;
@@ -31,43 +34,19 @@ type ActiveOrderRow = {
   trackingNumber?: string;
   status?: string;
   totalLabel?: string;
+  fulfillmentSummary?: string;
 };
-
-function HomeShortcut({
-  label,
-  icon,
-  onPress,
-  showDivider,
-}: {
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-  showDivider?: boolean;
-}) {
-  return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={({ pressed }) => [styles.shortcutRow, pressed && styles.shortcutPressed]}
-      >
-        <View style={styles.shortcutIconWrap}>
-          <Ionicons name={icon} size={22} color={colors.primary} />
-        </View>
-        <Text style={styles.shortcutLabel}>{label}</Text>
-        <Ionicons name="chevron-forward" size={20} color={colors.inactive} />
-      </Pressable>
-      {showDivider ? <View style={styles.shortcutDivider} /> : null}
-    </>
-  );
-}
 
 export default function HomeScreen({ navigation }: { navigation: HomeNavigation }) {
   const { user } = useAuth();
   const { profile, loading } = useMealProfile(user);
   const userId = user?.id;
   const [activeOrders, setActiveOrders] = useState<ActiveOrderRow[]>([]);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [ordersError, setOrdersError] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const ordersRequest = useRef(0);
+  const loadedUserId = useRef<string | null>(null);
 
   const account = useMemo(() => (userId ? getProfile(userId) : null), [userId]);
 
@@ -96,137 +75,172 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
     [account?.accountFor, recipientName],
   );
 
-  const syncActiveOrders = useCallback(() => {
+  const syncOrders = useCallback(() => {
+    const requestId = ordersRequest.current + 1;
+    ordersRequest.current = requestId;
     if (!userId) {
+      loadedUserId.current = null;
       setActiveOrders([]);
+      setOrdersLoaded(true);
+      setOrdersError(false);
+      setOrdersLoading(false);
       return;
     }
-    if (isSupabaseConfigured) {
-      refreshBackendOrdersForUser(userId)
-        .then((backendOrders) => {
-          if (!backendOrders) return;
-          setActiveOrders(
-            backendOrders.filter((order) => order.status && !isTerminalStatus(order.status)),
-          );
-        })
-        .catch(() => {
-          setActiveOrders([]);
-        });
-      return;
+    if (loadedUserId.current !== userId) {
+      setActiveOrders([]);
+      setOrdersLoaded(false);
+      setOrdersError(false);
     }
-    setActiveOrders(
-      listClientOrders(userId).filter((order) => order.status && !isTerminalStatus(order.status)),
-    );
+    setOrdersLoading(true);
+    loadHomeOrders(userId)
+      .then((snapshot) => {
+        if (ordersRequest.current !== requestId) return;
+        loadedUserId.current = userId;
+        setActiveOrders(
+          snapshot.active.filter((order) => order.status && !isTerminalStatus(order.status)),
+        );
+        setOrdersLoaded(true);
+        setOrdersError(false);
+      })
+      .catch(() => {
+        if (ordersRequest.current !== requestId) return;
+        setOrdersError(true);
+      })
+      .finally(() => {
+        if (ordersRequest.current !== requestId) return;
+        setOrdersLoading(false);
+      });
   }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
-      const task = setTimeout(syncActiveOrders, 0);
+      const task = setTimeout(syncOrders, 0);
       return () => clearTimeout(task);
-    }, [syncActiveOrders]),
+    }, [syncOrders]),
   );
-
-  const openMeal = useCallback((meal: Meal) => {
-    navigation.navigate('Meals', {
-      screen: 'MealDetail',
-      params: { meal },
-    });
-  }, [navigation]);
 
   const openAccount = useCallback(() => {
     navigation.navigate('Account', { screen: 'AccountMain' });
-  }, [navigation]);
-
-  const openOrders = useCallback(() => {
-    navigation.navigate('Orders', { screen: 'TrackingList' });
   }, [navigation]);
 
   const openMeals = useCallback(() => {
     navigation.navigate('Meals', { screen: 'MealsList' });
   }, [navigation]);
 
-  const openOrderStatus = useCallback((orderId: string) => {
+  const addReadyMeal = useCallback((meal: Meal) => {
+    const choice = readyLunchChoice(meal);
+    const allergens = profile ? profileAllergensInMeal(meal, profile) : [];
+    if (allergens.length) {
+      Alert.alert(
+        MEAL_DETAIL_COPY.allergenWarningTitle,
+        ORDER_MSG.mealAllergenBlocked(allergens.join(', '), account?.accountFor === 'family' ? recipientName : null),
+      );
+      return;
+    }
+    if (!choice) {
+      openMeals();
+      return;
+    }
+    navigation.navigate('Meals', {
+      screen: 'BuildMealCustomize',
+      params: {
+        todayMealId: choice.catalogId,
+        slot: 'Lunch',
+        meatProtein: choice.meatProtein,
+        cookingStyle: choice.cookingStyle,
+      },
+    });
+  }, [account?.accountFor, navigation, openMeals, profile, recipientName]);
+
+  const openOrderDetails = useCallback((orderId: string) => {
     navigation.navigate('Orders', {
-      screen: 'OrderStatus',
+      screen: 'OrderDetail',
       params: { orderId },
     });
   }, [navigation]);
 
+  const familyRecipient = account?.accountFor === 'family' && recipientName ? recipientName : null;
+  const hasActiveOrder = activeOrders.length > 0;
+  const tabInset = useTabScrollInset();
+
   return (
     <AppPageShell edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <View style={[styles.page, styles.scroll, { paddingBottom: tabInset + spacing.sm }]}>
         <PageHeader title={HOME_COPY.screenTitle} subtitle={homeSubtitle} />
 
-        <View style={styles.panelCard}>
-          <HomeShortcut
-            icon="restaurant-outline"
-            label={HOME_COPY.browseMeals}
-            onPress={openMeals}
-            showDivider
-          />
-          <HomeShortcut
-            icon="bag-handle-outline"
-            label={HOME_COPY.myOrders}
-            onPress={openOrders}
-            showDivider
-          />
-          <HomeShortcut
-            icon="person-outline"
-            label={HOME_COPY.myAccount}
-            onPress={openAccount}
-          />
-        </View>
+        {ordersError ? (
+          <View style={styles.ordersError} accessibilityRole="alert" accessibilityLiveRegion="polite">
+            <Text style={styles.ordersErrorText}>{HOME_COPY.ordersLoadError}</Text>
+            <AppButton
+              title={HOME_COPY.tryAgain}
+              variant="outline"
+              onPress={syncOrders}
+              loading={ordersLoading}
+              color={colors.primary}
+            />
+          </View>
+        ) : null}
 
-        <View style={styles.panelCard}>
-          <Text style={styles.panelTitle} accessibilityRole="header">{HOME_COPY.activeOrder}</Text>
-          {activeOrders.length ? (
-            activeOrders.map((order) => (
-              <Pressable
-                key={order.id}
-                accessibilityRole="button"
-                onPress={() => openOrderStatus(order.id)}
-                style={styles.activeOrderRow}
-              >
-                <View style={styles.activeOrderMain}>
-                  <Text style={styles.activeOrderRef}>{order.orderRef || order.id}</Text>
-                  {order.totalLabel ? <Text style={styles.activeOrderTotal}>{order.totalLabel}</Text> : null}
-                </View>
-                {order.status ? <OrderStatusBadge status={order.status} /> : null}
-              </Pressable>
-            ))
-          ) : (
-            <View style={styles.emptyActive}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="bag-outline" size={32} color={colors.primary} />
-              </View>
-              <Text style={styles.emptyActiveText}>{MSG.noActiveOrders}</Text>
-              <AppButton
-                title={HOME_COPY.browseMeals}
-                onPress={openMeals}
-                color={colors.primary}
-                style={styles.browseCta}
-              />
-            </View>
-          )}
-        </View>
+        {!ordersLoaded && !ordersError ? (
+          <Text style={styles.ordersLoading} accessibilityLiveRegion="polite">{HOME_COPY.loadingOrders}</Text>
+        ) : null}
+
+        {hasActiveOrder ? (
+          <View style={styles.panelCard}>
+            <Text style={styles.panelTitle} accessibilityRole="header">{HOME_COPY.activeOrder}</Text>
+            {activeOrders.map((order) => {
+              const shownStatus = customerFacingStatus(order.status || '');
+              const ready = shownStatus === ORDER_STATUS.READY_PICKUP || shownStatus === ORDER_STATUS.READY_DELIVERY;
+              const label = [order.orderRef || order.id, shownStatus, order.fulfillmentSummary].filter(Boolean).join(', ');
+              return (
+                <Pressable
+                  key={order.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityHint="Opens order details"
+                  onPress={() => openOrderDetails(order.id)}
+                  style={({ pressed }) => [
+                    styles.activeOrderRow,
+                    ready && styles.activeOrderReady,
+                    pressed && styles.activeOrderPressed,
+                  ]}
+                >
+                  <View style={styles.activeOrderMain}>
+                    <Text style={styles.activeOrderRef} numberOfLines={1}>{order.orderRef || order.id}</Text>
+                    {order.fulfillmentSummary ? (
+                      <Text style={styles.activeOrderEta} numberOfLines={1}>{order.fulfillmentSummary}</Text>
+                    ) : null}
+                    {shownStatus ? (
+                      <OrderStatusBadge status={shownStatus} prominent={ready} style={styles.activeOrderBadge} />
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={ready ? colors.primary : colors.muted} />
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         <RecommendedForYouSection
           sectionTitle={mealsSectionTitle}
+          recipientName={familyRecipient}
           profile={profile}
           loading={loading}
-          onOpenMeal={openMeal}
+          onOpenMeal={addReadyMeal}
           onCompleteProfile={openAccount}
+          fill
         />
-      </ScrollView>
+      </View>
     </AppPageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
+  page: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.lg },
   panelCard: {
     ...card,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderColor: colors.cardBorder,
     paddingVertical: spacing.sm,
     paddingHorizontal: 0,
@@ -239,61 +253,35 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
   },
-  shortcutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: control.minHeight,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  shortcutPressed: { opacity: 0.88 },
-  shortcutIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    backgroundColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shortcutLabel: { fontFamily: fonts.bold, flex: 1, fontSize: font.body, color: colors.heading },
-  shortcutDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.cardBorder,
-    marginLeft: spacing.lg + 44 + spacing.md,
-    marginRight: spacing.lg,
-  },
-  emptyActive: { alignItems: 'center', paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  emptyActiveText: {
+  ordersError: { marginBottom: spacing.lg, gap: spacing.md },
+  ordersErrorText: {
     fontFamily: fonts.regular,
     fontSize: font.body,
-    lineHeight: 22,
+    lineHeight: 24,
+    color: colors.heading,
+  },
+  ordersLoading: {
+    fontFamily: fonts.regular,
+    fontSize: font.body,
+    lineHeight: 24,
     color: colors.muted,
-    textAlign: 'center',
     marginBottom: spacing.lg,
   },
-  browseCta: { alignSelf: 'stretch' },
   activeOrderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: control.minHeight,
+    paddingVertical: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.cardBorder,
   },
-  activeOrderMain: { flex: 1 },
+  activeOrderReady: { backgroundColor: colors.mint },
+  activeOrderPressed: { backgroundColor: colors.mintStrong },
+  activeOrderMain: { flex: 1, paddingVertical: spacing.xs },
+  activeOrderBadge: { alignSelf: 'flex-start', marginTop: spacing.sm },
   activeOrderRef: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading },
+  activeOrderEta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.heading },
   activeOrderTotal: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.sm, color: colors.muted },
 });

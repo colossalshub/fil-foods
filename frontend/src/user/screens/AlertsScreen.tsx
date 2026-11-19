@@ -201,8 +201,8 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
   },
   notifCardCritical: {
-    backgroundColor: '#FDECEC',
-    borderColor: '#F2B8B5',
+    backgroundColor: colors.white,
+    borderColor: colors.danger,
   },
   notifCardPressed: { opacity: 0.92 },
   unreadDot: {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconCircleCritical: { backgroundColor: '#FCE4E4' },
+  iconCircleCritical: { backgroundColor: colors.soft },
   notifBody: { flex: 1, gap: spacing.xs, paddingRight: spacing.md },
   tag: {
     alignSelf: 'flex-start',
@@ -234,10 +234,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   tagFamily: { backgroundColor: colors.mint },
-  tagAnnouncement: { backgroundColor: '#FDF0D8' },
+  tagAnnouncement: { backgroundColor: colors.accent },
   tagText: { fontFamily: fonts.bold, fontSize: font.sm, lineHeight: 20 },
   tagTextFamily: { color: colors.primary },
-  tagTextAnnouncement: { color: colors.warning },
+  tagTextAnnouncement: { color: colors.heading },
   notifMessage: {
     fontFamily: fonts.medium,
     fontSize: font.body,

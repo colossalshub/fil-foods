@@ -379,3 +379,37 @@ test('a Returned for Changes order is edited in place and goes back to the Dieti
   const other = confirmOrder('user-maria', { ...payload, resubmitOrderId: 'nope' });
   assert.equal(other.ok, false);
 });
+
+test('USR-51: a special request is saved with its fee and shown in kitchen preparation notes', () => {
+  resetStore();
+  __testResetConfirmState();
+  const tinola = MEALS.find((meal) => meal.name === 'Chicken Tinola');
+  assert.ok(tinola);
+  const placed = confirmOrder('user-maria', {
+    items: [{
+      meal: { ...tinola, category: 'Dinner' },
+      quantity: 1,
+      specialRequest: { options: ['Additional meat', 'Less salt'], note: 'Please make the meat extra tender.' },
+    }],
+    fulfillment: { type: 'pickup', scheduledAt: new Date('2026-10-13T10:00:00'), instructions: '' },
+    now: SAMPLE_NOW,
+  });
+  assert.equal(placed.ok, true);
+  assert.equal(placed.order.items[0].specialRequest.fee, 145);
+  assert.equal(placed.order.total, 300 + 145);
+  assert.match(placed.order.kitchenView.preparationNotes[0], /Dinner: Chicken Tinola/);
+  assert.match(placed.order.kitchenView.preparationNotes[0], /Additional meat/);
+
+  const blocked = confirmOrder('user-maria', {
+    items: [{
+      meal: { ...tinola, category: 'Lunch', id: 'tinola-2' },
+      quantity: 1,
+      specialRequest: { options: [], note: 'Add peanuts on top.' },
+    }],
+    fulfillment: { type: 'pickup', scheduledAt: new Date('2026-10-13T11:00:00'), instructions: '' },
+    now: SAMPLE_NOW,
+    clientRequestId: 'usr51-peanut',
+  });
+  assert.equal(blocked.ok, false);
+  assert.match(blocked.messages[0], /allergies/);
+});

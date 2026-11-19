@@ -8,6 +8,7 @@ import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
 import { FULFILLMENT_COPY } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
+import { colors } from '../../theme/theme';
 
 function MethodCard({
   title,
@@ -30,7 +31,7 @@ function MethodCard({
       style={[checkoutFlow.methodCard, selected && checkoutFlow.methodCardOn]}
     >
       <View style={checkoutFlow.methodIconWrap}>
-        <Ionicons name={icon} size={22} color="#1E4D38" />
+        <Ionicons name={icon} size={22} color={colors.primary} />
       </View>
       <View style={checkoutFlow.methodContent}>
         <Text style={checkoutFlow.methodTitle}>{title}</Text>

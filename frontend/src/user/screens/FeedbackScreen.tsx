@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: font.body,
     lineHeight: 24,
-    color: '#6B9B7A',
+    color: colors.primary,
     marginBottom: spacing.lg,
   },
   formCard: {

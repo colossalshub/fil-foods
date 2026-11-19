@@ -46,8 +46,8 @@ function BackHeader({
         </Pressable>
         {right ? <View style={styles.trailing}>{right}</View> : null}
       </View>
-      <Text style={styles.title} accessibilityRole="header" allowFontScaling>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle} allowFontScaling>{subtitle}</Text> : null}
+      <Text style={styles.title} accessibilityRole="header" numberOfLines={1} allowFontScaling>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle} numberOfLines={1} allowFontScaling>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -55,7 +55,7 @@ function BackHeader({
 export default memo(BackHeader);
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: spacing.md },
+  wrap: { marginBottom: spacing.md, paddingTop: spacing.sm },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   TRACKING_MSG,
   POLL_INTERVAL_MS,
+  customerFacingStatus,
   isTerminalStatus,
   listClientOrders,
   listFilterStatuses,
@@ -58,7 +59,7 @@ function OrderListCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Order ${order.orderRef}, ${order.status}`}
+      accessibilityLabel={`Order ${order.orderRef}, ${customerFacingStatus(order.status || '')}`}
       onPress={onPress}
       style={styles.orderCard}
     >
@@ -66,7 +67,7 @@ function OrderListCard({
         <View style={styles.orderCardMain}>
           <Text style={styles.tracking}>{order.orderRef}</Text>
           {order.trackingNumber ? <Text style={styles.mealsLine}>{order.trackingNumber}</Text> : null}
-          <OrderStatusBadge status={order.status || ''} variant="outline" />
+          <OrderStatusBadge status={customerFacingStatus(order.status || '')} variant="outline" />
           <Text style={styles.fulfillmentLine}>{scheduleLine}</Text>
           <Text style={styles.mealsLine} numberOfLines={1}>{order.meals}</Text>
         </View>
@@ -360,7 +361,7 @@ export default function TrackingScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl, gap: spacing.md },
   filterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
   },
   browseBtnText: { fontFamily: fonts.bold, color: colors.white, fontSize: font.body },
   orderSection: { gap: spacing.sm },
-  sectionLabel: { fontFamily: fonts.bold, fontSize: font.sm, color: '#6B8E6B', letterSpacing: 0.3 },
+  sectionLabel: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.primary },
   sectionEmpty: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted },
   orderCard: { ...card, padding: spacing.lg },
   orderCardBody: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import AppPageShell from '../components/AppPageShell';
+import PageHeader from '../components/PageHeader';
 import FormMessage from '../components/FormMessage';
 import OrderSummaryCard from '../components/OrderSummaryCard';
 import OrderProgressStepper from '../components/OrderProgressStepper';
@@ -12,6 +13,7 @@ import {
   TRACKING_MSG,
   POLL_INTERVAL_MS,
   ORDER_STATUS,
+  customerFacingStatus,
   refreshClientOrder,
   refreshBackendOrder,
 } from '../services/trackingService';
@@ -102,8 +104,7 @@ export default function OrderStatusScreen() {
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.pageTitle} accessibilityRole="header">{ORDERS_COPY.statusTitle}</Text>
-        <Text style={styles.pageSubtitle}>{ORDERS_COPY.statusSubtitle}</Text>
+        <PageHeader title={ORDERS_COPY.statusTitle} subtitle={ORDERS_COPY.statusSubtitle} />
 
         {refreshError ? <FormMessage messages={[refreshError]} tone="error" /> : null}
 
@@ -118,7 +119,7 @@ export default function OrderStatusScreen() {
             <OrderSummaryCard
               orderRef={order.orderRef}
               trackingNumber={order.trackingNumber}
-              status={order.status || ''}
+              status={customerFacingStatus(order.status || '')}
               fulfillmentSummary={order.fulfillment?.summary}
               totalLabel={order.totalLabel}
             />
@@ -150,9 +151,7 @@ export default function OrderStatusScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
-  pageTitle: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 38, color: colors.heading },
-  pageSubtitle: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted, marginBottom: spacing.xs },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl, gap: spacing.lg },
   empty: { padding: spacing.xl, alignItems: 'center' },
   emptyText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, textAlign: 'center' },
   detailsBtn: { marginTop: spacing.sm },

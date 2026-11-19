@@ -4,7 +4,7 @@ export const colors = {
   action: '#174D3A',
   secondary: '#174D3A',
   background: '#FFF8E9',
-  page: '#FFF8E9',
+  page: '#FFFFFF',
   authPage: '#F6F9EF',
   surface: '#FFFFFF',
   soft: '#E9F0E6',
@@ -43,12 +43,12 @@ export const font = { xs: 16, sm: 16, md: 16, body: 16, lg: 18, xl: 22, title: 2
 /** Shared text presets so every screen uses the same hierarchy (USR-48 consistent visual design). */
 export const type = {
   pageTitle: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 36, color: colors.heading },
-  pageSubtitle: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: colors.muted },
+  pageSubtitle: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: colors.muted },
   sectionTitle: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 26, color: colors.heading },
-  cardTitle: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22, color: colors.heading },
-  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: colors.text },
-  label: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: colors.text },
-  button: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22 },
+  cardTitle: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 24, color: colors.heading },
+  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: colors.text },
+  label: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 24, color: colors.text },
+  button: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 24 },
 } as const;
 
 export const touch = { min: 48 };

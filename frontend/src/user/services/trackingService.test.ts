@@ -11,6 +11,8 @@ import {
   filterClientOrders,
   getAlertsForUser,
   getClientOrder,
+  customerFacingStatus,
+  getOrderProgressSteps,
   getStatusesForFulfillment,
   listClientOrders,
   markAlertRead,
@@ -121,6 +123,15 @@ test('getClientOrder and search return Order not found for missing or other clie
   assert.equal(searchOrderByTracking(MARIA, 'TRK-2026-0099').message, TRACKING_MSG.orderNotFound);
   assert.equal(searchOrderByTracking(MARIA, 'TRK-2026-0002').ok, true);
   assert.equal(searchOrderByTracking(MARIA, 'ord-2026-0002').ok, true);
+});
+
+test('a confirmed order is shown on the preparing step', () => {
+  const steps = getOrderProgressSteps({
+    status: ORDER_STATUS.CONFIRMED,
+    fulfillment: { type: 'delivery', address: null, scheduledAt: null, instructions: null },
+  });
+  assert.equal(steps.find((step) => step.current)?.status, ORDER_STATUS.PREPARING);
+  assert.equal(customerFacingStatus(ORDER_STATUS.CONFIRMED), ORDER_STATUS.PREPARING);
 });
 
 test('pickup and delivery status lists omit the opposite fulfillment steps', () => {

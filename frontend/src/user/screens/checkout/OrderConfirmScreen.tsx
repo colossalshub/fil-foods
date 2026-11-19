@@ -8,13 +8,14 @@ import { useCheckout } from '../../context/CheckoutContext';
 import { getUser } from '../../services/authService';
 import { orderPartyLines, recipientDisplayName } from '../../domain/audience';
 import { checkoutTotal, formatPeso } from '../../services/orderService';
+import { feeForSpecialRequest, specialRequestLabel } from '../../domain/specialRequest';
 import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { spacing } from '../../theme/theme';
 import { formatScheduleSummary } from '../../components/scheduleValue';
 import { useMealProfile } from '../../hooks/useMealProfile';
 import { usePlaceOrder } from '../../hooks/usePlaceOrder';
-import { ORDERS_COPY } from '../../data/messages';
+import { ORDERS_COPY, SPECIAL_REQUEST_COPY } from '../../data/messages';
 
 export default function OrderConfirmScreen({ navigation }: {
   navigation: { navigate: (name: string, params?: object) => void; goBack: () => void };
@@ -31,7 +32,12 @@ export default function OrderConfirmScreen({ navigation }: {
 
   const { warnings, fieldError, placing, placeOrder } = usePlaceOrder(user, session, profile, recipientName);
 
-  const lineItems = items.map((row) => ({ meal: row.meal, quantity: row.quantity, customization: row.customization }));
+  const lineItems = items.map((row) => ({
+    meal: row.meal,
+    quantity: row.quantity,
+    customization: row.customization,
+    specialRequest: row.specialRequest,
+  }));
   const totals = checkoutTotal(lineItems, checkout.planId, dbUser || user || {});
   const scheduleLabel = formatScheduleSummary(checkout.scheduleDate, checkout.scheduleTime);
   const party = orderPartyLines({
@@ -104,6 +110,23 @@ export default function OrderConfirmScreen({ navigation }: {
               {line.value}
             </Text>
           ))}
+          {items.map((row) => {
+            const requestText = specialRequestLabel(row.specialRequest);
+            if (!requestText) return null;
+            const fee = row.specialRequest?.fee ?? feeForSpecialRequest(row.specialRequest);
+            return (
+              <Text key={row.meal.id} style={checkoutFlow.line}>
+                <Text style={checkoutFlow.lineBold}>{`${row.meal.category || 'Meal'} · ${row.meal.name}: `}</Text>
+                {`${requestText} · ${SPECIAL_REQUEST_COPY.feeLabel} ${formatPeso(fee)}`}
+              </Text>
+            );
+          })}
+          {totals.specialRequestFees ? (
+            <Text style={checkoutFlow.line}>
+              <Text style={checkoutFlow.lineBold}>{`${SPECIAL_REQUEST_COPY.feesLine}: `}</Text>
+              {formatPeso(totals.specialRequestFees)}
+            </Text>
+          ) : null}
           <Text style={checkoutFlow.amountDueRow}>{`${ORDERS_TOTAL_LABEL} ${formatPeso(totals.total)}`}</Text>
         </View>
 

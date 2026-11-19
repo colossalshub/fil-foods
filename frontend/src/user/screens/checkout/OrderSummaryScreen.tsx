@@ -13,10 +13,11 @@ import {
   checkoutTotal,
   formatPeso,
 } from '../../services/orderService';
+import { feeForSpecialRequest, specialRequestLabel } from '../../domain/specialRequest';
 import { CHECKOUT_MSG, CHECKOUT_PLANS } from '../../data/checkoutCopy';
-import { ORDERS_COPY } from '../../data/messages';
+import { ORDERS_COPY, SPECIAL_REQUEST_COPY } from '../../data/messages';
 import { checkoutFlow } from '../../styles/checkoutFlow';
-import { spacing } from '../../theme/theme';
+import { colors, spacing } from '../../theme/theme';
 import { formatScheduleSummary } from '../../components/scheduleValue';
 
 const MEAL_ORDER = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
@@ -36,7 +37,12 @@ export default function OrderSummaryScreen({ navigation }: {
     }
   }, [items.length, navigation, checkout.fulfillmentType, checkout.scheduleDate, checkout.scheduleTime]);
 
-  const lineItems = items.map((row) => ({ meal: row.meal, quantity: row.quantity, customization: row.customization }));
+  const lineItems = items.map((row) => ({
+    meal: row.meal,
+    quantity: row.quantity,
+    customization: row.customization,
+    specialRequest: row.specialRequest,
+  }));
   const totals = checkoutTotal(lineItems, checkout.planId, dbUser || user || {});
   const sortedItems = [...items].sort((a, b) => {
     const ai = MEAL_ORDER.indexOf(a.meal.category || '');
@@ -69,6 +75,11 @@ export default function OrderSummaryScreen({ navigation }: {
                 {row.customizationLabel ? (
                   <Text style={checkoutFlow.mealSlot}>{row.customizationLabel}</Text>
                 ) : null}
+                {specialRequestLabel(row.specialRequest) ? (
+                  <Text style={checkoutFlow.mealSlot}>
+                    {`${SPECIAL_REQUEST_COPY.heading}: ${specialRequestLabel(row.specialRequest)} · ${SPECIAL_REQUEST_COPY.feeLabel} ${formatPeso(row.specialRequest?.fee ?? feeForSpecialRequest(row.specialRequest))}`}
+                  </Text>
+                ) : null}
               </View>
               <Text style={checkoutFlow.mealPrice}>{formatPeso(row.meal.price || STANDARD_MEAL_PRICE)}</Text>
             </View>
@@ -79,7 +90,7 @@ export default function OrderSummaryScreen({ navigation }: {
           <Ionicons
             name={checkout.fulfillmentType === 'pickup' ? 'storefront-outline' : 'car-outline'}
             size={22}
-            color="#1E4D38"
+            color={colors.primary}
           />
           <Text style={checkoutFlow.fulfillmentKicker}>{ORDERS_COPY.fulfillmentHeading}</Text>
           <Text style={checkoutFlow.fulfillmentTypeLine}>{fulfillmentTypeLabel}</Text>
@@ -129,6 +140,12 @@ export default function OrderSummaryScreen({ navigation }: {
           })}
         </View>
 
+        {totals.specialRequestFees ? (
+          <View style={[checkoutFlow.mealRow, { marginTop: spacing.lg }]}>
+            <Text style={checkoutFlow.summaryTotalLabel}>{SPECIAL_REQUEST_COPY.feesLine}</Text>
+            <Text style={checkoutFlow.mealPrice}>{formatPeso(totals.specialRequestFees)}</Text>
+          </View>
+        ) : null}
         <View style={checkoutFlow.summaryTotalRow}>
           <Text style={checkoutFlow.summaryTotalLabel}>{ORDERS_COPY.total}</Text>
           <Text style={checkoutFlow.summaryTotalValue}>{formatPeso(totals.total)}</Text>

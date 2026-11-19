@@ -1,135 +1,218 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { HOME_COPY } from '../data/messages';
-import { RECOMMENDATION_MEALS } from '../data/meals';
-import { PROFILE_DIET_OPTIONS } from '../constants/profileFormOptions';
+import { HOME_COPY, HOME_MEAL_NOTES } from '../data/messages';
 import type { Meal, MealMatchProfile } from '../types';
+import { mealCardCopy } from '../domain/homePresentation';
+import { readyLunchMeals } from '../domain/readyMeals';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
 import {
   ORDER_MSG,
   formatPeso,
   getRecommendedMeals,
-  recommendationReason,
 } from '../services/orderService';
-import { card, colors, font, radius, spacing, control, fonts } from '../theme/theme';
-
-function profileMatchChips(profile: MealMatchProfile | null | undefined) {
-  if (!profile) return [];
-  const chips: string[] = [];
-  for (const allergy of profile.allergies || []) {
-    const name = allergy.name?.trim();
-    if (!name) continue;
-    chips.push(name.toLowerCase().includes('allergy') ? name : `${name} allergy`);
-  }
-  for (const condition of profile.healthConditions || []) {
-    if (condition.trim()) chips.push(condition.trim());
-  }
-  for (const restriction of profile.dietaryRestrictions || []) {
-    const text = restriction.trim();
-    if (!text) continue;
-    const fromList = PROFILE_DIET_OPTIONS.includes(text);
-    chips.push(fromList ? text : `${text} (doctor)`);
-  }
-  return chips;
-}
-
-function mealMetaLine(meal: Meal, profile: MealMatchProfile | null | undefined) {
-  const parts: string[] = [];
-  if (meal.calories != null) parts.push(`${meal.calories} kcal`);
-  const reason = recommendationReason(meal, profile);
-  if (reason && reason !== 'Fits your dietary information') {
-    parts.push(reason.replace(/^Matches your preference for /i, '').replace(/^Matches your /i, ''));
-  }
-  return parts.join(' · ') || reason;
-}
+import MealPhoto from './MealPhoto';
+import { card, colors, font, radius, spacing, fonts } from '../theme/theme';
 
 function RecommendedMealCard({
   meal,
-  profile,
+  width,
+  fill,
   onPress,
-  onAdd,
 }: {
   meal: Meal;
-  profile: MealMatchProfile | null | undefined;
+  width: number;
+  fill?: boolean;
   onPress: () => void;
-  onAdd: () => void;
 }) {
-  const meta = mealMetaLine(meal, profile);
+  const copy = mealCardCopy(meal);
   const price = meal.price != null ? formatPeso(meal.price) : null;
+  const note = meal.id ? HOME_MEAL_NOTES[meal.id] : undefined;
+  const label = [copy.title, note?.description, note?.benefit, price, HOME_COPY.addMeal].filter(Boolean).join('. ');
 
   return (
-    <View style={styles.mealCard}>
-      <View style={styles.mealThumb} accessibilityElementsHidden>
-        {meal.emoji ? (
-          <Text style={styles.mealEmoji}>{meal.emoji}</Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Opens this meal so you can edit it and add a special request"
+      onPress={onPress}
+      style={({ pressed }) => [styles.mealCard, { width, marginRight: spacing.md }, fill && styles.mealCardFill, pressed && styles.mealCardPressed]}
+    >
+      <View style={[styles.photoFrame, !fill && styles.photoFrameFixed, { width }]}>
+        {meal.id && MEAL_PHOTOS[String(meal.id)] ? (
+          <Image
+            source={MEAL_PHOTOS[String(meal.id)]}
+            style={styles.photo}
+            resizeMode="cover"
+            accessible={false}
+          />
         ) : (
-          <Ionicons name="restaurant" size={26} color={colors.primary} />
+          <MealPhoto meal={meal} size={width} decorative />
         )}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={styles.mealMain}
-      >
-        <View style={styles.suitableBadge}>
-          <Text style={styles.suitableBadgeText}>{HOME_COPY.suitableForYou}</Text>
+      <View style={styles.mealCopy}>
+        <Text style={styles.mealName} numberOfLines={1}>{copy.title}</Text>
+        {note ? <Text style={styles.mealDescription} numberOfLines={1}>{note.description}</Text> : null}
+        <View style={styles.mealFooter}>
+          {price ? <Text style={styles.mealPrice} numberOfLines={1}>{price}</Text> : <View />}
+          <View style={styles.addChip} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Ionicons name="add" size={16} color={colors.white} />
+            <Text style={styles.addChipText}>{HOME_COPY.addMeal}</Text>
+          </View>
         </View>
-        <Text style={styles.mealName}>{meal.name}</Text>
-        <Text style={styles.mealMeta}>{meta}</Text>
-        {price ? <Text style={styles.mealPrice}>{price}</Text> : null}
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${HOME_COPY.addMeal} ${meal.name}`}
-        onPress={onAdd}
-        style={styles.addButton}
+      </View>
+    </Pressable>
+  );
+}
+
+function MealRail({
+  meals,
+  cardWidth,
+  fill,
+  onOpenMeal,
+  label,
+}: {
+  meals: Meal[];
+  cardWidth: number;
+  fill?: boolean;
+  onOpenMeal: (meal: Meal) => void;
+  label: string;
+}) {
+  const step = cardWidth + spacing.md;
+  const offset = useRef(new Animated.Value(0)).current;
+  const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
+  const countRef = useRef(meals.length);
+  const stepRef = useRef(step);
+  countRef.current = meals.length;
+  stepRef.current = step;
+
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponderCapture: () => false,
+    // Claim the gesture only after a clear sideways swipe, so a downward
+    // scroll of the page is left to the parent scroller.
+    onMoveShouldSetPanResponder: (_, gesture) =>
+      Math.abs(gesture.dx) > 28 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 2,
+    onPanResponderMove: (_, gesture) => {
+      const max = Math.max(0, countRef.current - 1) * stepRef.current;
+      const next = Math.min(0, Math.max(-max, -indexRef.current * stepRef.current + gesture.dx));
+      offset.setValue(next);
+    },
+    onPanResponderRelease: (_, gesture) => {
+      const current = indexRef.current;
+      const last = Math.max(0, countRef.current - 1);
+      let next = current;
+      if (gesture.dx <= -48 && current < last) next = current + 1;
+      else if (gesture.dx >= 48 && current > 0) next = current - 1;
+      indexRef.current = next;
+      setIndex(next);
+      Animated.spring(offset, {
+        toValue: -next * stepRef.current,
+        useNativeDriver: true,
+        bounciness: 0,
+        speed: 20,
+      }).start();
+    },
+    onPanResponderTerminate: () => {
+      Animated.spring(offset, {
+        toValue: -indexRef.current * stepRef.current,
+        useNativeDriver: true,
+        bounciness: 0,
+        speed: 20,
+      }).start();
+    },
+  })).current;
+
+  const atEnd = meals.length > 1 && index >= meals.length - 1;
+
+  const goBack = () => {
+    indexRef.current = 0;
+    setIndex(0);
+    Animated.spring(offset, {
+      toValue: 0,
+      useNativeDriver: true,
+      bounciness: 0,
+      speed: 20,
+    }).start();
+  };
+
+  return (
+    <View style={[styles.railViewport, fill && styles.railFill]}>
+      <View
+        style={[fill ? styles.railFill : undefined, styles.railGesture]}
+        accessibilityLabel={label}
+        {...pan.panHandlers}
       >
-        <Text style={styles.addButtonText}>{HOME_COPY.addMeal}</Text>
-      </Pressable>
+        <Animated.View style={[styles.railTrack, fill && styles.railTrackFill, { transform: [{ translateX: offset }] }]}>
+          {meals.map((meal) => (
+            <RecommendedMealCard
+              key={meal.id}
+              meal={meal}
+              width={cardWidth}
+              fill={fill}
+              onPress={() => onOpenMeal(meal)}
+            />
+          ))}
+        </Animated.View>
+      </View>
+      {atEnd ? (
+        <View style={[styles.goBackWrap, { left: cardWidth }]} pointerEvents="box-none">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={HOME_COPY.goBack}
+            accessibilityHint="Returns to the first meal"
+            onPress={goBack}
+            style={styles.goBack}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.primary} />
+            <Text style={styles.goBackText}>{HOME_COPY.goBack}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 export default function RecommendedForYouSection({
   sectionTitle,
+  recipientName,
   profile,
   loading,
   onOpenMeal,
   onCompleteProfile,
+  fill = false,
 }: {
   sectionTitle: string;
+  recipientName?: string | null;
   profile: MealMatchProfile | null | undefined;
   loading?: boolean;
   onOpenMeal: (meal: Meal) => void;
   onCompleteProfile?: () => void;
+  /** Stretch the meal cards into the space left on Home so the section stays on screen. */
+  fill?: boolean;
 }) {
-  const chips = useMemo(() => profileMatchChips(profile), [profile]);
-  const recommendations = useMemo(
-    () => getRecommendedMeals(RECOMMENDATION_MEALS, profile, 5),
-    [profile],
-  );
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = Math.min(280, Math.max(168, windowWidth - spacing.lg * 2 - 128));
+  const namedRecipient = recipientName?.trim() || '';
+  const recommendations = useMemo(() => {
+    const offered = readyLunchMeals();
+    const result = getRecommendedMeals(offered, profile, offered.length);
+    const order = new Map(offered.map((meal, index) => [meal.id, index]));
+    return {
+      ...result,
+      items: [...result.items].sort(
+        (a, b) => (order.get(a.meal.id) ?? 0) - (order.get(b.meal.id) ?? 0),
+      ),
+    };
+  }, [profile]);
+  const noMatchBody = namedRecipient
+    ? HOME_COPY.noMatchingBodyFor(namedRecipient)
+    : HOME_COPY.noMatchingBody;
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, fill && styles.wrapFill]}>
       <Text style={styles.title} accessibilityRole="header">{sectionTitle}</Text>
-      <Text style={styles.lead}>{HOME_COPY.recommendedLead}</Text>
-
-      {chips.length ? (
-        <View style={styles.profileCard}>
-          <Text style={styles.profileCardTitle}>{HOME_COPY.matchedToProfile}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipRow}
-          >
-            {chips.map((label) => (
-              <View key={label} style={styles.chip}>
-                <Text style={styles.chipText}>{label}</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
 
       {loading ? (
         <Text style={styles.statusText}>{HOME_COPY.loadingRecommendations}</Text>
@@ -156,99 +239,130 @@ export default function RecommendedForYouSection({
             <Ionicons name="search" size={28} color={colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>{HOME_COPY.noMatchingTitle}</Text>
-          <Text style={styles.emptyBody}>{HOME_COPY.noMatchingBody}</Text>
+          <Text style={styles.emptyBody}>{noMatchBody}</Text>
         </View>
       ) : null}
 
       {!loading && recommendations.items.length ? (
-        <View style={styles.list}>
-          {recommendations.items.map(({ meal }) => (
-            <RecommendedMealCard
-              key={meal.id}
-              meal={meal}
-              profile={profile}
-              onPress={() => onOpenMeal(meal)}
-              onAdd={() => onOpenMeal(meal)}
-            />
-          ))}
-        </View>
+        <MealRail
+          meals={recommendations.items.map(({ meal }) => meal)}
+          cardWidth={cardWidth}
+          fill={fill}
+          onOpenMeal={onOpenMeal}
+          label={sectionTitle}
+        />
       ) : null}
 
-      {!loading && !recommendations.emptyProfile ? (
-        <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { marginTop: spacing.sm },
+  wrapFill: { flex: 1, marginTop: 0, minHeight: 0 },
   title: { fontFamily: fonts.bold, fontSize: font.lg, lineHeight: 24, color: colors.heading },
   lead: { fontFamily: fonts.regular, marginTop: spacing.xs, fontSize: font.body, lineHeight: 22, color: colors.muted },
-  profileCard: {
-    marginTop: spacing.lg,
-    ...card,
-    borderColor: colors.cardBorder,
-    padding: spacing.md,
+  railViewport: {
+    marginTop: spacing.md,
+    overflow: 'hidden',
   },
-  profileCardTitle: {
-    fontFamily: fonts.bold,
-    fontSize: font.sm,
-    color: colors.muted,
-    marginBottom: spacing.sm,
+  railGesture: { touchAction: 'pan-y' },
+  railFill: { flex: 1, minHeight: 0 },
+  goBackWrap: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chipRow: { flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.sm },
-  chip: {
-    backgroundColor: colors.mint,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.mintBorder,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-  },
-  chipText: { fontFamily: fonts.bold, fontSize: font.sm, color: colors.heading },
-  list: { marginTop: spacing.lg, gap: spacing.md },
-  mealCard: {
+  goBack: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  goBackText: {
+    fontFamily: fonts.semibold,
+    fontSize: font.body,
+    lineHeight: 24,
+    color: colors.primary,
+  },
+  railTrack: { flexDirection: 'row' },
+  railTrackFill: { height: '100%' },
+  mealCard: {
     ...card,
     borderColor: colors.cardBorder,
-    padding: spacing.md,
-    minHeight: control.minHeight,
+    padding: 0,
+    overflow: 'hidden',
   },
-  mealThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.md,
+  mealCardFill: { height: '100%' },
+  mealCardPressed: { opacity: 0.92 },
+  photoFrame: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
     backgroundColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  mealEmoji: { fontFamily: fonts.regular, fontSize: 32 },
-  mealMain: { flex: 1, paddingRight: spacing.xs },
-  suitableBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.mintStrong,
-    borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginBottom: spacing.xs,
+  photoFrameFixed: { flex: 0, height: 168 },
+  photo: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  suitableBadgeText: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 18, color: colors.primary },
-  mealName: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
-  mealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.sm, lineHeight: 20, color: colors.muted },
-  mealPrice: { fontFamily: fonts.bold, marginTop: spacing.xs, fontSize: font.body, color: colors.heading },
-  addButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    minHeight: 40,
-    minWidth: 64,
+  mealCopy: {
     paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
   },
-  addButtonText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
+  mealFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  addChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingVertical: 4,
+    paddingLeft: spacing.sm,
+    paddingRight: spacing.md,
+  },
+  addChipText: {
+    fontFamily: fonts.semibold,
+    fontSize: font.sm,
+    lineHeight: 20,
+    color: colors.white,
+  },
+  mealName: {
+    fontFamily: fonts.semibold,
+    fontSize: font.lg,
+    lineHeight: 24,
+    color: colors.heading,
+  },
+  mealDescription: {
+    fontFamily: fonts.regular,
+    fontSize: font.body,
+    lineHeight: 22,
+    color: colors.text,
+  },
+  mealBenefit: {
+    fontFamily: fonts.semibold,
+    fontSize: font.body,
+    lineHeight: 22,
+    color: colors.primary,
+  },
+  mealPrice: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 24, color: colors.heading },
   emptyCard: {
     marginTop: spacing.lg,
     ...card,
@@ -274,14 +388,14 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
   },
-  profileLink: { marginTop: spacing.md, minHeight: control.minHeight, justifyContent: 'center' },
+  profileLink: { marginTop: spacing.md, minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.md },
   profileLinkText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
   statusText: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.body, color: colors.muted },
   disclaimer: {
     fontFamily: fonts.regular,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     fontSize: font.sm,
     lineHeight: 20,
-    color: colors.inactive,
+    color: colors.muted,
   },
 });

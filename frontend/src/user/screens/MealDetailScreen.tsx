@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Pressable, Alert,
+  View, Text, ScrollView, StyleSheet, Pressable, Alert, Image,
 } from 'react-native';
 import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
@@ -18,6 +18,7 @@ import {
   profileAllergensInMeal,
 } from '../services/orderService';
 import { MENU_CATALOG, mealInitials } from '../data/menuCatalog';
+import { MEAL_PHOTOS } from '../data/mealPhotos';
 import type { Meal } from '../types';
 import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
 
@@ -71,6 +72,7 @@ export default function MealDetailScreen({ route, navigation }: {
   const needsAccount = !user?.id || user.role === 'visitor';
   const mealTime = mealTimeLabel(meal.category);
   const initials = mealInitials(meal.name, initialsOverride);
+  const photo = meal?.id != null ? MEAL_PHOTOS[String(meal.id)] : undefined;
   const description = meal.description
     || `A ${meal.name.toLowerCase()} option from today's menu. Ingredients and allergen information are listed below.`;
 
@@ -154,7 +156,7 @@ export default function MealDetailScreen({ route, navigation }: {
 
         {!available ? (
           <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={22} color="#2F6FA8" />
+            <Ionicons name="information-circle" size={22} color={colors.primary} />
             <View style={styles.bannerCopy}>
               <Text style={styles.infoBannerTitle}>{MEAL_DETAIL_COPY.unavailableTitle}</Text>
               <Text style={styles.infoBannerBody}>{MEAL_DETAIL_COPY.unavailableBody}</Text>
@@ -172,10 +174,14 @@ export default function MealDetailScreen({ route, navigation }: {
           </View>
         ) : null}
 
-        <View style={[styles.hero, !available && styles.heroUnavailable]}>
-          <View style={[styles.heroCircle, !available && styles.heroCircleUnavailable]}>
-            <Text style={[styles.heroInitials, !available && styles.heroInitialsMuted]}>{initials}</Text>
-          </View>
+        <View style={[styles.hero, !available && styles.heroUnavailable, photo ? styles.heroPhoto : null]}>
+          {photo ? (
+            <Image source={photo} style={styles.heroImage} resizeMode="cover" accessibilityLabel={`${meal.name} photo`} />
+          ) : (
+            <View style={[styles.heroCircle, !available && styles.heroCircleUnavailable]}>
+              <Text style={[styles.heroInitials, !available && styles.heroInitialsMuted]}>{initials}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoCard}>
@@ -183,11 +189,13 @@ export default function MealDetailScreen({ route, navigation }: {
             <View style={styles.infoHeading}>
               <Text style={styles.mealName}>{meal.name}</Text>
               <View style={styles.metaRow}>
-                <View style={[styles.statusPill, available ? styles.statusPillOn : styles.statusPillOff]}>
-                  <Text style={[styles.statusPillText, available ? styles.statusPillTextOn : styles.statusPillTextOff]}>
-                    {available ? MEAL_DETAIL_COPY.available : MEAL_DETAIL_COPY.notAvailable}
-                  </Text>
-                </View>
+                {!available ? (
+                  <View style={[styles.statusPill, styles.statusPillOff]}>
+                    <Text style={[styles.statusPillText, styles.statusPillTextOff]}>
+                      {MEAL_DETAIL_COPY.notAvailable}
+                    </Text>
+                  </View>
+                ) : null}
                 {meal.category ? (
                   <View style={styles.categoryPill}>
                     <Text style={styles.categoryPillText}>{mealTime}</Text>
@@ -245,48 +253,53 @@ export default function MealDetailScreen({ route, navigation }: {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrollFlex: { flex: 1 },
-  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.md },
   infoBanner: {
     flexDirection: 'row',
     gap: spacing.md,
-    backgroundColor: '#E8F2FC',
+    backgroundColor: colors.soft,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  infoBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, color: '#2F6FA8' },
-  infoBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#3D5870' },
+  infoBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 24, color: colors.heading },
+  infoBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 24, color: colors.text },
   warnBanner: {
     flexDirection: 'row',
     gap: spacing.md,
-    backgroundColor: '#FFF0EE',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.danger,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  warnBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.danger },
-  warnBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 22, color: '#5C3D3A' },
+  warnBannerTitle: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 24, color: colors.danger },
+  warnBannerBody: { fontFamily: fonts.regular, marginTop: 4, fontSize: font.body, lineHeight: 24, color: colors.text },
   bannerCopy: { flex: 1 },
   hero: {
-    backgroundColor: colors.mintStrong,
-    borderRadius: 20,
+    backgroundColor: colors.soft,
+    borderRadius: radius.md,
     minHeight: 180,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
+    overflow: 'hidden',
   },
-  heroUnavailable: { backgroundColor: '#ECEEEA' },
+  heroPhoto: { minHeight: 0 },
+  heroImage: { width: '100%', height: 220 },
+  heroUnavailable: { backgroundColor: colors.soft },
   heroCircle: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#F6E7B4',
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroCircleUnavailable: { backgroundColor: '#F3F5F2' },
-  heroInitials: { fontFamily: fonts.bold, fontSize: 28, color: '#8A6A12' },
-  heroInitialsMuted: { color: '#9AA39D' },
+  heroCircleUnavailable: { backgroundColor: colors.white },
+  heroInitials: { fontFamily: fonts.bold, fontSize: 28, lineHeight: 36, color: colors.primary },
+  heroInitialsMuted: { color: colors.inactive },
   infoCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
@@ -296,7 +309,7 @@ const styles = StyleSheet.create({
   },
   infoTop: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
   infoHeading: { flex: 1 },
-  mealName: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.heading, lineHeight: 26 },
+  mealName: { fontFamily: fonts.semibold, fontSize: font.lg, color: colors.heading, lineHeight: 26 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   statusPill: {
     borderRadius: radius.pill,
@@ -304,32 +317,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
   },
-  statusPillOn: { borderColor: '#1E7A45', backgroundColor: colors.mint },
-  statusPillOff: { borderColor: '#C8CFC8', backgroundColor: '#F6F7F5' },
-  statusPillText: { fontFamily: fonts.bold, fontSize: font.sm },
-  statusPillTextOn: { color: '#1E7A45' },
-  statusPillTextOff: { color: colors.inactive },
+  statusPillOff: { borderColor: colors.border, backgroundColor: colors.soft },
+  statusPillText: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24 },
+  statusPillTextOff: { color: colors.text },
   categoryPill: {
     borderRadius: radius.pill,
-    backgroundColor: '#F1F3F0',
+    backgroundColor: colors.soft,
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
   },
   categoryPillText: { fontFamily: fonts.bold, fontSize: font.sm, color: colors.muted },
   price: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.heading },
   sectionLabel: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.body, color: colors.heading },
-  sectionBody: { fontFamily: fonts.regular, marginTop: 6, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  sectionBody: { fontFamily: fonts.regular, marginTop: 6, fontSize: font.body, lineHeight: 24, color: colors.text },
   allergenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   allergenPill: {
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
   },
-  allergenPillNeutral: { backgroundColor: '#F6E7B4' },
+  allergenPillNeutral: { backgroundColor: colors.soft },
   allergenPillWarn: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.danger },
-  allergenPillText: { fontFamily: fonts.bold, fontSize: font.sm, color: '#8A6A12' },
+  allergenPillText: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.text },
   allergenPillTextWarn: { color: colors.danger },
-  profileNote: { fontFamily: fonts.regular, marginTop: spacing.md, fontSize: font.sm, lineHeight: 20, color: colors.inactive },
+  profileNote: { fontFamily: fonts.regular, marginTop: spacing.md, fontSize: font.body, lineHeight: 24, color: colors.muted },
   error: { fontFamily: fonts.regular, marginTop: spacing.md, color: colors.danger, fontSize: font.body },
   footer: {
     alignSelf: 'stretch',
@@ -337,8 +348,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E6EBE3',
-    backgroundColor: colors.authPage,
+    borderTopColor: colors.border,
+    backgroundColor: colors.page,
   },
   secondaryAction: { marginBottom: spacing.sm, alignItems: 'center', minHeight: control.minHeight, justifyContent: 'center' },
   secondaryActionText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
@@ -352,5 +363,5 @@ const styles = StyleSheet.create({
   },
   primaryMuted: { backgroundColor: colors.cardBorder },
   primaryLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
-  primaryLabelMuted: { color: '#7E8C82' },
+  primaryLabelMuted: { color: colors.inactive },
 });

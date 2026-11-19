@@ -114,6 +114,8 @@ function emptyDb(): AppDatabase {
       leadTimeHours: 24,
       deliveryFee: 0,
       kitchenHours: { days: [1, 2, 3, 4, 5, 6], openHour: 7, closeHour: 18 },
+      specialRequestFee: 85,
+      additionalMeatFee: 145,
     },
     seq: 1,
   };

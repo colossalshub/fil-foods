@@ -145,9 +145,9 @@ function ProfileNameRow({ firstName, lastName }: { firstName?: string | null; la
   );
 }
 
-function ProfilePageHeader({ subtitle }: { subtitle?: string }) {
+function ProfilePageHeader() {
   return (
-    <PageHeader title={ACCOUNT_COPY.screenTitle} subtitle={ACCOUNT_COPY.screenSubtitle} caption={subtitle} />
+    <PageHeader title={ACCOUNT_COPY.screenTitle} subtitle={ACCOUNT_COPY.screenSubtitle} />
   );
 }
 
@@ -837,7 +837,7 @@ export default function ProfileScreen() {
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ProfilePageHeader subtitle={registeredForSubtitle(profile)} />
+        <ProfilePageHeader />
         <FormMessage messages={toast} tone="ok" />
 
         <View style={styles.identityCard}>
@@ -1415,7 +1415,7 @@ const PAGE = {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   layerHost: { flex: 1 },
-  scroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl },
   emptyState: { fontFamily: fonts.regular, marginTop: spacing.xl, fontSize: font.body, lineHeight: 24, color: PAGE.body },
   identityCard: {
     ...card,

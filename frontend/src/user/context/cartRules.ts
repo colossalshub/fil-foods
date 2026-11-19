@@ -1,5 +1,5 @@
 import type { DaySlot } from '../data/todayMenu';
-import type { Meal, MealCustomization } from '../types';
+import type { Meal, MealCustomization, SpecialRequest } from '../types';
 import { customizationLabel, validateOrderSelection } from '../services/orderService.js';
 
 export interface CartItem {
@@ -10,11 +10,14 @@ export interface CartItem {
   /** Build-today flow: which meal time this line belongs to. */
   daySlot?: DaySlot;
   todayMealId?: string;
+  /** USR-51. Optional preparation request for this meal only. */
+  specialRequest?: SpecialRequest;
 }
 
 export interface AddCartItemOptions {
   daySlot?: DaySlot;
   todayMealId?: string;
+  specialRequest?: SpecialRequest;
 }
 
 /**
@@ -40,6 +43,7 @@ export function addCartLine(
     customizationLabel: customizationLabel(customization),
     daySlot: options?.daySlot,
     todayMealId: options?.todayMealId,
+    specialRequest: options?.specialRequest,
   });
   const check = validateOrderSelection(next);
   if (!check.ok) return { items: prev, error: check.message || '' };

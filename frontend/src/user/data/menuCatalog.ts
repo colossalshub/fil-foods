@@ -16,6 +16,7 @@ export interface MenuCatalogItem {
   description?: string;
   ingredients?: string[];
   allergens?: string[];
+  image?: number | string | { uri: string };
   category?: MenuSlot;
   calories?: number;
   protein?: number;
@@ -264,6 +265,7 @@ function mirrorDinnerChoices(items: MenuCatalogItem[]): MenuCatalogItem[] {
     slot: 'Dinner',
     category: 'Dinner',
     mealId: item.mealId?.replace('plate-lunch', 'plate-dinner'),
+    description: item.description?.replace(/lunch/gi, 'dinner'),
   }));
 }
 
@@ -337,7 +339,8 @@ export function resolveMenuMeal(item: MenuCatalogItem): Meal {
     portion: '1 serving',
     available: item.available,
     description: item.description,
-  } as Meal & { description?: string };
+    image: item.image,
+  } as Meal;
 }
 
 export function menuItemById(id: string) {

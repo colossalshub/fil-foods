@@ -8,6 +8,12 @@ import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } fr
 import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
 import { ORDER_REF_PREFIX, TRACKING_PREFIX, formatOrderRef, orderRefOf } from '../domain/orderReference.js';
 import { CLIENT_ORDER_STATUS } from '../../lib/orderStatus.js';
+import {
+  feeForSpecialRequest,
+  preparationNote,
+  snapshotSpecialRequest,
+  validateSpecialRequest,
+} from '../domain/specialRequest.js';
 export { solveNutritionPlan } from './nutritionService.js';
 
 export const ORDER_MSG = {
@@ -453,18 +459,28 @@ export function calculateTotals(lineItems: Array<{ meal: Meal; quantity: number 
  * for the group (see docs/implementation-traceability.md).
  */
 export function checkoutTotal(
-  lineItems: { meal: Meal; quantity: number | string }[],
+  lineItems: { meal: Meal; quantity: number | string; specialRequest?: { options: string[]; note: string } | null }[],
   planId: string | null | undefined,
   user?: Parameters<typeof calculateTotals>[1],
 ) {
   const meals = calculateTotals(lineItems, user);
+  const specialRequestFees = lineItems.reduce((sum, row) => sum + feeForSpecialRequest(row.specialRequest), 0);
   const plan = PLAN_PRICES.find((row) => row.id === planId) || null;
-  if (!plan) return { ...meals, planId: 'standard', planAmount: null as number | null };
+  if (!plan) {
+    return {
+      ...meals,
+      specialRequestFees,
+      total: meals.total + specialRequestFees,
+      planId: 'standard',
+      planAmount: null as number | null,
+    };
+  }
   return {
     subtotal: plan.amount,
     discountRate: 0,
     discountAmount: 0,
-    total: plan.amount,
+    specialRequestFees,
+    total: plan.amount + specialRequestFees,
     planId: plan.id,
     planAmount: plan.amount as number | null,
   };
@@ -677,10 +693,17 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       healthConditions: [...(recipient?.healthConditions || user.healthConditions || [])],
       dietaryRestrictions: [...(dietaryRestrictions || [])],
       allergies: (allergies || []).map((item) => ({ name: item.name, note: item.note || '' })),
+      preparationNotes: lineItems
+        .map((row) => preparationNote(row.meal.category || 'Meal', row.meal.name, row.specialRequest))
+        .filter(Boolean),
     };
     const recipientName = user.accountFor === 'family'
       ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
       : '';
+    for (const row of lineItems) {
+      const requestCheck = validateSpecialRequest(row.specialRequest, allergies);
+      if (!requestCheck.ok) return { ok: false, messages: [requestCheck.message] };
+    }
     const warnings = collectOrderAllergenWarnings(lineItems, profile, recipientName);
     // USR-11/12/35/39 (revised): a meal with a recorded allergen is blocked; no acknowledgement overrides it.
     if (warnings.length) {
@@ -717,6 +740,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
           unitPrice: STANDARD_MEAL_PRICE,
           lineTotal: lineSubtotal(row.meal, quantity),
           customizationLabel: customizationLabel(row.customization),
+          specialRequest: snapshotSpecialRequest(row.specialRequest),
         };
       }),
       fulfillment: {
@@ -757,7 +781,18 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       action: 'record.created',
       userId,
       targetId: order.id,
-      metadata: { type: 'order', orderRef: order.orderRef, trackingNumber: order.trackingNumber },
+        metadata: {
+          type: 'order',
+          orderRef: order.orderRef,
+          trackingNumber: order.trackingNumber,
+          specialRequests: order.items
+            .filter((row) => row.specialRequest)
+            .map((row) => ({
+              meal: row.name,
+              fee: row.specialRequest?.fee,
+              addedBy: userId,
+            })),
+        },
       at: placedIso,
     });
     inFlightConfirm.set(key, { order, placing: false });
@@ -785,6 +820,7 @@ export function getKitchenOrderView(actor: { roleMask?: number } | null | undefi
     healthConditions: order.kitchenView?.healthConditions || [],
     dietaryRestrictions: order.kitchenView?.dietaryRestrictions || [],
     allergies: order.kitchenView?.allergies || [],
+    preparationNotes: order.kitchenView?.preparationNotes || [],
   };
 }
 

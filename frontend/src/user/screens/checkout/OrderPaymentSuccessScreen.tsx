@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import AppPageShell from '../../components/AppPageShell';
+import PageHeader from '../../components/PageHeader';
 import CheckoutOrderStatusCard from '../../components/CheckoutOrderStatusCard';
 import type { Order } from '../../types';
 import { CHECKOUT_MSG } from '../../data/checkoutCopy';
@@ -22,11 +22,7 @@ export default function OrderPaymentSuccessScreen({ route, navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[checkoutFlow.statusIcon, checkoutFlow.statusIconOk]}>
-          <Ionicons name="checkmark" size={36} color="#1E4D38" />
-        </View>
-        <Text style={checkoutFlow.title} accessibilityRole="header">{CHECKOUT_MSG.paidTitle}</Text>
-        <Text style={checkoutFlow.lead}>{CHECKOUT_MSG.paidLead}</Text>
+        <PageHeader title={CHECKOUT_MSG.paidTitle} subtitle={CHECKOUT_MSG.paidLead} />
 
         {order ? (
           <CheckoutOrderStatusCard

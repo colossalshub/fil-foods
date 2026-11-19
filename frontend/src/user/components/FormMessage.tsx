@@ -33,7 +33,7 @@ function ViewMessage({ tone, children }: { tone?: string; children?: ReactNode }
 
 const styles = StyleSheet.create({
   box: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.lg },
-  error: { backgroundColor: '#FDECEC' },
+  error: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.danger },
   ok: { backgroundColor: colors.tint },
   text: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger, lineHeight: 22 },
   okText: { color: colors.primary },

@@ -21,9 +21,9 @@ function PageHeader({ title, subtitle, caption, showHelp = true, accessory }: Pa
   return (
     <View style={styles.wrap}>
       <View style={styles.titles}>
-        <Text style={styles.title} accessibilityRole="header" allowFontScaling>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle} allowFontScaling>{subtitle}</Text> : null}
-        {caption ? <Text style={styles.caption} allowFontScaling>{caption}</Text> : null}
+        <Text style={styles.title} accessibilityRole="header" numberOfLines={1} allowFontScaling>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle} numberOfLines={1} allowFontScaling>{subtitle}</Text> : null}
+        {caption ? <Text style={styles.caption} numberOfLines={1} allowFontScaling>{caption}</Text> : null}
       </View>
       {accessory || showHelp ? (
         <View style={styles.actions}>
@@ -43,6 +43,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
   },
   titles: { flex: 1, minWidth: 0 },
   title: { ...type.pageTitle },

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconChipDanger: { backgroundColor: '#FDECEA' },
+  iconChipDanger: { backgroundColor: colors.soft },
   text: { flex: 1, gap: 2 },
   label: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 22, color: colors.heading },
   labelDanger: { color: colors.danger },

@@ -3,6 +3,8 @@ import test from 'node:test';
 import { getDb, resetStore } from '../data/mockStore.js';
 import { MSG } from '../data/messages.js';
 import { mealsForLabel } from './audience.js';
+import { matchedProfileLine, mealCardCopy, recentOrderedMeals } from './homePresentation.js';
+import { orderCatalogIdentity, readyLunchMeals } from './readyMeals.js';
 import { deleteAccount, termsUpdateRequired } from '../services/authService.js';
 import { submitFeedback } from '../services/feedbackService.js';
 import { ORDER_MSG, getRecommendedMeals, validateOrderSelection } from '../services/orderService.js';
@@ -128,6 +130,71 @@ test('feedback rejects an empty comment and saves a signed-in comment', async ()
   const saved = await submitFeedback(user.id, 'More vegetable sides, please.');
   assert.equal(saved.ok, true);
   assert.equal(saved.message, MSG.commentSubmitted);
+});
+
+test('home meal cards use the dish name and a one-line description', () => {
+  assert.deepEqual(mealCardCopy({
+    name: 'Beef',
+    description: 'Beef lunch plate with Filipino cooking style and vegetable side.',
+  }), {
+    title: 'Beef lunch plate',
+    description: 'Filipino cooking style and vegetable side.',
+  });
+  assert.deepEqual(mealCardCopy({
+    name: 'Sugar Free Ube Pandesal',
+    description: 'A ube-flavored pandesal sweetened without added sugar, suitable for diabetic-friendly plans.',
+  }), {
+    title: 'Sugar Free Ube Pandesal',
+    description: 'A ube-flavored pandesal sweetened without added sugar, suitable for diabetic-friendly plans.',
+  });
+});
+
+test('home match line joins the profile box and the suitability badge', () => {
+  assert.equal(matchedProfileLine({
+    dietaryRestrictions: ['Low-sugar', 'Soft diet'],
+  }), 'Matched to your low-sugar, soft diet (doctor).');
+  assert.equal(matchedProfileLine(null), '');
+  assert.equal(matchedProfileLine({
+    dietaryRestrictions: ['Low-sugar'],
+  }, 'Liza'), "Matched to Liza's low-sugar.");
+});
+
+test('home recommendations are finished lunch dishes', () => {
+  assert.deepEqual(readyLunchMeals().map((meal) => meal.name), [
+    'Beef Pinoy Steak',
+    'Fish Pinoy Steak',
+    'Pork Adobo',
+    'Chicken Tinola',
+  ]);
+});
+
+test('ready lunch dishes order against the catalog plate, not the display name', () => {
+  const pork = readyLunchMeals().find((meal) => meal.name === 'Pork Adobo');
+  assert.ok(pork);
+  assert.equal(pork.id, 'ready-pork-adobo');
+  assert.deepEqual(orderCatalogIdentity(pork), { mealId: 'plate-lunch-pork', mealName: 'Pork' });
+});
+
+test('order again keeps the last three meals and stays empty without history', () => {
+  assert.deepEqual(recentOrderedMeals([], 3), []);
+  const meals = recentOrderedMeals([
+    {
+      placedAt: '2026-10-01T00:00:00.000Z',
+      items: [
+        { mealId: 'a', name: 'Tinola' },
+        { mealId: 'b', name: 'Bangus' },
+      ],
+    },
+    {
+      placedAt: '2026-10-12T00:00:00.000Z',
+      items: [
+        { mealId: 'c', name: 'Adobo' },
+        { mealId: 'a', name: 'Tinola' },
+        { mealId: 'd', name: 'Pinakbet' },
+      ],
+    },
+  ], 3);
+  assert.deepEqual(meals.map((meal) => meal.name), ['Adobo', 'Tinola', 'Pinakbet']);
 });
 
 test('a newer terms version is required before Home', () => {

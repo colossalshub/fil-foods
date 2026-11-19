@@ -211,6 +211,8 @@ export interface Meal {
   portion?: string;
   available?: boolean;
   description?: string;
+  /** Local require() id or a remote image URL. Home falls back to a placeholder when this is absent. */
+  image?: number | string | { uri: string };
 }
 
 export interface MealMatchProfile {
@@ -269,6 +271,13 @@ export interface MealCustomization {
   cookingStyle?: string;
 }
 
+/** USR-51. One optional request per selected meal. `fee` is the amount that applied when it was saved. */
+export interface SpecialRequest {
+  options: string[];
+  note: string;
+  fee?: number;
+}
+
 export interface OrderItem {
   mealId?: string;
   name: string;
@@ -276,12 +285,15 @@ export interface OrderItem {
   unitPrice?: number;
   lineTotal?: number;
   customizationLabel?: string;
+  specialRequest?: SpecialRequest;
 }
 
 export interface KitchenView {
   healthConditions: string[];
   dietaryRestrictions: string[];
   allergies: Array<{ name: string; note: string }>;
+  /** USR-51 / KIT-12. Delivery staff do not receive this list. */
+  preparationNotes?: string[];
 }
 
 export interface Order {
@@ -386,6 +398,9 @@ export interface AppDatabase {
     leadTimeHours: number;
     deliveryFee: number;
     kitchenHours: { days: number[]; openHour: number; closeHour: number };
+    /** USR-51. Admin-editable fee amounts. An order keeps the amounts from when it was submitted. */
+    specialRequestFee: number;
+    additionalMeatFee: number;
   };
   seq: number;
   orders?: Order[];
@@ -549,6 +564,7 @@ export interface ConfirmOrderItem {
   meal: Meal;
   quantity: number | string;
   customization?: MealCustomization;
+  specialRequest?: SpecialRequest;
 }
 
 export interface ConfirmFulfillment {

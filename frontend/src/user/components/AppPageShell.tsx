@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { useInModal } from './AppModal';
-import AuthBackgroundDecor from './AuthBackgroundDecor';
 import { useTabScrollInset } from '../hooks/useTabScrollInset';
 import { colors, spacing } from '../theme/theme';
 
@@ -117,7 +116,6 @@ export default function AppPageShell({ children, edges = ['top'], contentStyle }
   return (
     <View style={styles.page}>
       <View style={styles.root}>
-        <AuthBackgroundDecor />
         <View style={[styles.safe, safePadding]}>
           {/* Expo apps are edge-to-edge on Android, so the window no longer resizes for the
               keyboard: "padding" on every platform keeps focused inputs above it. */}
@@ -133,7 +131,7 @@ export default function AppPageShell({ children, edges = ['top'], contentStyle }
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: colors.authPage,
+    backgroundColor: colors.page,
     alignItems: 'center',
   },
   root: {
@@ -141,7 +139,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 430,
     overflow: 'hidden',
-    backgroundColor: colors.authPage,
+    backgroundColor: colors.page,
   },
   safe: {
     flex: 1,

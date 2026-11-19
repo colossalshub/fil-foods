@@ -5,7 +5,6 @@ import AppModal from './AppModal';
 import { useSafeAreaPadding } from './AppPageShell';
 import { useAuth } from '../context/AuthContext';
 import AppGuideExperience from './AppGuideExperience';
-import AuthBackgroundDecor from './AuthBackgroundDecor';
 import { hasSeenHelpGuide, markHelpGuideSeen } from '../services/helpGuideService';
 import { colors, spacing } from '../theme/theme';
 
@@ -35,7 +34,6 @@ export default function HelpGuideGate() {
   return (
     <AppModal visible={visible} animationType="slide" onRequestClose={dismiss}>
       <View style={styles.wrap}>
-        <AuthBackgroundDecor />
         <GuideSafeArea>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <AppGuideExperience
@@ -51,7 +49,7 @@ export default function HelpGuideGate() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.authPage },
+  wrap: { flex: 1, backgroundColor: colors.page },
   safe: { flex: 1 },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxl },
 });

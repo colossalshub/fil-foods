@@ -3,7 +3,7 @@ import { formatPeso, PLAN_PRICES, STANDARD_MEAL_PRICE } from '../services/orderS
 /** USR-19 fulfillment screens — keep strings aligned with product copy. */
 export const FULFILLMENT_COPY = {
   chooseTitle: 'Delivery or Pickup',
-  chooseLead: 'Choose how you would like to receive your meals.',
+  chooseLead: 'How you receive your meals.',
   chooseFootnote: 'You can change this before placing your order.',
   deliveryTitle: 'Delivery',
   pickupTitle: 'Pickup',
@@ -28,7 +28,7 @@ export const CHECKOUT_MSG = {
   planChoiceHeading: 'Plan (optional)',
   planChoiceLead: 'Standard meal is selected. You can choose a plan instead.',
   orderSummaryTitle: 'Order Summary',
-  orderSummaryLead: 'Review your meals and how you will receive them.',
+  orderSummaryLead: 'Review your meals and delivery.',
   summaryContinue: 'Continue',
   placeOrder: 'Place Order',
   continue: 'Continue',

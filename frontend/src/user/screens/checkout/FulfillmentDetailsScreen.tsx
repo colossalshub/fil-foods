@@ -10,6 +10,7 @@ import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
 import { FULFILLMENT_COPY } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
+import { colors } from '../../theme/theme';
 
 function FulfillmentToggle({
   type,
@@ -119,7 +120,7 @@ export default function FulfillmentDetailsScreen({ navigation }: {
                 <View style={checkoutFlow.optionCardRow}>
                   <Text style={checkoutFlow.optionCardTitle}>{FULFILLMENT_COPY.useSavedAddress}</Text>
                   {!useCustomAddress ? (
-                    <Ionicons name="checkmark-circle" size={22} color="#1E4D38" />
+                    <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
                   ) : (
                     <CheckoutRadio selected={false} />
                   )}
@@ -160,7 +161,7 @@ export default function FulfillmentDetailsScreen({ navigation }: {
           <View style={checkoutFlow.card}>
             <View style={checkoutFlow.pickupCardHeader}>
               <View style={checkoutFlow.pickupCardIcon}>
-                <Ionicons name="storefront-outline" size={22} color="#1E4D38" />
+                <Ionicons name="storefront-outline" size={22} color={colors.primary} />
               </View>
               <Text style={checkoutFlow.cardTitle}>{FULFILLMENT_COPY.pickupCounterTitle}</Text>
             </View>
