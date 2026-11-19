@@ -46,3 +46,11 @@ yarn-error.*
 # generated native folders
 ios/
 android/
+
+# Local AI tooling (Impeccable)
+.cursor/skills/
+.cursor/agents/
+.cursor/hooks.json
+
+# Editor settings
+.vscode/
