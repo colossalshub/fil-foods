@@ -203,6 +203,8 @@ export const ORDERS_COPY = {
   deliveryDetails: 'Delivery details',
   fulfillmentHeading: 'FULFILLMENT',
   orderReference: 'Order reference',
+  // Revised USR-13 AC 5: separate delivery tracking number (new wording).
+  trackingNumber: 'Delivery tracking number',
   status: 'Status',
   date: 'Date',
   paymentStatus: 'Payment status',

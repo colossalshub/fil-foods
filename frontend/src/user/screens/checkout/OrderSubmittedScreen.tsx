@@ -7,6 +7,7 @@ import { CHECKOUT_MSG } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { formatPeso } from '../../services/orderService';
 import { ORDER_STATUS } from '../../services/trackingService';
+import { deliveryTrackingOf, orderRefOf } from '../../domain/orderReference';
 
 export default function OrderSubmittedScreen({ route, navigation }: {
   route: { params?: { order?: Order } };
@@ -38,7 +39,8 @@ export default function OrderSubmittedScreen({ route, navigation }: {
           badge={ORDER_STATUS.FOR_DIETITIAN_REVIEW}
           badgeTone="warn"
           rows={[
-            { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+            { label: CHECKOUT_MSG.orderReference, value: orderRefOf(order) || '—' },
+                ...(deliveryTrackingOf(order) ? [{ label: CHECKOUT_MSG.trackingNumber, value: deliveryTrackingOf(order) as string }] : []),
             { label: CHECKOUT_MSG.meals, value: `${order.items?.length || 0} meals` },
             { label: CHECKOUT_MSG.total, value: formatPeso(order.total || 0) },
           ]}

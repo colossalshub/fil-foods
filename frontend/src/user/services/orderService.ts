@@ -6,6 +6,7 @@ import { fuzzyWordMatch, levenshtein, osaDistance } from '../../lib/algorithms/s
 import { getUser } from './authService.js';
 import { mealMatchesAnyNutritionalPreference, rankMeal, sortMealsForProfile } from './profileService.js';
 import { appendAuditEvent, canViewKitchenRecord } from './securityService.js';
+import { ORDER_REF_PREFIX, TRACKING_PREFIX, formatOrderRef, orderRefOf } from '../domain/orderReference.js';
 export { solveNutritionPlan } from './nutritionService.js';
 
 export const ORDER_MSG = {
@@ -580,17 +581,18 @@ function ensureOrdersArray(): Order[] {
   return db.orders;
 }
 
-function nextTrackingNumber() {
+/** Next ORD- reference; the TRK- tracking number of a delivery order reuses its number. */
+function nextOrderRef() {
   const orders = ensureOrdersArray();
   const year = new Date().getFullYear();
-  const prefix = `TRK-${year}-`;
+  const prefix = `${ORDER_REF_PREFIX}${year}-`;
   const nums = orders
-    .map((o) => o.trackingNumber)
-    .filter((t) => typeof t === 'string' && t.startsWith(prefix))
+    .map((o) => orderRefOf(o))
+    .filter((t) => t.startsWith(prefix))
     .map((t) => Number(t.slice(prefix.length)))
     .filter((n) => Number.isFinite(n));
   const next = nums.length ? Math.max(...nums) + 1 : 1;
-  return `${prefix}${String(next).padStart(4, '0')}`;
+  return formatOrderRef(year, next);
 }
 
 function confirmFingerprint(userId: string, payload: ConfirmOrderPayload) {
@@ -673,11 +675,15 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
 
     const totals = checkoutTotal(lineItems, payload.planId, user);
     const placedIso = payload.now ? parseScheduleDate(payload.now)?.toISOString() || stamp() : stamp();
+    const orderRef = nextOrderRef();
     const order = {
       id: nextId('order'),
       userId,
       clientConfirmKey: key,
-      trackingNumber: nextTrackingNumber(),
+      orderRef,
+      trackingNumber: payload.fulfillment.type === 'delivery'
+        ? `${TRACKING_PREFIX}${orderRef.slice(ORDER_REF_PREFIX.length)}`
+        : undefined,
       status: 'For Dietitian Review',
       statusHistory: [{ status: 'For Dietitian Review', at: placedIso }],
       accountFor: user.accountFor || 'self',
@@ -719,7 +725,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
       action: 'record.created',
       userId,
       targetId: order.id,
-      metadata: { type: 'order', trackingNumber: order.trackingNumber },
+      metadata: { type: 'order', orderRef: order.orderRef, trackingNumber: order.trackingNumber },
       at: placedIso,
     });
     inFlightConfirm.set(key, { order, placing: false });
@@ -743,7 +749,7 @@ export function getKitchenOrderView(actor: { roleMask?: number } | null | undefi
   const order = ensureOrdersArray().find((row) => row.id === orderId);
   if (!order) return null;
   return {
-    trackingNumber: order.trackingNumber,
+    orderRef: orderRefOf(order),
     healthConditions: order.kitchenView?.healthConditions || [],
     dietaryRestrictions: order.kitchenView?.dietaryRestrictions || [],
     allergies: order.kitchenView?.allergies || [],

@@ -30,6 +30,7 @@ import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
 type OrderListItem = {
   id: string;
+  orderRef?: string;
   trackingNumber?: string;
   date?: string;
   meals?: string;
@@ -57,13 +58,14 @@ function OrderListCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Order ${order.trackingNumber}, ${order.status}`}
+      accessibilityLabel={`Order ${order.orderRef}, ${order.status}`}
       onPress={onPress}
       style={styles.orderCard}
     >
       <View style={styles.orderCardBody}>
         <View style={styles.orderCardMain}>
-          <Text style={styles.tracking}>{order.trackingNumber}</Text>
+          <Text style={styles.tracking}>{order.orderRef}</Text>
+          {order.trackingNumber ? <Text style={styles.mealsLine}>{order.trackingNumber}</Text> : null}
           <OrderStatusBadge status={order.status || ''} variant="outline" />
           <Text style={styles.fulfillmentLine}>{scheduleLine}</Text>
           <Text style={styles.mealsLine} numberOfLines={1}>{order.meals}</Text>
@@ -226,7 +228,8 @@ export default function TrackingScreen() {
       setSearchError('');
       return;
     }
-    const match = orders.find((order) => String(order.trackingNumber || '').toLowerCase() === query.toLowerCase());
+    const wanted = query.toLowerCase();
+    const match = orders.find((order) => [order.orderRef, order.trackingNumber].some((code) => String(code || '').toLowerCase() === wanted));
     if (!match) {
       if (!isSupabaseConfigured) {
         const result = searchOrderByTracking(userId || '', query);

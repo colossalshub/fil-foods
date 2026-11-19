@@ -240,7 +240,9 @@ export function nutritionTiles(dietary: DietaryInfo | null | undefined): Nutriti
   ];
 }
 
-export function displayOrderNo(order: Pick<AdminOrder, 'orderNo' | 'id'>) {
+/** The ORD-YYYY-NNNN order reference (revised USR-13 AC 4); "#00000" only for orders without one. */
+export function displayOrderNo(order: Pick<AdminOrder, 'orderNo' | 'id'> & { orderRef?: string }) {
+  if (order.orderRef) return order.orderRef;
   if (typeof order.orderNo === 'number') return `#${String(order.orderNo).padStart(5, '0')}`;
   if (/^\d+$/.test(order.id)) return `#${order.id.padStart(5, '0')}`;
   return `#${order.id.slice(0, 8)}`;

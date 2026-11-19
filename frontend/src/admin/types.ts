@@ -78,8 +78,10 @@ export interface DeliveryInfo {
 
 export interface AdminOrder {
   id: string;
-  /** Shown as #00000 (KIT-11 #1). */
+  /** Internal sequence; shown as #00000 only when an order has no reference yet. */
   orderNo?: number | null;
+  /** ORD-YYYY-NNNN order reference shown in the Admin, Dietitian and Kitchen modules (revised USR-13 AC 4). */
+  orderRef?: string;
   /** Meal recipient's first name; the only name Kitchen and Delivery see. */
   firstName?: string;
   accountHolderName?: string | null;
@@ -94,6 +96,7 @@ export interface AdminOrder {
   /** Kitchen keeps seeing cancelled orders only when they had been paid. */
   wasPaid?: boolean;
   clientId?: string | null;
+  /** TRK-YYYY-NNNN delivery tracking number; delivery orders only. */
   trackingNumber?: string;
   customerName: string;
   status: OrderStatus;

@@ -18,7 +18,7 @@ The module workbook was revised on 2026-11-19 (canonical exports refreshed from 
 |---|---|---|
 | KIT-15, ADM-18, ADM-17 | Admin owns menu details (add/edit/delete); Kitchen only sets availability and Admin is notified; Admin views availability | Done — migration `20261119100000_menu_ownership.sql` (Admin-only write policies, `set_meal_availability` RPC for Kitchen, Admin bell on Kitchen changes). Owner decision: the database keeps Admin full write; the Admin screen shows availability read-only (ADM-18 D) and new items start Unavailable until Kitchen turns them on. |
 | DEL-14, DEL-10 | DEL-14 removed: Delivery has no menu; Dashboard shows no menu card | Done — Delivery tabs are Dashboard, Orders, Settings; no write access in RLS or the RPC. |
-| ADM-11, KIT-11, DEL-11, DEL-17 | Shared order reference `ORD-YYYY-NNNN`; `TRK-YYYY-NNNN` is the separate delivery tracking number | Pending |
+| ADM-11, KIT-11, DEL-11, DEL-17 | Shared order reference `ORD-YYYY-NNNN`; `TRK-YYYY-NNNN` is the separate delivery tracking number | Done — `20261119110000_order_reference.sql`; staff lists, details, bells and audit labels show ORD- (via `order_display_no`); search finds "0350", "ORD-2026-0350" or "TRK-2026-0350". |
 | KIT-11, KIT-12, postcondition | Kitchen sees only orders with confirmed payment (owner decision: COD orders are an exception) | Pending |
 | DEL-11, DEL-17 | Delivery sees only Ready for Pickup orders assigned to them | Pending |
 | DIT-15 | A returned order uses the status "Returned for Changes" and comes back for approval after the user resubmits | Pending |

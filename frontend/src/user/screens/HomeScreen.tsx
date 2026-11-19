@@ -27,6 +27,7 @@ type HomeNavigation = {
 
 type ActiveOrderRow = {
   id: string;
+  orderRef?: string;
   trackingNumber?: string;
   status?: string;
   totalLabel?: string;
@@ -187,7 +188,7 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
                 style={styles.activeOrderRow}
               >
                 <View style={styles.activeOrderMain}>
-                  <Text style={styles.activeOrderRef}>{order.trackingNumber || order.id}</Text>
+                  <Text style={styles.activeOrderRef}>{order.orderRef || order.id}</Text>
                   {order.totalLabel ? <Text style={styles.activeOrderTotal}>{order.totalLabel}</Text> : null}
                 </View>
                 {order.status ? <OrderStatusBadge status={order.status} /> : null}

@@ -120,6 +120,7 @@ test('getClientOrder and search return Order not found for missing or other clie
   assert.equal(getClientOrder(MARIA, 'missing').message, TRACKING_MSG.orderNotFound);
   assert.equal(searchOrderByTracking(MARIA, 'TRK-2026-0099').message, TRACKING_MSG.orderNotFound);
   assert.equal(searchOrderByTracking(MARIA, 'TRK-2026-0002').ok, true);
+  assert.equal(searchOrderByTracking(MARIA, 'ord-2026-0002').ok, true);
 });
 
 test('pickup and delivery status lists omit the opposite fulfillment steps', () => {
@@ -141,7 +142,7 @@ test('status change writes notification with exact update sentence', () => {
   advanceOrderStatus('order-seed-2', ORDER_STATUS.READY_DELIVERY, { at: '2026-10-12T09:45:00.000Z' });
   advanceOrderStatus('order-seed-2', ORDER_STATUS.OUT_FOR_DELIVERY, { at: '2026-10-12T10:00:00.000Z' });
   const alerts = getAlertsForUser(MARIA);
-  assert.ok(alerts.some((a) => a.message === 'Order TRK-2026-0002 is now Out for Delivery.'));
+  assert.ok(alerts.some((a) => a.message === 'Order ORD-2026-0002 is now Out for Delivery.'));
 });
 
 test('markAlertRead keeps notification in list and marks it read', () => {
@@ -168,7 +169,7 @@ test('announcements appear in alerts feed and cancellation creates a notificatio
   cancelClientOrder('order-seed-2', { at: '2026-10-12T11:00:00.000Z' });
   const alerts = getAlertsForUser(MARIA);
   assert.ok(alerts.some((a) => a.message === 'Kitchen closed on Oct 31'));
-  assert.ok(alerts.some((a) => a.message === 'Order TRK-2026-0002 is now Cancelled.'));
+  assert.ok(alerts.some((a) => a.message === 'Order ORD-2026-0002 is now Cancelled.'));
 });
 
 test('refreshOrdersForUser reports connection failure without requiring network', () => {
@@ -210,4 +211,6 @@ test('a backend order opens with meals and a status timeline', () => {
   assert.ok(detail.statusTimeline.length > 0);
   assert.ok(detail.statusHistory.length > 0);
   assert.equal(detail.fulfillment.typeLabel, 'Delivery');
+  assert.equal(detail.orderRef, 'ORD-2026-0007');
+  assert.equal(detail.trackingNumber, 'TRK-2026-0007');
 });

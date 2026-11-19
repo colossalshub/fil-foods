@@ -7,6 +7,7 @@ import { CHECKOUT_MSG } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { formatPeso } from '../../services/orderService';
 import { ORDER_STATUS, formatFulfillmentLine } from '../../services/trackingService';
+import { deliveryTrackingOf, orderRefOf } from '../../domain/orderReference';
 
 export default function OrderPaymentSuccessScreen({ route, navigation }: {
   route: { params?: { order?: Order; method?: string } };
@@ -32,7 +33,8 @@ export default function OrderPaymentSuccessScreen({ route, navigation }: {
             badge={ORDER_STATUS.PAID}
             badgeTone="ok"
             rows={[
-              { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+              { label: CHECKOUT_MSG.orderReference, value: orderRefOf(order) || '—' },
+                ...(deliveryTrackingOf(order) ? [{ label: CHECKOUT_MSG.trackingNumber, value: deliveryTrackingOf(order) as string }] : []),
               {
                 label: CHECKOUT_MSG.fulfillment,
                 value: formatFulfillmentLine(order.fulfillment?.type, order.fulfillment?.scheduledAt),

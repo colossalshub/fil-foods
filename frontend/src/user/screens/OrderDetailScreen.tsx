@@ -37,6 +37,7 @@ export default function OrderDetailScreen() {
   const [refreshError, setRefreshError] = useState('');
   const [order, setOrder] = useState<{
     id?: string;
+    orderRef?: string;
     trackingNumber?: string;
     status?: string;
     paymentStatusLabel?: string;
@@ -137,8 +138,13 @@ export default function OrderDetailScreen() {
           <>
             <View style={styles.card}>
               <MetaLine label={ORDERS_COPY.orderReference}>
-                <Text style={styles.valueStrong}>{order.trackingNumber}</Text>
+                <Text style={styles.valueStrong}>{order.orderRef}</Text>
               </MetaLine>
+              {order.trackingNumber ? (
+                <MetaLine label={ORDERS_COPY.trackingNumber}>
+                  <Text style={styles.value}>{order.trackingNumber}</Text>
+                </MetaLine>
+              ) : null}
               <MetaLine label={ORDERS_COPY.status}>
                 <OrderStatusBadge status={order.status || ''} variant="outline" />
               </MetaLine>

@@ -24,7 +24,8 @@ export function adminListStatusLabel(status: OrderStatus): AdminListStatusLabel 
   return status;
 }
 
-export function orderListDisplayId(order: Pick<AdminOrder, 'id' | 'trackingNumber'>) {
+export function orderListDisplayId(order: Pick<AdminOrder, 'id' | 'trackingNumber'> & { orderRef?: string }) {
+  if (order.orderRef) return order.orderRef;
   if (/^\d+$/.test(order.id)) return `#${order.id}`;
   const tracking = order.trackingNumber?.trim();
   if (tracking) return tracking.startsWith('#') ? tracking : `#${tracking}`;

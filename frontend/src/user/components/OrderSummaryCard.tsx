@@ -4,11 +4,13 @@ import { ORDERS_COPY } from '../data/messages';
 import { colors, card, font, spacing, fonts } from '../theme/theme';
 
 export default function OrderSummaryCard({
+  orderRef,
   trackingNumber,
   status,
   fulfillmentSummary,
   totalLabel,
 }: {
+  orderRef?: string;
   trackingNumber?: string;
   status: string;
   fulfillmentSummary?: string;
@@ -19,10 +21,16 @@ export default function OrderSummaryCard({
       <View style={styles.refRow}>
         <View style={styles.refBlock}>
           <Text style={styles.label}>{ORDERS_COPY.orderReference}</Text>
-          <Text style={styles.refValue}>{trackingNumber}</Text>
+          <Text style={styles.refValue}>{orderRef}</Text>
         </View>
         <OrderStatusBadge status={status} variant="outline" />
       </View>
+      {trackingNumber ? (
+        <View style={styles.row}>
+          <Text style={styles.label}>{ORDERS_COPY.trackingNumber}</Text>
+          <Text style={styles.value}>{trackingNumber}</Text>
+        </View>
+      ) : null}
       {fulfillmentSummary ? (
         <View style={styles.row}>
           <Text style={styles.label}>{ORDERS_COPY.fulfillment}</Text>

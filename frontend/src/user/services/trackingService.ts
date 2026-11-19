@@ -7,6 +7,7 @@ import { MEALS } from '../data/meals.js';
 import { formatPhp, formatPeso } from './orderService.js';
 import { getUser } from './authService.js';
 import { formatTimestamp } from '../utils/time.js';
+import { deliveryTrackingOf, orderRefOf } from '../domain/orderReference.js';
 import {
   getClientOrderById,
   getClientOrders,
@@ -20,8 +21,8 @@ export const TRACKING_MSG = {
   noOrdersLead: 'Your orders will show up here once you place one.',
   orderNotFound: 'Order not found.',
   unableRefresh: 'Unable to refresh. Please check your connection.',
-  statusUpdate: (trackingNumber: string, status: string) => `Order ${trackingNumber} is now ${status}.`,
-  orderCancelled: (trackingNumber: string) => `Order ${trackingNumber} was cancelled.`,
+  statusUpdate: (orderRef: string, status: string) => `Order ${orderRef} is now ${status}.`,
+  orderCancelled: (orderRef: string) => `Order ${orderRef} was cancelled.`,
 };
 
 export const ORDER_STATUS = {
@@ -182,7 +183,8 @@ export function itemsWithMealSlots(items: OrderItem[] | null | undefined) {
 interface BackendOrder {
   id: string;
   client_id: string;
-  tracking_number: string;
+  order_ref?: string | null;
+  tracking_number?: string | null;
   status?: string;
   created_at?: string;
   updated_at?: string;
@@ -211,7 +213,8 @@ export function mapBackendOrder(order: BackendOrder): Order {
   return {
     id: order.id,
     userId: order.client_id,
-    trackingNumber: order.tracking_number,
+    orderRef: orderRefOf({ orderRef: order.order_ref, trackingNumber: order.tracking_number }),
+    trackingNumber: order.fulfillment_type === 'delivery' ? order.tracking_number || undefined : undefined,
     status: backendStatusLabel(order.status),
     placedAt: order.created_at,
     lastUpdatedAt: order.updated_at,
@@ -384,7 +387,8 @@ function toListItem(order: Order) {
   const fulfillmentType = order.fulfillment?.type || 'delivery';
   return {
     id: order.id,
-    trackingNumber: order.trackingNumber,
+    orderRef: orderRefOf(order),
+    trackingNumber: deliveryTrackingOf(order),
     date: formatOrderDate(order.placedAt),
     dateLabel: formatOrderPlacedDate(order.placedAt),
     meals: mealsSummary(order.items),
@@ -404,7 +408,8 @@ function toDetail(order: Order) {
   const fulfillmentType = order.fulfillment?.type || 'delivery';
   return {
     id: order.id,
-    trackingNumber: order.trackingNumber,
+    orderRef: orderRefOf(order),
+    trackingNumber: deliveryTrackingOf(order),
     status: order.status,
     statusMeta: getStatusMeta(order.status),
     paymentStatusLabel: paymentStatusLabel(order.status),
@@ -489,6 +494,7 @@ export function getClientOrder(userId: string, orderId: string) {
 }
 
 export interface SearchableClientOrder {
+  orderRef?: string;
   trackingNumber?: string;
   meals?: string;
   status?: string;
@@ -502,7 +508,7 @@ function compactCode(value: unknown) {
 /**
  * Orders list search (Orders tab). Three tiers, best first; the list order is
  * kept inside each tier:
- *   0. tracking number contains the query ("0001", "trk-2026", "TRK20260001")
+ *   0. order reference or tracking number contains the query ("0001", "ord-2026", "TRK20260001")
  *   1. meal names, status or Pickup/Delivery contain the query ("adobo")
  *   2. every typed word is within the typo budget of a word in those fields,
  *      using OSA distance ("chikcen adbo" finds "Chicken Adobo")
@@ -517,8 +523,8 @@ export function searchClientOrders<T extends SearchableClientOrder>(orders: T[],
   const queryWords = textWords(needle);
   const ranked: { order: T; tier: number }[] = [];
   for (const order of orders) {
-    const tracking = String(order.trackingNumber || '');
-    if (substringMatch(tracking, needle) || (compactNeedle && compactCode(tracking).includes(compactNeedle))) {
+    const codes = [order.orderRef, order.trackingNumber].filter(Boolean).map(String);
+    if (codes.some((code) => substringMatch(code, needle) || (compactNeedle && compactCode(code).includes(compactNeedle)))) {
       ranked.push({ order, tier: 0 });
       continue;
     }
@@ -541,7 +547,9 @@ export function searchOrderByTracking(userId: string, trackingNumber: string | n
   if (!trimmed) {
     return { ok: false, message: TRACKING_MSG.orderNotFound };
   }
-  const order = ensureOrdersArray().find((o) => o.trackingNumber === trimmed);
+  // Either reference finds the order: ORD-2026-0002 or, for delivery, TRK-2026-0002.
+  const wanted = trimmed.toUpperCase();
+  const order = ensureOrdersArray().find((o) => orderRefOf(o) === wanted || deliveryTrackingOf(o) === wanted);
   if (!order || order.userId !== userId) {
     return { ok: false, message: TRACKING_MSG.orderNotFound };
   }
@@ -570,6 +578,7 @@ export function refreshClientOrder(userId: string, orderId: string, { connected 
 function pushNotification(userId: string, payload: {
   type?: string;
   orderId?: string;
+  orderRef?: string;
   trackingNumber?: string;
   message?: string;
   status?: string;
@@ -608,13 +617,15 @@ export function recordStatusChange(order: Order, newStatus: string, at?: string)
     || (user?.accountFor === 'family'
       ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
       : '');
+  const orderRef = orderRefOf(order);
   const message = user?.accountFor === 'family' && recipientName
-    ? `Order ${order.trackingNumber} for ${recipientName} is now ${newStatus}.`
-    : TRACKING_MSG.statusUpdate(order.trackingNumber, newStatus);
+    ? `Order ${orderRef} for ${recipientName} is now ${newStatus}.`
+    : TRACKING_MSG.statusUpdate(orderRef, newStatus);
   pushNotification(order.userId, {
     type: 'status',
     orderId: order.id,
-    trackingNumber: order.trackingNumber,
+    orderRef,
+    trackingNumber: deliveryTrackingOf(order),
     message,
     status: newStatus,
   });

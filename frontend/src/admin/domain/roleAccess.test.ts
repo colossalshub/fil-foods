@@ -104,6 +104,7 @@ test('status buckets and wording', () => {
   assert.equal(detailStatusLabel('admin', 'Ready for Delivery'), 'Ready for Delivery');
   assert.equal(displayOrderNo({ id: 'x', orderNo: 42 }), '#00042');
   assert.equal(displayOrderNo({ id: '00350' }), '#00350');
+  assert.equal(displayOrderNo({ id: '00350', orderNo: 350, orderRef: 'ORD-2026-0350' }), 'ORD-2026-0350');
 });
 
 test('transitions: one step or cancel, per role', () => {

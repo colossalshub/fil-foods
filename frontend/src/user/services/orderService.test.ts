@@ -282,14 +282,16 @@ test('confirmOrder is idempotent for the same cart and fulfillment', () => {
 
   const first = confirmOrder('user-maria', payload);
   assert.equal(first.ok, true);
-  assert.match(first.order.trackingNumber, /^TRK-2026-\d{4}$/);
+  assert.match(first.order.orderRef, /^ORD-2026-\d{4}$/);
+  // Pickup orders have no delivery tracking number (revised USR-13 AC 5).
+  assert.equal(first.order.trackingNumber, undefined);
   assert.equal(first.order.status, 'For Dietitian Review');
   assert.equal(first.message, ORDER_MSG.orderSuccess);
 
   const countAfter = getDb().orders.length;
   const second = confirmOrder('user-maria', payload);
   assert.equal(second.ok, true);
-  assert.equal(second.order.trackingNumber, first.order.trackingNumber);
+  assert.equal(second.order.orderRef, first.order.orderRef);
   assert.equal(getDb().orders.length, countAfter);
 });
 

@@ -22,6 +22,7 @@ import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 
 type OrderView = {
   id?: string;
+  orderRef?: string;
   trackingNumber?: string;
   status?: string;
   totalLabel?: string;
@@ -115,6 +116,7 @@ export default function OrderStatusScreen() {
         {order ? (
           <>
             <OrderSummaryCard
+              orderRef={order.orderRef}
               trackingNumber={order.trackingNumber}
               status={order.status || ''}
               fulfillmentSummary={order.fulfillment?.summary}

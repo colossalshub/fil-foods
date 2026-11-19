@@ -7,11 +7,16 @@ export interface SearchableOrder {
   status: string;
   placedAt: string;
   orderNo?: number | null;
+  orderRef?: string;
+  trackingNumber?: string;
 }
 
-/** Digits searched for an order: the #00000 number when the order has one (KIT-11 #1). */
+/** Digits searched for an order: its ORD-/TRK- reference digits, else the #00000 number. Typing
+ * "0350", "ORD-2026-0350" or "TRK-2026-0350" finds ORD-2026-0350 (revised USR-13 AC 4). */
 function orderDigits(order: SearchableOrder) {
-  return typeof order.orderNo === 'number' ? String(order.orderNo).padStart(5, '0') : order.id;
+  const refs = [order.orderRef, order.trackingNumber].filter(Boolean).map((ref) => String(ref).replace(/\D/g, ''));
+  const number = typeof order.orderNo === 'number' ? String(order.orderNo).padStart(5, '0') : order.id;
+  return [...refs, number].join(' ');
 }
 
 /** Ignore capital letters, accents and extra spaces (ADM-11). */
@@ -53,7 +58,7 @@ export function searchOrdersWhere<T extends SearchableOrder>(
   const folded = fold(query);
   if (folded.length < 2) return [...statused].sort(newest);
 
-  const compact = folded.replace(/[#\s]/g, '');
+  const compact = folded.replace(/[#\s-]/g, '').replace(/^(ord|trk)/, '');
   if (/^\d+$/.test(compact)) {
     return statused.filter((order) => orderDigits(order).includes(compact)).sort(newest);
   }

@@ -6,7 +6,7 @@ import { COPY, DEMO_PASSWORD } from '../copy.js';
 import { formatWhen, isValidEmail, parsePrice, peso, splitList } from '../domain/format.js';
 import { computeDashboardMetrics } from '../domain/dashboardMetrics.js';
 import { searchOrdersWhere } from '../domain/search.js';
-import { can } from '../domain/roleAccess.js';
+import { can, displayOrderNo } from '../domain/roleAccess.js';
 import {
   BUCKET_FILTERS,
   canSeeOrder,
@@ -289,7 +289,8 @@ function seedOrder([id, clientId, status, price, placedAt, photo, meal, extra]: 
   return {
     id,
     orderNo: Number(id),
-    trackingNumber: `TRK-2026-${id.slice(-4)}`,
+    orderRef: `ORD-2026-${id.slice(-4)}`,
+    trackingNumber: fulfillment === 'delivery' ? `TRK-2026-${id.slice(-4)}` : undefined,
     clientId,
     customerName: customer.name,
     firstName: first,
@@ -620,7 +621,7 @@ function emit(audience: StaffRole, title: string, orderId?: string, extra: Parti
 }
 
 function orderLabel(order: AdminOrder) {
-  return typeof order.orderNo === 'number' ? `#${String(order.orderNo).padStart(5, '0')}` : `#${order.id}`;
+  return displayOrderNo(order);
 }
 
 /** Same audiences as the `orders_notify_staff` trigger. */

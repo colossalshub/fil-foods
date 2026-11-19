@@ -318,11 +318,21 @@ select pg_temp.check(:'plan_total'::numeric = 4999 and :'plan_used' = 'weekly', 
 select pg_temp.check(:'std_total'::numeric = (select price from public.meals where id = :'breakfast_id'), 'a Standard order totals the meal price');
 select pg_temp.check((select array_agg(meal_time order by meal_time) from public.order_items where order_id = :'plan_order') = array['Dinner', 'Lunch'],
   'order items keep the chosen meal time');
-select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order2' and body like 'Order TRK-%for Lia Dizon was sent to the Dietitian for review.'),
+select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order2' and body like 'Order ORD-%for Lia Dizon was sent to the Dietitian for review.'),
   'family orders name the meal recipient');
 select pg_temp.check(exists (select 1 from public.notifications n join public.orders o on o.id = n.order_id where n.order_id = :'std_order'
-  and n.body = 'Order ' || o.tracking_number || ' was sent to the Dietitian for review.'), 'self orders do not add a recipient name');
-select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order_id' and body like 'Order TRK-%for Lia Dizon is now Out for Delivery.'),
+  and n.body = 'Order ' || o.order_ref || ' was sent to the Dietitian for review.'), 'self orders do not add a recipient name');
+-- Revised USR-13 AC 4/5: ORD- order reference for every order; TRK- only for delivery, same number.
+select pg_temp.check((select order_ref ~ '^ORD-\d{4}-\d{4,}$' and tracking_number is null from public.orders where id = :'std_order'),
+  'pickup orders have an ORD- reference and no tracking number');
+select pg_temp.check((select tracking_number = 'TRK-' || substr(order_ref, 5) from public.orders where id = :'order_id'),
+  'delivery orders get a TRK- tracking number with the same number');
+update public.orders set order_ref = 'ORD-1999-0001', tracking_number = 'TRK-X' where id = :'order_id';
+select pg_temp.check((select order_ref <> 'ORD-1999-0001' and tracking_number <> 'TRK-X' from public.orders where id = :'order_id'),
+  'order references cannot be rewritten');
+select pg_temp.check(exists (select 1 from public.staff_notifications where title like 'Order ORD-% needs review'),
+  'staff bells use the ORD- reference');
+select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order_id' and body like 'Order ORD-%for Lia Dizon is now Out for Delivery.'),
   'status notices follow USR-25 wording');
 begin;
 set local role authenticated;

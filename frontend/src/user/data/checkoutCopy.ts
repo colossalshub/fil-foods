@@ -56,6 +56,7 @@ export const CHECKOUT_MSG = {
   schedule: 'Schedule',
   customer: 'Customer',
   orderReference: 'Order reference',
+  trackingNumber: 'Delivery tracking number',
   status: 'Status',
   total: 'Total',
   amountDue: 'Amount due',

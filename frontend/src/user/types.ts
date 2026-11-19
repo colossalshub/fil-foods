@@ -288,7 +288,10 @@ export interface Order {
   id: string;
   userId: string;
   clientConfirmKey?: string;
-  trackingNumber: string;
+  /** ORD-YYYY-NNNN order reference (revised USR-13 AC 4). */
+  orderRef?: string;
+  /** TRK-YYYY-NNNN delivery tracking number; delivery orders only (revised USR-13 AC 5). */
+  trackingNumber?: string;
   status: string;
   statusHistory: OrderStatusChange[];
   lastUpdatedAt?: string;
@@ -326,6 +329,7 @@ export interface AppNotification {
   createdAt: string;
   type?: string;
   orderId?: string;
+  orderRef?: string;
   trackingNumber?: string;
   message?: string;
   status?: string;

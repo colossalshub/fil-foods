@@ -17,6 +17,7 @@ import {
 } from '../../services/trackingService';
 import { isSupabaseConfigured } from '../../../lib/supabaseClient.js';
 import type { Order } from '../../types';
+import { deliveryTrackingOf, orderRefOf } from '../../domain/orderReference';
 
 const METHODS = [
   { id: 'gcash', label: CHECKOUT_MSG.gcash },
@@ -84,7 +85,8 @@ export default function OrderPaymentScreen({ route, navigation }: {
               badge={ORDER_STATUS.FOR_DIETITIAN_REVIEW}
               badgeTone="warn"
               rows={[
-                { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+                { label: CHECKOUT_MSG.orderReference, value: orderRefOf(order) || '—' },
+                ...(deliveryTrackingOf(order) ? [{ label: CHECKOUT_MSG.trackingNumber, value: deliveryTrackingOf(order) as string }] : []),
                 { label: CHECKOUT_MSG.meals, value: `${order.items?.length || 0} meals` },
                 { label: CHECKOUT_MSG.total, value: formatPeso(order.total || 0) },
               ]}
@@ -122,7 +124,8 @@ export default function OrderPaymentScreen({ route, navigation }: {
               badge={alreadyPaid ? ORDER_STATUS.PAID : CHECKOUT_MSG.approvedBadge}
               badgeTone="ok"
               rows={[
-                { label: CHECKOUT_MSG.orderReference, value: order.trackingNumber || '—' },
+                { label: CHECKOUT_MSG.orderReference, value: orderRefOf(order) || '—' },
+                ...(deliveryTrackingOf(order) ? [{ label: CHECKOUT_MSG.trackingNumber, value: deliveryTrackingOf(order) as string }] : []),
               ]}
               footer={
                 !alreadyPaid ? (

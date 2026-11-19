@@ -91,6 +91,8 @@ test('role lists and search', () => {
   assert.deepEqual(searchRoleOrders(kitchen, 'rosa', 'All').map((o) => o.id), ['00352']);
   assert.deepEqual(searchRoleOrders(kitchen, 'lim', 'All'), []);
   assert.deepEqual(searchRoleOrders(kitchen, '00352', 'All').map((o) => o.id), ['00352']);
+  assert.deepEqual(searchRoleOrders(kitchen, 'ORD-2026-0352', 'All').map((o) => o.id), ['00352']);
+  assert.deepEqual(searchRoleOrders(kitchen, '0352', 'All').map((o) => o.id), ['00352']);
   assert.deepEqual(searchRoleOrders(ana, 'ben', 'Preparing').map((o) => o.id), ['00354']);
   assert.equal(customerFor(kitchen, 'customer-juan'), null);
   const rosa = customerFor(kitchen, 'customer-rosa');

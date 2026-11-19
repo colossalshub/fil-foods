@@ -136,7 +136,9 @@ export function mapStaffOrder(row: Json): AdminOrder {
     id: text(row.id),
     orderNo: row.order_no === null || row.order_no === undefined ? null : Number(row.order_no),
     clientId: row.client_id ? text(row.client_id) : null,
-    trackingNumber: row.tracking_number ? text(row.tracking_number) : undefined,
+    // display_no carries the ORD- reference since 20261119110000_order_reference.sql.
+    orderRef: row.order_ref ? text(row.order_ref) : (text(row.display_no).startsWith('ORD-') ? text(row.display_no) : undefined),
+    trackingNumber: row.tracking_number && row.fulfillment_type === 'delivery' ? text(row.tracking_number) : undefined,
     firstName,
     customerName: text(row.customer_name) || firstName,
     accountHolderName: row.account_holder_name ? text(row.account_holder_name) : null,
