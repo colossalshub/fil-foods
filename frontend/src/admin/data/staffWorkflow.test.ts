@@ -14,6 +14,7 @@ import {
   resetAdminDb,
   reviewOrderAsync,
   saveMenuAsync,
+  setMenuAvailabilityAsync,
   searchRoleOrders,
   setOrderStatusAsync,
   assignDeliveryAsync,
@@ -110,11 +111,21 @@ test('removal requests: dietitian only, reason on reject', async () => {
   assert.equal(removalRequests('pending').length, 0);
 });
 
-test('menu: kitchen and delivery manage, dietitian reads only', async () => {
+test('menu: admin owns details, kitchen sets availability only, delivery has no access', async () => {
   const draft = { name: 'Lugaw', category: 'Breakfast · Breads', price: '45', available: true, ingredients: 'rice, ginger', allergens: '' };
   assert.equal((await saveMenuAsync(dietitian, null, draft)).ok, false);
-  assert.equal((await saveMenuAsync(kitchen, null, draft)).ok, true);
-  assert.equal((await deleteMenuAsync(ana, 'menu-24')).ok, true);
+  assert.equal((await saveMenuAsync(kitchen, null, draft)).ok, false);
+  assert.equal((await saveMenuAsync(ana, null, draft)).ok, false);
+  assert.equal((await deleteMenuAsync(ana, 'menu-24')).ok, false);
+  assert.equal((await deleteMenuAsync(kitchen, 'menu-24')).ok, false);
+  assert.equal((await setMenuAvailabilityAsync(ana, 'menu-10', false)).ok, false);
+  assert.equal((await saveMenuAsync(admin, null, draft)).ok, true);
   assert.ok(noticesFor('kitchen').some((n) => n.title.includes('Lugaw')));
+  const adminNotices = noticesFor('admin').length;
+  const toggled = await setMenuAvailabilityAsync(kitchen, 'menu-10', false);
+  assert.equal(toggled.ok, true);
+  assert.equal(toggled.message, 'Menu item updated. Your permitted availability change was saved.');
+  assert.equal(noticesFor('admin').length, adminNotices + 1);
+  assert.equal((await deleteMenuAsync(admin, 'menu-24')).ok, true);
   assert.equal((await addStaffAsync(kitchen, { name: 'X', email: 'x@filfoods.ph', role: 'kitchen' })).ok, false);
 });

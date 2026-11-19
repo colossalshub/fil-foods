@@ -1120,12 +1120,19 @@ export async function saveMenuAsync(actor: Actor, id: string | null, draft: Menu
   return saveMenu(actor, id, draft);
 }
 
+/** KIT-15: Kitchen sets availability only. Admin keeps full write (owner decision) although its
+ * screen shows availability read-only (ADM-18). */
+function canSetAvailability(role: Actor['role']) {
+  return can(role, 'menuAvailability') || can(role, 'menuManage');
+}
+
 export async function setMenuAvailabilityAsync(actor: Actor, id: string, available: boolean) {
-  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
+  if (!canSetAvailability(actor.role)) return { ok: false as const, message: COPY.notAuthorized };
   if (backendActive()) {
     const result = await remote.setMealAvailability(id, available);
     if (!result.ok) return { ok: false as const, message: result.message };
     await syncStaffData(actor);
+    if (actor.role === 'kitchen') return { ok: true as const, message: COPY.availabilitySaved };
     return { ok: true as const, message: available ? 'Menu item updated' : COPY.notSelectable };
   }
   return setMenuAvailability(actor, id, available);
@@ -1174,7 +1181,7 @@ export function saveMenu(actor: Actor, id: string | null, draft: MenuDraft) {
 }
 
 export function setMenuAvailability(actor: Actor, id: string, available: boolean) {
-  if (!can(actor.role, 'menuManage')) return { ok: false as const, message: COPY.notAuthorized };
+  if (!canSetAvailability(actor.role)) return { ok: false as const, message: COPY.notAuthorized };
   const item = db.menu.find((row) => row.id === id);
   if (!item || item.available === available) return { ok: true as const, message: '' };
   const from = item.available ? 'Available' : 'Unavailable';
@@ -1185,6 +1192,12 @@ export function setMenuAvailability(actor: Actor, id: string, available: boolean
     oldValue: from,
     newValue: available ? 'Available' : 'Unavailable',
   });
+  // KIT-15: a Kitchen availability change notifies the Admin.
+  if (actor.role === 'kitchen') {
+    emit('admin', `Menu availability updated: ${item.name} is ${available ? 'available' : 'unavailable'}`, undefined, { kind: 'menuUpdated' });
+    touch();
+    return { ok: true as const, message: COPY.availabilitySaved };
+  }
   if (!available) {
     touch();
     return { ok: true as const, message: COPY.notSelectable };

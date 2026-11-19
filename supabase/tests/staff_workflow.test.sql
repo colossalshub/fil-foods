@@ -117,8 +117,14 @@ select public.transition_order_status(:'order_id', 'preparing') is not null as p
 select pg_temp.check((public.staff_customer_detail('00000000-0000-0000-0000-0000000000c1') ? 'history') = false, 'kitchen customer view has no order history');
 select pg_temp.expect_error('select public.staff_customers()', 'not_authorized');
 select pg_temp.expect_error($$select public.assign_delivery_staff('$$ || :'order_id' || $$', '00000000-0000-0000-0000-0000000000e2')$$, 'not_authorized');
-update public.meals set price = price where id = :'meal_id';
+-- KIT-15 (revised): Kitchen cannot edit menu rows directly, only set availability via the RPC.
+with u as (update public.meals set price = price + 1 where id = :'meal_id' returning 1)
+select pg_temp.check(count(*) = 0, 'kitchen cannot edit menu details directly') from u;
+select pg_temp.expect_error($$insert into public.meals (name, category, price) values ('K', 'Lunch', 10)$$, 'row-level security');
+select pg_temp.check((public.set_meal_availability(:'meal_id', true) ->> 'available')::boolean, 'kitchen sets availability through the RPC');
 commit;
+select pg_temp.check((select count(*) from public.staff_notifications n join public.profiles p on p.id = n.recipient_id
+  where p.role = 'owner_admin' and n.kind = 'menuUpdated' and n.body like '%set by Kitchen Staff%') = 1, 'kitchen availability change notifies the Admin');
 
 -- Admin assigns Mark; only delivery-role staff can be picked -----------------------------
 begin;
@@ -158,6 +164,25 @@ commit;
 select pg_temp.check((select array_agg(status::text order by changed_at) from public.order_status_history where order_id = :'order_id')
   = array['for_dietitian_review','awaiting_payment','paid','preparing','ready_for_delivery','out_for_delivery','completed'], 'full lifecycle recorded with timestamps');
 select pg_temp.check(exists (select 1 from public.notifications where order_id = :'order_id' and body like '%is now Completed.'), 'client sees Completed wording');
+
+-- DEL-14 removed: Delivery has no menu write; Admin keeps full write ---------------------
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', true);
+select pg_temp.expect_error($$insert into public.meals (name, category, price) values ('D', 'Lunch', 10)$$, 'row-level security');
+select pg_temp.expect_error($$select public.set_meal_availability('$$ || :'meal_id' || $$', false)$$, 'not_authorized');
+with u as (update public.meals set is_available = false where id = :'meal_id' returning 1)
+select pg_temp.check(count(*) = 0, 'delivery cannot update meals') from u;
+commit;
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true);
+insert into public.meals (name, category, price, is_available) values ('Admin Test Lugaw', 'Lunch', 45, false);
+with u as (update public.meals set price = 46 where name = 'Admin Test Lugaw' returning 1)
+select pg_temp.check(count(*) = 1, 'admin edits menu details') from u;
+delete from public.meals where name = 'Admin Test Lugaw';
+commit;
+select pg_temp.check((select is_available from public.meals where id = :'meal_id'), 'delivery availability change was refused');
 
 -- ADM-21: Admin turns off delivery menu updates; staff cannot change settings ---------------
 begin;

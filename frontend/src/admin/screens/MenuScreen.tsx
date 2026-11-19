@@ -32,7 +32,8 @@ import {
 
 type MealTab = 'All' | typeof MEAL_TIMES[number];
 
-/** ADM-17/18, DIT-14 (view only), KIT-15, DEL-14 (manage). */
+/** ADM-17/18 (Admin edits details, views availability), DIT-14 (view only), KIT-15 (Kitchen sets
+ * availability only). Delivery has no Menu tab (DEL-14 removed in the revised workbook). */
 export function MenuScreen({ navigation }: ScreenProps) {
   useStoreRevision();
   const { session, colors, showFlash, t } = useAdmin();
@@ -42,6 +43,7 @@ export function MenuScreen({ navigation }: ScreenProps) {
   const actor = session ? { id: session.id, name: session.name, email: session.email, role: session.role } : null;
   if (!actor) return null;
   const manage = can(actor.role, 'menuManage');
+  const toggle = can(actor.role, 'menuAvailability');
   const categories = menuCategories();
   const items = data.menu.filter((item) => tab === 'All' || mealTimeOf(item.category) === tab);
   const groups = categories
@@ -82,7 +84,7 @@ export function MenuScreen({ navigation }: ScreenProps) {
             {data.plans.map((plan) => (
               <Text key={plan.id} style={{ color: colors.text, marginTop: 4 }}>{plan.name} {peso(plan.price)}</Text>
             ))}
-            <Text style={{ color: colors.muted, marginTop: 8 }}>Only available items can be ordered.</Text>
+            <Text style={{ color: colors.muted, marginTop: 8 }}>Only available items can be ordered. {COPY.availabilityByKitchen}</Text>
           </View>
         ) : null}
         {groups.length === 0 ? <EmptyState title="No menu items yet." /> : groups.map((group) => (
@@ -100,27 +102,27 @@ export function MenuScreen({ navigation }: ScreenProps) {
                 <View style={styles.flex}>
                   <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
                   <Text style={[styles.price, { color: colors.text }]}>{peso(item.price)}</Text>
-                  {manage ? (
+                  {manage || toggle ? (
                     <Text style={{ color: colors.muted, fontSize: 12 }} numberOfLines={1}>
                       {item.allergens.length ? `Allergens: ${item.allergens.join(', ')}` : 'Allergens: None'}
                     </Text>
                   ) : null}
                   {!item.available ? <Text style={styles.warn}>{COPY.notSelectable}</Text> : null}
+                  {manage && item.available ? <Text style={{ color: colors.green, fontSize: 12 }}>Available</Text> : null}
                 </View>
-                {manage ? (
-                  <View style={styles.side}>
-                    <Switch
-                      accessibilityLabel={`${item.name} available`}
-                      value={item.available}
-                      onValueChange={async (available) => {
-                        const result = await setMenuAvailabilityAsync(actor, item.id, available);
-                        if (result.message) showFlash(result.message);
-                      }}
-                      trackColor={{ true: colors.green, false: colors.border }}
-                    />
-                    <View style={[styles.editPill, { backgroundColor: colors.header }]}>
-                      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>Edit</Text>
-                    </View>
+                {toggle ? (
+                  <Switch
+                    accessibilityLabel={`${item.name} available`}
+                    value={item.available}
+                    onValueChange={async (available) => {
+                      const result = await setMenuAvailabilityAsync(actor, item.id, available);
+                      if (result.message) showFlash(result.message);
+                    }}
+                    trackColor={{ true: colors.green, false: colors.border }}
+                  />
+                ) : manage ? (
+                  <View style={[styles.editPill, { backgroundColor: colors.header }]}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>Edit</Text>
                   </View>
                 ) : <Ionicons name="chevron-forward" size={18} color={colors.muted} />}
               </Pressable>
@@ -149,7 +151,8 @@ const emptyDraft = (category = menuCategories()[0]): MenuDraft => ({
   name: '',
   category,
   price: '',
-  available: true,
+  // KIT-15 / ADM-18: Kitchen Staff decide availability, so a new item starts unavailable.
+  available: false,
   ingredients: '',
   allergens: '',
 });
@@ -189,12 +192,19 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
       setConfirm(false);
       return;
     }
-    const updated = actor.role === 'admin'
-      ? `${COPY.menuUpdated}. ${draft.name.trim()} is now ${peso(Number(draft.price) || 0)}.`
-      : 'Menu item updated. Your permitted changes were saved.';
+    const updated = `${COPY.menuUpdated}. ${draft.name.trim()} is now ${peso(Number(draft.price) || 0)}.`;
     showFlash(existing ? updated : COPY.menuAdded);
     navigation.goBack();
   };
+
+  if (!actor || !can(actor.role, 'menuManage')) {
+    return (
+      <View style={styles.flex}>
+        <GreenHeader title="Menu" onBack={() => navigation.goBack()} />
+        <EmptyState title={COPY.notAuthorized} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.flex}>
@@ -213,9 +223,10 @@ export function MenuFormScreen({ navigation, route }: ScreenProps<{ id?: string 
         <AdminField value={draft.ingredients} onChangeText={(ingredients) => setDraft({ ...draft, ingredients })} placeholder="Ingredients, separated by commas" />
         <AdminField value={draft.allergens} onChangeText={(allergens) => setDraft({ ...draft, allergens })} placeholder="Allergens, separated by commas" />
         <View style={styles.switchRow}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>Available</Text>
-          <Switch value={draft.available} onValueChange={(available) => setDraft({ ...draft, available })} trackColor={{ true: colors.green, false: colors.border }} />
+          <Text style={{ color: colors.text, fontWeight: '700' }}>Availability</Text>
+          <Text style={{ color: draft.available ? colors.green : '#D76566' }}>{draft.available ? 'Available' : 'Unavailable'}</Text>
         </View>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>{COPY.availabilityByKitchen}</Text>
         <PrimaryButton
           title={existing ? COPY.saveChanges : 'Add item'}
           onPress={() => {
@@ -274,7 +285,6 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
   tab: { flex: 1, borderRadius: 999, borderWidth: 1, paddingVertical: 8, alignItems: 'center' },
   editPill: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4 },
-  side: { alignItems: 'flex-end', gap: 8 },
   warn: { color: '#D76566', marginTop: 4, fontSize: 13 },
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cat: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },

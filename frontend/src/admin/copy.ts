@@ -50,6 +50,10 @@ export const COPY = {
   priceError: 'Enter a numeric price greater than ₱0.00.',
   menuRequired: 'Name, category, price, and availability are required.',
   notSelectable: 'Not selectable for new orders.',
+  // KIT-15 B (revised workbook) quotes both lines.
+  availabilitySaved: 'Menu item updated. Your permitted availability change was saved.',
+  // ADM-18 D: Admin views availability; no quoted label (new wording).
+  availabilityByKitchen: 'Availability is set by Kitchen Staff.',
   menuDeleted: 'Menu item deleted successfully',
   menuDeleteWarning: 'Warning: this item will no longer be available for new orders.',
   demoMode: 'Demo mode: sample data (Supabase is not configured).',

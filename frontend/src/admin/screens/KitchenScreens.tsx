@@ -13,12 +13,12 @@ import { Text } from '../ui/StaffText.js';
 import { useActor, useRefresh } from './OrdersScreen.js';
 import { RoleDashboardHeader } from './DietitianScreens.js';
 
-/** KIT-10: shortcuts to Orders and Menu Management; no sales, customers or staff figures. */
+/** KIT-10: shortcuts to Orders and Menu Management (availability only, KIT-15); no sales, customers or staff figures. */
 export function KitchenDashboardScreen(props: ScreenProps) {
   return <ShiftDashboard {...props} role="kitchen" />;
 }
 
-/** DEL-10: same shortcuts, plus the assigned orders ready to collect. */
+/** DEL-10 (revised): Orders and delivery tasks only; no menu card (DEL-14 removed). */
 export function DeliveryDashboardScreen(props: ScreenProps) {
   return <ShiftDashboard {...props} role="delivery" />;
 }
@@ -37,8 +37,9 @@ function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 
     ? mine.filter((order) => order.status === 'Paid' || order.status === 'Confirmed' || order.status === 'Preparing')
     : mine.filter((order) => order.status === 'Ready for Delivery' || order.status === 'Out for Delivery');
   const toCollect = kitchen ? [] : mine.filter((order) => order.status === 'Ready for Delivery');
-  const menu = adminView().menu.slice(0, 5);
-  const editItem = (id: string) => navigation.getParent()?.navigate('Menu', { screen: 'MenuForm', params: { id }, initial: false });
+  const menu = kitchen ? adminView().menu.slice(0, 5) : [];
+  // Kitchen only sets availability (KIT-15), so Edit opens the Menu list with its availability switches.
+  const editItem = () => navigation.getParent()?.navigate('Menu');
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.page }}
@@ -96,6 +97,7 @@ function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 
             ))}
           </View>
         ) : null}
+        {kitchen ? (
         <View>
           <View style={styles.sectionHead}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Menu Management</Text>
@@ -106,12 +108,13 @@ function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 
           </View>
           <Text style={{ color: colors.muted }}>Manage your menu items.</Text>
         </View>
+        ) : null}
         {menu.map((item) => (
           <Pressable
             key={item.id}
             accessibilityRole="button"
             accessibilityLabel={`${item.name} ${peso(item.price)}`}
-            onPress={() => editItem(item.id)}
+            onPress={editItem}
             style={[styles.item, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <OrderPhoto photo={photoKeyFor(item.name)} size={52} />
@@ -120,7 +123,7 @@ function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 
               <Text style={{ color: colors.text, fontWeight: '700' }}>{peso(item.price)}</Text>
               {!item.available ? <Text style={{ color: '#D76566', fontSize: 12 }}>Unavailable</Text> : null}
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.name}`} onPress={() => editItem(item.id)} style={[styles.edit, { backgroundColor: colors.header }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.name}`} onPress={editItem} style={[styles.edit, { backgroundColor: colors.header }]}>
               <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 13 }}>Edit</Text>
             </Pressable>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />

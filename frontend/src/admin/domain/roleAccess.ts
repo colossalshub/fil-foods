@@ -2,12 +2,14 @@ import { CLIENT_ORDER_STATUS } from '../../lib/orderStatus.js';
 import type { AdminOrder, DietaryInfo, OrderStatus, StaffRole } from '../types';
 import { adminListStatusLabel } from './orderDisplay.js';
 
-/** Bottom navigation per role: Staff is Admin-only (ADM-02, DIT-16 #1, KIT-10, DEL-10). */
+/** Bottom navigation per role: Staff is Admin-only (ADM-02, DIT-16 #1, KIT-10). Delivery has no
+ * Menu (DEL-14 removed and DEL-10 shows no menu in the revised workbook; DEL-02 still lists a Menu
+ * tab — recorded inconsistency). */
 export const TABS: Record<StaffRole, string[]> = {
   admin: ['Dashboard', 'Orders', 'Menu', 'Staff', 'Settings'],
   dietitian: ['Dashboard', 'Orders', 'Menu', 'Settings'],
   kitchen: ['Dashboard', 'Orders', 'Menu', 'Settings'],
-  delivery: ['Dashboard', 'Orders', 'Menu', 'Settings'],
+  delivery: ['Dashboard', 'Orders', 'Settings'],
 };
 
 export const NO_ACCESS = 'You do not have access to this page.';
@@ -16,6 +18,7 @@ export type Capability =
   | 'staff'
   | 'sales'
   | 'menuManage'
+  | 'menuAvailability'
   | 'prices'
   | 'fullName'
   | 'deliveryAddress'
@@ -34,9 +37,10 @@ const CAPABILITIES: Record<StaffRole, Capability[]> = {
   ],
   // DIT-16: no staff management, sales figures or menu management. DIT-17 is Dietitian-only.
   dietitian: ['prices', 'fullName', 'customerHistory', 'customerDirectory', 'reviewOrders', 'removalRequests'],
-  // KIT-15 / DEL-14: Kitchen and Delivery manage menu items.
-  kitchen: ['menuManage'],
-  delivery: ['menuManage', 'deliveryAddress'],
+  // KIT-15 (revised): Kitchen only sets availability of existing items. ADM-18: Admin owns menu
+  // details and views availability. DEL-14 removed: Delivery has no menu access.
+  kitchen: ['menuAvailability'],
+  delivery: ['deliveryAddress'],
 };
 
 export function can(role: StaffRole | null | undefined, capability: Capability) {

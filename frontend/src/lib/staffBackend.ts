@@ -468,9 +468,16 @@ export async function upsertMeal(
   return result.ok ? { ok: true as const, value: text(result.value?.id) } : result;
 }
 
+/** KIT-15: availability goes through set_meal_availability (Kitchen or Admin); it notifies the Admin
+ * when Kitchen changes it. Direct table writes on meals are Admin-only. */
 export async function setMealAvailability(id: string, available: boolean) {
+  const result = await rpc<Json>('set_meal_availability', { p_meal_id: id, p_available: available });
+  return result.ok ? { ok: true as const, value: null } : result;
+}
+
+async function retireMeal(id: string) {
   const header = await authHeader().catch(() => '');
-  return select<null>(() => requireSupabase().from('meals').update({ is_available: available }).eq('id', id).setHeader('Authorization', header));
+  return select<null>(() => requireSupabase().from('meals').update({ is_available: false }).eq('id', id).setHeader('Authorization', header));
 }
 
 /** Deletes a meal; meals already on past orders are made unavailable instead (order history keeps them). */
@@ -479,7 +486,7 @@ export async function deleteMeal(id: string): Promise<Result<'deleted' | 'retire
   const removed = await select<null>(() => requireSupabase().from('meals').delete().eq('id', id).setHeader('Authorization', header));
   if (removed.ok) return { ok: true, value: 'deleted' };
   if (!/foreign key|violates|23503/i.test(removed.message)) return removed;
-  const retired = await setMealAvailability(id, false);
+  const retired = await retireMeal(id);
   return retired.ok ? { ok: true, value: 'retired' } : retired;
 }
 

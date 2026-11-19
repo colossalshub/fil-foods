@@ -16,8 +16,8 @@ The module workbook was revised on 2026-11-19 (canonical exports refreshed from 
 
 | Story | Change in the revised workbook | State |
 |---|---|---|
-| KIT-15, ADM-18, ADM-17 | Admin owns menu details (add/edit/delete); Kitchen only sets availability and Admin is notified; Admin views availability | Pending |
-| DEL-14, DEL-10 | DEL-14 removed: Delivery has no menu; Dashboard shows no menu card | Pending |
+| KIT-15, ADM-18, ADM-17 | Admin owns menu details (add/edit/delete); Kitchen only sets availability and Admin is notified; Admin views availability | Done — migration `20261119100000_menu_ownership.sql` (Admin-only write policies, `set_meal_availability` RPC for Kitchen, Admin bell on Kitchen changes). Owner decision: the database keeps Admin full write; the Admin screen shows availability read-only (ADM-18 D) and new items start Unavailable until Kitchen turns them on. |
+| DEL-14, DEL-10 | DEL-14 removed: Delivery has no menu; Dashboard shows no menu card | Done — Delivery tabs are Dashboard, Orders, Settings; no write access in RLS or the RPC. |
 | ADM-11, KIT-11, DEL-11, DEL-17 | Shared order reference `ORD-YYYY-NNNN`; `TRK-YYYY-NNNN` is the separate delivery tracking number | Pending |
 | KIT-11, KIT-12, postcondition | Kitchen sees only orders with confirmed payment (owner decision: COD orders are an exception) | Pending |
 | DEL-11, DEL-17 | Delivery sees only Ready for Pickup orders assigned to them | Pending |
@@ -27,7 +27,7 @@ The module workbook was revised on 2026-11-19 (canonical exports refreshed from 
 | ADM-19, DIT-12, KIT-12, KIT-14, DEL-12, DEL-13 | Sodium is calculated per meal from ingredient sodium and compared with the recipient's limit (owner decision: default limit 400 mg per meal) | Not started (large) |
 | ADM-17, KIT-15 | Five food items per day, grouped by Breakfast, Lunch and Dinner | Not started (large) |
 
-Inconsistencies inside the revised workbook (recorded, not reinterpreted): DEL-02 still lists a Menu tab and KIT-10 still shows "Menu Management … Manage your menu items" with Edit buttons; KIT-11/DEL-11 samples list Pending, Cancelled and Delivered orders although only paid / assigned Ready for Pickup orders may appear; search samples still find `ORD-2026-0002` by typing "350"; KIT-11 and DEL-11 each have two "AC 1." lines; ADM-20 now starts at AC 2.
+Inconsistencies inside the revised workbook (recorded, not reinterpreted): DEL-02 still lists a Menu tab and KIT-10 still shows "Menu Management … Manage your menu items" with Edit buttons (implemented: the Delivery tab bar has no Menu; Kitchen "Edit" opens the availability list); ADM-18 D says Admin cannot change availability, while the owner asked for Admin full write (implemented: database allows it, Admin screen is view-only); KIT-11/DEL-11 samples list Pending, Cancelled and Delivered orders although only paid / assigned Ready for Pickup orders may appear; search samples still find `ORD-2026-0002` by typing "350"; KIT-11 and DEL-11 each have two "AC 1." lines; ADM-20 now starts at AC 2.
 
 ## Shared staff implementation surface
 
@@ -66,7 +66,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | ADM-15 | Done | Delete staff with confirm; cannot delete self; Edge Function bans the auth user, deactivates the profile and unassigns open orders. |
 | ADM-16 | Done | Staff roles limited to Admin / Dietitian / Kitchen / Delivery; Admin role locked. |
 | ADM-17 | Done | Menu add/edit writes `meals` (RLS `meals_staff_write`); user menu reads the same table; audit + menuUpdated notifications by trigger. |
-| ADM-18 | Done | Availability switch and delete; meals already on past orders are made unavailable instead of hard-deleted. |
+| ADM-18 | Done | Edit details and delete; availability shown read-only with "Availability is set by Kitchen Staff." (new wording). Meals already on past orders are made unavailable instead of hard-deleted. |
 | ADM-19 | Done | Customers directory + Customer Details via `staff_customers` / `staff_customer_detail` (allergies with notes, levels, conditions, history; recipient vs account holder). |
 | ADM-20 | Done | Audit log from `admin_audit_log` (append-only `audit_events`); covers staff, menu, order status/assignment/review, notification settings and DIT-17 decisions. |
 | ADM-21 | Done | Staff notifications screen for Kitchen/Delivery types via `save_staff_notification_settings` (admin-only, audited); all OFF ⇒ role disabled; delivery and kitchen inboxes honour it. |
@@ -111,7 +111,7 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | KIT-12 | Done | Order Details without prices, last name, email or payment; Customer Preferences (allergies, dietary, levels) shown above the action. |
 | KIT-13 | Done | "Start Preparing" (Paid → Preparing) and "Mark Ready for Pickup" (→ Ready for Delivery, or Ready for Pickup for pick-up orders) with confirmations; server `transition_order_status` enforces role and order. |
 | KIT-14 | Done | Customer Details for kitchen: initial, first name, email, allergies and levels; no history or address. |
-| KIT-15 | Done | Shared `MenuScreen` with add (+), Edit, availability switch and delete confirmations; kitchen sees "Menu item updated. Your permitted changes were saved." |
+| KIT-15 | Done | Revised: `MenuScreen` shows Kitchen only the availability switch (no add, edit or delete); saving calls `set_meal_availability` and shows "Menu item updated. Your permitted availability change was saved."; the Admin is notified. |
 
 ### Delivery Module (DEL-01–DEL-17)
 
@@ -126,11 +126,11 @@ Criterion-level test mapping is still in progress. Do not mark a story complete 
 | DEL-07 | Done | Language and appearance; notifications set by Admin (ADM-21). |
 | DEL-08 | Done | Shared Help & Support and About screens. |
 | DEL-09 | Done | Shared logout card and session end. |
-| DEL-10 | Done | `DeliveryDashboardScreen`: "Delivery Staff" / "Delivery Panel", greeting, View Orders (assigned count), Ready for Pickup list, Menu Management with Edit. Figma "Dispatch dashboard" frame is off-system, so the spec layout was used. |
+| DEL-10 | Done | `DeliveryDashboardScreen`: "Delivery Staff" / "Delivery Panel", greeting, View Orders (assigned count), Ready for Pickup list. Revised: no Menu Management card. Figma "Dispatch dashboard" frame is off-system, so the spec layout was used. |
 | DEL-11 | Done | Orders list limited to delivery orders assigned to this person; first name, Order ID, date and "Ready for Pickup" / "Out for Delivery" badges; same fuzzy search rules as Kitchen. |
 | DEL-12 | Done | Order Details without prices, last name, email or payment; allergies and preferences shown before the delivery actions; no Start Preparing. |
 | DEL-13 | Done | Customer Details: initial, first name, email, allergies, levels; no history or address. |
-| DEL-14 | Removed (revised workbook) — pending removal | Shared manageable `MenuScreen` (add, edit, delete, availability) with the kitchen/delivery confirmation copy. |
+| DEL-14 | Removed (revised workbook) | Delivery Menu tab, dashboard card and menu write access removed (`20261119100000_menu_ownership.sql`). |
 | DEL-15 | Done | "Delivery Address" card (first name, contact number, full address, notes) for Admin and the assigned Delivery Staff only; server `staff_order_detail` strips it for other roles. |
 | DEL-16 | Partial | No in-app map library yet: shows "Location not available" with the address text, an "Open in Maps" button (device maps navigation) and Call. |
 | DEL-17 | Done | "Collect order & start delivery" (Ready for Delivery → Out for Delivery) and "Mark Completed" with confirmations, only on assigned orders; status history records date and time and is visible to Admin and the user tracking screen. |

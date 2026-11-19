@@ -45,12 +45,16 @@ function order(partial: Partial<AdminOrder>): AdminOrder {
 
 test('tabs: Staff is Admin-only', () => {
   assert.ok(TABS.admin.includes('Staff'));
-  for (const role of ['dietitian', 'kitchen', 'delivery'] as const) {
+  for (const role of ['dietitian', 'kitchen'] as const) {
     assert.deepEqual(TABS[role], ['Dashboard', 'Orders', 'Menu', 'Settings']);
   }
+  assert.deepEqual(TABS.delivery, ['Dashboard', 'Orders', 'Settings']);
+  assert.equal(can('admin', 'menuManage'), true);
   assert.equal(can('dietitian', 'menuManage'), false);
-  assert.equal(can('kitchen', 'menuManage'), true);
-  assert.equal(can('delivery', 'menuManage'), true);
+  assert.equal(can('kitchen', 'menuManage'), false);
+  assert.equal(can('kitchen', 'menuAvailability'), true);
+  assert.equal(can('delivery', 'menuManage'), false);
+  assert.equal(can('delivery', 'menuAvailability'), false);
   assert.equal(can('admin', 'removalRequests'), false);
   assert.equal(can('dietitian', 'removalRequests'), true);
   assert.equal(can('kitchen', 'sales'), false);

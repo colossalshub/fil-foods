@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AdminTabBar } from './components/AdminTabBar.js';
 import { PhoneFrame } from './components.js';
 import { AdminProvider, useAdmin } from './context.js';
+import { TABS } from './domain/roleAccess.js';
 import {
   CheckEmailScreen,
   ForgotPasswordScreen,
@@ -150,9 +151,10 @@ function RoleSettingsStack() {
   );
 }
 
-/** DIT-16 / KIT / DEL: Dashboard, Orders, Menu and Settings only; no Staff tab. */
+/** DIT-16 / KIT: Dashboard, Orders, Menu and Settings; DEL: no Menu (DEL-14 removed). No Staff tab. */
 function RoleTabs() {
-  const { colors } = useAdmin();
+  const { colors, session } = useAdmin();
+  const showMenu = TABS[session?.role ?? 'delivery'].includes('Menu');
   return (
     <PhoneFrame>
       <Tab.Navigator
@@ -161,7 +163,7 @@ function RoleTabs() {
       >
         <Tab.Screen name="Dashboard" component={RoleDashboardStack} />
         <Tab.Screen name="Orders" component={OrdersStack} />
-        <Tab.Screen name="Menu" component={MenuStack} />
+        {showMenu ? <Tab.Screen name="Menu" component={MenuStack} /> : null}
         <Tab.Screen name="Settings" component={RoleSettingsStack} />
       </Tab.Navigator>
     </PhoneFrame>
