@@ -31,14 +31,8 @@ function RecommendedMealCard({
   const label = [copy.title, note?.description, note?.benefit, price, HOME_COPY.addMeal].filter(Boolean).join('. ');
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint="Opens this meal so you can edit it and add a special request"
-      onPress={onPress}
-      style={({ pressed }) => [styles.mealCard, { width, marginRight: spacing.md }, fill && styles.mealCardFill, pressed && styles.mealCardPressed]}
-    >
-      <View style={[styles.photoFrame, !fill && styles.photoFrameFixed, { width }]}>
+    <View style={[styles.mealCard, { width, marginRight: spacing.md }, fill && styles.mealCardFill]}>
+      <View style={[styles.photoFrame, !fill && styles.photoFrameFixed, { width }]} pointerEvents="none">
         {meal.id && MEAL_PHOTOS[String(meal.id)] ? (
           <Image
             source={MEAL_PHOTOS[String(meal.id)]}
@@ -50,7 +44,13 @@ function RecommendedMealCard({
           <MealPhoto meal={meal} size={width} decorative />
         )}
       </View>
-      <View style={styles.mealCopy}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint="Opens this meal so you can edit it and add a special request"
+        onPress={onPress}
+        style={({ pressed }) => [styles.mealCopy, pressed && styles.mealCardPressed]}
+      >
         <Text style={styles.mealName} numberOfLines={1}>{copy.title}</Text>
         {note ? <Text style={styles.mealDescription} numberOfLines={1}>{note.description}</Text> : null}
         <View style={styles.mealFooter}>
@@ -60,8 +60,8 @@ function RecommendedMealCard({
             <Text style={styles.addChipText}>{HOME_COPY.addMeal}</Text>
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 

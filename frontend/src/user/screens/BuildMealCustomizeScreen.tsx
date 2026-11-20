@@ -196,7 +196,11 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 
   const onCheckout = () => {
     if (!saveMeal()) return;
-    navigation.navigate('FulfillmentChoice');
+    navigation.navigate({
+      name: 'MealsList',
+      params: { openSummary: true },
+      merge: true,
+    } as never);
   };
 
   return (

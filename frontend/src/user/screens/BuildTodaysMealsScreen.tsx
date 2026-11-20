@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import {
   Alert, Image, Pressable, ScrollView, StyleSheet, Text, View,
@@ -16,6 +16,7 @@ import {
 } from '../data/todayMenu';
 import { useAuth } from '../context/AuthContext';
 import { useMealProfile } from '../hooks/useMealProfile';
+import { useTabScrollInset } from '../hooks/useTabScrollInset';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useCart } from '../context/CartContext';
 import { warningRecipientName } from '../domain/audience';
@@ -154,13 +155,28 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     getParent?: () => { navigate: (name: string, params?: object) => void } | undefined;
   };
 }) {
-  const route = useRoute() as { params?: { advanceFromSlot?: DaySlot } };
+  const route = useRoute() as { params?: { advanceFromSlot?: DaySlot; openSummary?: boolean } };
   const { user } = useAuth();
   const { items, addItem, removeSlot, setSpecialRequest } = useCart();
   const { profile } = useMealProfile(user);
+  const tabInset = useTabScrollInset();
   const [slot, setSlot] = useState<DaySlot>('Breakfast');
   const [requestError, setRequestError] = useState('');
   const [openActions, setOpenActions] = useState<DaySlot | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollViewport = useRef(0);
+  const scrollContent = useRef(0);
+  const choicesOffset = useRef(0);
+  const mealAnchors = useRef(new Map<string, View>());
+  const [scrollRequest, setScrollRequest] = useState(0);
+  // USR-18: opening a meal time that already has a meal lands on that meal.
+  const showSlot = (next: DaySlot) => {
+    setRequestError('');
+    setOpenActions(null);
+    setSlot(next);
+    setScrollRequest((count) => count + 1);
+  };
 
   const chosen = useMemo(() => {
     const map: Partial<Record<DaySlot, string>> = {};
@@ -172,16 +188,51 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     return map;
   }, [items]);
 
+  useEffect(() => {
+    if (!scrollRequest) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const scroller = scrollRef.current;
+      if (!scroller) return;
+      const chosenId = chosen[slot];
+      const anchor = chosenId ? mealAnchors.current.get(chosenId) : undefined;
+      const toChoices = () => scroller.scrollTo({ y: Math.max(choicesOffset.current - 12, 0), animated: true });
+      if (!anchor) {
+        toChoices();
+        return;
+      }
+      anchor.measureLayout(
+        scroller as unknown as View,
+        (_x, y, _width, height) => {
+          const room = Math.max(scrollViewport.current - height, 0);
+          const centered = y - room / 2;
+          const limit = scrollContent.current > scrollViewport.current
+            ? scrollContent.current - scrollViewport.current
+            : centered;
+          scroller.scrollTo({
+            y: Math.min(Math.max(centered, 0), limit),
+            animated: true,
+          });
+        },
+        toChoices,
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [scrollRequest, slot, chosen]);
+
   useFocusEffect(useCallback(() => {
     const advanceFrom = route.params?.advanceFromSlot;
-    if (!advanceFrom) return;
-    // Move to the next meal time that still needs a meal; stay put when all three are chosen.
-    const filled = new Set(items.map((row) => row.daySlot).filter(Boolean));
-    const pending = DAY_SLOTS.filter((item) => !filled.has(item));
-    const preferred = nextSlot(advanceFrom);
-    setSlot(pending.length ? (pending.includes(preferred) ? preferred : pending[0]) : advanceFrom);
-    navigation.setParams?.({ advanceFromSlot: undefined });
-  }, [navigation, route.params?.advanceFromSlot, items]));
+    const openSummary = route.params?.openSummary;
+    if (!advanceFrom && !openSummary) return;
+    if (advanceFrom) {
+      // Move to the next meal time that still needs a meal; stay put when all three are chosen.
+      const filled = new Set(items.map((row) => row.daySlot).filter(Boolean));
+      const pending = DAY_SLOTS.filter((item) => !filled.has(item));
+      const preferred = nextSlot(advanceFrom);
+      setSlot(pending.length ? (pending.includes(preferred) ? preferred : pending[0]) : advanceFrom);
+    }
+    if (openSummary && items.some((row) => row.daySlot)) setSummaryOpen(true);
+    navigation.setParams?.({ advanceFromSlot: undefined, openSummary: undefined });
+  }, [navigation, route.params?.advanceFromSlot, route.params?.openSummary, items]));
 
   const mealGroups = useMemo(() => {
     const list = mealsForSlot(slot);
@@ -206,6 +257,31 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     [chosen],
   );
   const calories = chosenMeals.reduce((sum, meal) => sum + meal.calories, 0);
+  const summaryRows = useMemo(() => DAY_SLOTS.flatMap((item) => {
+    const row = items.find((entry) => entry.daySlot === item);
+    if (!row) return [];
+    const todayMeal = row.todayMealId ? todayMealById(row.todayMealId) : undefined;
+    const lineCalories = row.meal.calories ?? todayMeal?.calories ?? 0;
+    const fee = feeForSpecialRequest(row.specialRequest);
+    const linePrice = (row.meal.price ?? todayMeal?.price ?? 0) * row.quantity + fee;
+    const words = row.meal.name.split(/\s+/).filter(Boolean);
+    const initials = todayMeal?.badgeLabel
+      || (words.length > 1 ? `${words[0][0]}${words[1][0]}` : row.meal.name.slice(0, 2)).toUpperCase();
+    const photo = MEAL_PHOTOS[row.meal.name]
+      || MEAL_PHOTOS[String(row.meal.id)]
+      || MEAL_PHOTOS[row.todayMealId || '']
+      || (typeof row.meal.image === 'number' ? row.meal.image : undefined);
+    return [{
+      slot: item,
+      name: row.meal.name,
+      calories: lineCalories,
+      price: linePrice,
+      initials,
+      photo,
+    }];
+  }), [items]);
+  const summaryCalories = summaryRows.reduce((sum, row) => sum + row.calories, 0);
+  const summaryPrice = summaryRows.reduce((sum, row) => sum + row.price, 0);
   const allChosen = chosenCount === DAY_SLOTS.length;
   // Every meal time is optional (USR-18): suggest the next empty one without forcing it.
   const pendingSlots = DAY_SLOTS.filter((item) => !chosen[item]);
@@ -252,11 +328,26 @@ export default function BuildTodaysMealsScreen({ navigation }: {
 
   return (
     <AppPageShell edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.pageBody}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!summaryOpen}
+        onLayout={(event) => { scrollViewport.current = event.nativeEvent.layout.height; }}
+        onContentSizeChange={(_width, height) => { scrollContent.current = height; }}
+      >
         <PageHeader
           title="Today's meals"
           subtitle="Choose one meal for each time."
         />
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.nutritionLabel}>{`TODAY'S NUTRITION`}</Text>
+          <Text style={styles.calories}>{calories} Kcal today</Text>
+          <Text style={styles.reviewTitle}>Subject to Dietitian review</Text>
+          <Text style={styles.reviewBody}>Final suitability requires Dietitian review.</Text>
+        </View>
 
         {/* USR-37: the Meal tab opens the meal catalog and its search tools. */}
         <Pressable
@@ -270,63 +361,64 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           <Text style={styles.searchEntryText}>Search meals</Text>
         </Pressable>
 
-        <View style={styles.slots}>
-          {DAY_SLOTS.map((item) => {
-            const active = item === slot;
-            const done = Boolean(chosen[item]);
-            return (
-              <Pressable
-                key={item}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => {
-                  setRequestError('');
-                  setSlot(item);
-                }}
-                style={[
-                  styles.slot,
-                  active ? styles.slotOn : done ? styles.slotDone : styles.slotOff,
-                ]}
-              >
-                <Text style={[styles.slotLabel, active && styles.slotLabelOn]}>{item}</Text>
-                {done && !active ? (
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={styles.slotCheck} />
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-
         <Text style={styles.progressLabel}>{`Meals chosen today: ${chosenCount} of 3`}</Text>
         <View style={styles.progressRow} accessibilityRole="progressbar">
           {DAY_SLOTS.map((item) => {
+            const active = item === slot;
             const row = items.find((entry) => entry.daySlot === item);
             const photo = row
               ? MEAL_PHOTOS[row.meal.name] || MEAL_PHOTOS[String(row.meal.id)] || MEAL_PHOTOS[row.todayMealId || '']
               : undefined;
             const todayMeal = row?.todayMealId ? todayMealById(row.todayMealId) : undefined;
             return (
-              <View key={item} style={styles.progressCol}>
-                <View style={[styles.progressSegment, chosen[item] ? styles.progressSegmentOn : null]} />
-                {row ? (
-                  <>
-                    <View style={[styles.chosenPhoto, openActions === item && styles.chosenPhotoOpen]}>
-                      {photo ? (
-                        <Image source={photo} style={styles.chosenPhotoImage} resizeMode="cover" accessible={false} />
-                      ) : null}
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={row.meal.name}
-                        accessibilityHint="Shows edit and delete"
-                        onPress={() => setOpenActions((current) => (current === item ? null : item))}
-                        style={styles.chosenPhotoHit}
-                      />
-                      {openActions === item ? (
+              <Pressable
+                key={item}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={row ? `${item}, ${row.meal.name}` : `${item}, not chosen yet`}
+                accessibilityHint="Shows meals for this time"
+                onPress={() => showSlot(item)}
+                style={({ pressed }) => [
+                  styles.progressCol,
+                  active && styles.progressColOn,
+                  pressed && styles.progressColPressed,
+                ]}
+              >
+                <Text style={[styles.progressSlot, active && styles.progressSlotOn]}>{item}</Text>
+                <View style={[
+                  styles.progressSegment,
+                  (active || chosen[item]) && styles.progressSegmentOn,
+                ]} />
+                <View style={[
+                  styles.chosenPhoto,
+                  !row && styles.progressPlaceholder,
+                  active && !row && styles.progressPlaceholderOn,
+                  openActions === item && styles.chosenPhotoOpen,
+                ]}>
+                  {photo ? (
+                    <Image source={photo} style={styles.chosenPhotoImage} resizeMode="cover" accessible={false} />
+                  ) : (
+                    <Text style={[styles.progressEmpty, active && styles.progressSlotOn]}>Choose</Text>
+                  )}
+                  {row ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={row.meal.name}
+                      accessibilityHint="Shows edit and delete"
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setOpenActions((current) => (current === item ? null : item));
+                      }}
+                      style={styles.chosenPhotoHit}
+                    />
+                  ) : null}
+                  {openActions === item && row ? (
                         <View style={styles.chosenActions}>
                           <Pressable
                             accessibilityRole="button"
                             accessibilityLabel={`Edit ${row.meal.name}`}
-                            onPress={() => {
+                            onPress={(event) => {
+                              event.stopPropagation();
                               if (todayMeal?.customizable && row.todayMealId) {
                                 navigation.navigate('BuildMealCustomize', {
                                   todayMealId: row.todayMealId,
@@ -336,6 +428,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                                 });
                                 return;
                               }
+                              setOpenActions(null);
                               setSlot(item);
                             }}
                             style={({ pressed }) => [styles.chosenIcon, pressed && styles.chosenIconPressed]}
@@ -345,7 +438,8 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                           <Pressable
                             accessibilityRole="button"
                             accessibilityLabel={`Remove ${row.meal.name} from ${item}`}
-                            onPress={() => {
+                            onPress={(event) => {
+                              event.stopPropagation();
                               setRequestError('');
                               setOpenActions(null);
                               removeSlot(item);
@@ -356,11 +450,9 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                           </Pressable>
                         </View>
                       ) : null}
-                    </View>
-                    <Text style={styles.chosenLine} numberOfLines={2}>{row.meal.name}</Text>
-                  </>
-                ) : null}
-              </View>
+                </View>
+                <Text style={styles.chosenLine} numberOfLines={2}>{row ? row.meal.name : ' '}</Text>
+              </Pressable>
             );
           })}
         </View>
@@ -369,17 +461,17 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           <View style={styles.orderActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Continue to Checkout with ${chosenCount} of 3 meals`}
-              onPress={onPrimaryAction}
+              accessibilityLabel={`View summary of order, ${chosenCount} of 3 meals`}
+              onPress={() => setSummaryOpen(true)}
               style={styles.next}
             >
-              <Text style={styles.nextLabel}>Continue to Checkout</Text>
+              <Text style={styles.nextLabel}>View summary of order</Text>
             </Pressable>
             {showNextSlot && suggestedSlot ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Next, choose ${suggestedSlot}`}
-                onPress={() => setSlot(suggestedSlot)}
+                onPress={() => showSlot(suggestedSlot)}
                 style={styles.secondaryBtn}
               >
                 <Text style={styles.secondaryLabel}>{`Next · Choose ${suggestedSlot} →`}</Text>
@@ -392,14 +484,21 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           One meal per meal time. Maximum 3 meals per day. You can order one, two or all three meal times.
         </Text>
 
+        <View onLayout={(event) => { choicesOffset.current = event.nativeEvent.layout.y; }}>
         {mealGroups.map(({ title, meals }) => (
           <View key={title}>
             <Text style={styles.group} accessibilityRole="header">{`${slot} · ${title}`}</Text>
             {meals.map((meal) => {
               const chosenRow = items.find((row) => row.daySlot === meal.slot && row.todayMealId === meal.id);
               return (
-              <MealChoice
+              <View
                 key={meal.id}
+                ref={(node) => {
+                  if (node) mealAnchors.current.set(meal.id, node);
+                  else mealAnchors.current.delete(meal.id);
+                }}
+              >
+              <MealChoice
                 meal={meal}
                 selected={chosen[slot] === meal.id}
                 warnings={warningsFor(meal)}
@@ -415,26 +514,222 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                   setSpecialRequest(meal.slot, next);
                 }}
               />
+              </View>
               );
             })}
           </View>
         ))}
+        </View>
 
         <Text style={styles.allergy}>{allergyNote}</Text>
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.nutritionLabel}>{`TODAY'S NUTRITION`}</Text>
-          <Text style={styles.calories}>{calories} Kcal today</Text>
-          <Text style={styles.reviewTitle}>Subject to Dietitian review</Text>
-          <Text style={styles.reviewBody}>Final suitability requires Dietitian review.</Text>
-        </View>
       </ScrollView>
+      {summaryOpen ? (
+          <View style={[styles.summaryScrim, { paddingBottom: tabInset + spacing.md }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close order summary"
+              onPress={() => setSummaryOpen(false)}
+              style={styles.summaryScrimHit}
+            />
+            <View style={styles.summaryFrame}>
+            <View style={styles.summarySheet} accessibilityViewIsModal>
+              <View style={styles.summaryHead}>
+                <View style={styles.summaryHeadCopy}>
+                  <Text style={styles.summaryTitle} accessibilityRole="header">Order Summary</Text>
+                  <Text style={styles.summaryLead}>
+                    {`Your meals for today · ${chosenCount} of 3 chosen`}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close order summary"
+                  onPress={() => setSummaryOpen(false)}
+                  hitSlop={8}
+                  style={styles.summaryClose}
+                >
+                  <Ionicons name="close" size={22} color={colors.heading} />
+                </Pressable>
+              </View>
+
+              <View style={styles.summaryScroll}>
+                {summaryRows.map((row) => (
+                  <View key={row.slot} style={styles.summaryMeal}>
+                    {row.photo ? (
+                      <Image
+                        source={row.photo}
+                        style={styles.summaryPhoto}
+                        resizeMode="cover"
+                        accessibilityLabel={`${row.name} photo`}
+                      />
+                    ) : (
+                      <View style={styles.summaryBadge}>
+                        <Text style={styles.summaryBadgeText}>{row.initials}</Text>
+                      </View>
+                    )}
+                    <View style={styles.summaryMealBody}>
+                      <Text style={styles.summarySlot}>{row.slot.toUpperCase()}</Text>
+                      <Text style={styles.summaryMealName} numberOfLines={1}>{row.name}</Text>
+                      <Text style={styles.summaryMealMeta} numberOfLines={1}>
+                        {`${row.calories.toLocaleString('en-PH')} Kcal · ${formatPeso(row.price)}`}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+
+                <View style={styles.summaryTotals}>
+                  <View style={styles.summaryTotalRow}>
+                    <Text style={styles.summaryTotalLabel}>Total calories</Text>
+                    <Text style={styles.summaryTotalValue}>
+                      {`${summaryCalories.toLocaleString('en-PH')} Kcal`}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryTotalRow}>
+                    <Text style={styles.summaryTotalLabel}>Total price</Text>
+                    <Text style={styles.summaryTotalValue}>{formatPeso(summaryPrice)}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.summaryReview} numberOfLines={2}>
+                  Subject to Dietitian review. Final suitability requires Dietitian review.
+                </Text>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Continue to Checkout with ${chosenCount} of 3 meals`}
+                  onPress={() => {
+                    setSummaryOpen(false);
+                    onPrimaryAction();
+                  }}
+                  style={styles.next}
+                >
+                  <Text style={styles.nextLabel}>Continue to Checkout →</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit meals"
+                  onPress={() => setSummaryOpen(false)}
+                  style={styles.summaryEdit}
+                >
+                  <Text style={styles.summaryEditLabel}>Edit meals</Text>
+                </Pressable>
+              </View>
+            </View>
+            </View>
+          </View>
+      ) : null}
+      </View>
     </AppPageShell>
   );
 }
 
 const styles = StyleSheet.create({
+  pageBody: { flex: 1 },
   orderActions: { marginTop: spacing.md, gap: spacing.sm },
+  summaryScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(16, 56, 43, 0.46)',
+    zIndex: 2,
+  },
+  summaryScrimHit: { ...StyleSheet.absoluteFill },
+  summaryFrame: {
+    flex: 1,
+    zIndex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  summarySheet: {
+    position: 'relative',
+    zIndex: 2,
+    maxHeight: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 28,
+    padding: spacing.lg,
+    shadowColor: '#102016',
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  summaryHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  summaryHeadCopy: { flex: 1 },
+  summaryTitle: { fontFamily: fonts.bold, fontSize: font.xl, lineHeight: 28, color: colors.heading },
+  summaryLead: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  summaryClose: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -8,
+    marginRight: -8,
+  },
+  summaryScroll: { marginTop: spacing.md, flexGrow: 0 },
+  summaryMeal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.mint,
+    borderRadius: 18,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  summaryPhoto: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
+  summaryBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryBadgeText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.heading },
+  summaryMealBody: { flex: 1 },
+  summarySlot: {
+    fontFamily: fonts.semibold,
+    fontSize: font.body,
+    lineHeight: 20,
+    letterSpacing: 0.4,
+    color: colors.muted,
+  },
+  summaryMealName: { fontFamily: fonts.bold, fontSize: font.lg, lineHeight: 24, color: colors.heading },
+  summaryMealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  summaryTotals: {
+    marginTop: spacing.sm,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  summaryTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  summaryTotalLabel: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  summaryTotalValue: { fontFamily: fonts.bold, fontSize: font.lg, lineHeight: 24, color: colors.heading },
+  summaryReview: {
+    fontFamily: fonts.regular,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    fontSize: font.body,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: colors.muted,
+  },
+  summaryEdit: {
+    minHeight: 52,
+    marginTop: spacing.sm,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  summaryEditLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.heading },
   searchEntry: {
     marginTop: spacing.lg,
     minHeight: 52,
@@ -449,25 +744,8 @@ const styles = StyleSheet.create({
   },
   searchEntryText: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted },
   scroll: { paddingHorizontal: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl },
-  slots: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-  slot: {
-    flex: 1,
-    minHeight: 48,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  slotOn: { backgroundColor: colors.primary },
-  slotOff: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
-  slotDone: { backgroundColor: colors.white, borderWidth: 2, borderColor: colors.primary },
-  slotLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
-  slotLabelOn: { color: colors.white },
-  slotCheck: { marginLeft: 4 },
   chosenPhoto: {
-    width: '100%',
+    alignSelf: 'stretch',
     height: 88,
     marginTop: spacing.sm,
     borderRadius: radius.md,
@@ -477,8 +755,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chosenPhotoOpen: { opacity: 0.72 },
-  chosenPhotoImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  chosenPhotoHit: { ...StyleSheet.absoluteFillObject },
+  chosenPhotoImage: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
+  chosenPhotoHit: { ...StyleSheet.absoluteFill },
   chosenActions: { flexDirection: 'row', gap: spacing.sm, zIndex: 1 },
   chosenIcon: {
     width: 36,
@@ -500,9 +778,26 @@ const styles = StyleSheet.create({
     color: colors.heading,
   },
   progressLabel: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.body, color: colors.muted },
-  progressRow: { flexDirection: 'row', gap: 6, marginTop: spacing.sm, alignItems: 'flex-start' },
-  progressCol: { flex: 1, alignItems: 'center' },
-  progressSegment: { width: '100%', height: 6, borderRadius: 4, backgroundColor: colors.soft },
+  progressRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'stretch' },
+  progressCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'stretch',
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  progressColOn: { backgroundColor: colors.mint, borderColor: colors.primary },
+  progressColPressed: { backgroundColor: colors.soft },
+  progressSlot: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.text, textAlign: 'center' },
+  progressSlotOn: { color: colors.primary },
+  progressPlaceholder: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border },
+  progressPlaceholderOn: { backgroundColor: colors.mintStrong, borderColor: colors.mintStrong },
+  progressEmpty: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 22, color: colors.muted, textAlign: 'center' },
+  progressSegment: { width: '100%', height: 8, marginTop: spacing.xs, borderRadius: 4, backgroundColor: colors.soft },
   progressSegmentOn: { backgroundColor: colors.primary },
   group: { fontFamily: fonts.bold, marginTop: spacing.lg, fontSize: font.lg, lineHeight: 24, color: colors.heading },
   rule: { fontFamily: fonts.regular, marginTop: 4, marginBottom: spacing.md, fontSize: font.body, lineHeight: 22, color: colors.muted },
@@ -562,7 +857,7 @@ const styles = StyleSheet.create({
   },
   radioOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   summaryCard: {
-    marginTop: spacing.sm,
+    marginTop: spacing.lg,
     backgroundColor: colors.white,
     borderRadius: 18,
     borderWidth: 1,
