@@ -10,6 +10,7 @@ import { avatarLetter, percentLabel } from '../domain/format.js';
 import { useAdmin } from '../context.js';
 import { AdminListStatusBadge, FlashBanner, PrimaryButton } from '../components.js';
 import type { AdminOrder } from '../types.js';
+import { OrderPhoto } from '../ui/blocks.js';
 
 declare const require: (id: string) => number;
 
@@ -130,13 +131,12 @@ export function DashboardStatGrid({ children }: { children: ReactNode }) {
 
 type RecentOrdersProps = {
   orders: AdminOrder[];
-  photos: Record<string, number>;
   onViewAll: () => void;
   onOrder: (id: string) => void;
   viewAllLabel: string;
 };
 
-export function DashboardRecentOrders({ orders, photos, onViewAll, onOrder, viewAllLabel }: RecentOrdersProps) {
+export function DashboardRecentOrders({ orders, onViewAll, onOrder, viewAllLabel }: RecentOrdersProps) {
   const { colors } = useAdmin();
   return (
     <View style={[styles.panel, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -166,11 +166,7 @@ export function DashboardRecentOrders({ orders, photos, onViewAll, onOrder, view
               index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
             ]}
           >
-            <Image
-              source={photos[order.photo] ?? photos.wrap}
-              style={styles.orderThumb}
-              accessibilityIgnoresInvertColors
-            />
+            <OrderPhoto photo={order.photo} size={52} />
             <View style={styles.orderMain}>
               <Text style={[styles.orderIdLine, { color: colors.text }]} numberOfLines={2}>
                 <Text style={styles.orderId}>{orderListDisplayId(order)}</Text>
@@ -510,7 +506,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
   },
-  orderThumb: { width: 50, height: 50, borderRadius: 12 },
   orderMain: { flex: 1, minWidth: 0, paddingTop: 2 },
   orderIdLine: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   orderId: { fontWeight: '800' },

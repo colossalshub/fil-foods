@@ -63,11 +63,12 @@ export async function loadAccountProfile(user: RemoteUser | { id?: string } | nu
     if (!session?.access_token) return base;
     const client = requireSupabase();
     const authorization = `Bearer ${session.access_token}`;
-    const [healthRes, prefRes, nutritionRes, guardianRes] = await Promise.all([
+    const [healthRes, prefRes, nutritionRes, guardianRes, profileRes] = await Promise.all([
       client.from('client_health_items').select('item_type, value, reaction_note').eq('client_id', base.id).setHeader('Authorization', authorization),
       client.from('meal_preferences').select('preferred_categories, disliked_ingredients').eq('client_id', base.id).maybeSingle().setHeader('Authorization', authorization),
       client.from('nutritional_preferences').select('lower_calories, higher_protein, lower_sodium').eq('client_id', base.id).maybeSingle().setHeader('Authorization', authorization),
       client.from('guardians').select('name, relationship, contact_number').eq('client_id', base.id).maybeSingle().setHeader('Authorization', authorization),
+      client.from('profiles').select('updated_at').eq('id', base.id).maybeSingle().setHeader('Authorization', authorization),
     ]);
     const health = healthRes.data || [];
     base.healthConditions = health.filter((row) => row.item_type === 'condition').map((row) => row.value);
@@ -97,6 +98,11 @@ export async function loadAccountProfile(user: RemoteUser | { id?: string } | nu
         contactNumber: guardianRes.data.contact_number,
       };
     }
+    const updatedAt = (profileRes.data as { updated_at?: string | null } | null)?.updated_at;
+    if (updatedAt) {
+      base.profileLastUpdated = updatedAt;
+      base.profileLastUpdatedFormatted = formatTimestamp(updatedAt);
+    }
   } catch {
     return base;
   }
@@ -116,6 +122,14 @@ async function withClient(): Promise<
 
 function failed(error: { message?: string } | null | undefined) {
   return { ok: false, messages: [error?.message || 'Could not save. Try again.'] };
+}
+
+async function touchProfileUpdated(client: SupabaseClient, token: string, userId: string) {
+  await client
+    .from('profiles')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .setHeader('Authorization', `Bearer ${token}`);
 }
 
 /** USR-38: record one change on the signed-in account. A missing function must not block the save. */
@@ -213,6 +227,7 @@ export async function saveRemoteHealth(userId: string, conditions: string[] | nu
       .setHeader('Authorization', `Bearer ${gate.token}`);
     if (requested.error) return failed(requested.error);
   }
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: plan.remove.length ? removalRequestedMessage(plan.remove) : MSG.healthSaved };
 }
 
@@ -239,6 +254,7 @@ export async function saveRemoteDiet(userId: string, restrictions: string[] | nu
   for (const change of listDiff('Dietary restriction', before, values)) {
     await logOwnChange(gate.client, gate.token, change.field, change.oldValue, change.newValue);
   }
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.dietarySaved };
 }
 
@@ -277,6 +293,7 @@ export async function saveRemoteAllergies(userId: string, allergies: Allergy[] |
       await logOwnChange(gate.client, gate.token, 'Food allergy', note ? `${name}: ${note}` : name, '');
     }
   }
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.allergiesSaved };
 }
 
@@ -292,6 +309,7 @@ export async function saveRemoteMealPreferences(userId: string, prefs: Partial<M
     }, { onConflict: 'client_id' })
     .setHeader('Authorization', `Bearer ${gate.token}`);
   if (saved.error) return failed(saved.error);
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.mealPrefsSaved };
 }
 
@@ -309,6 +327,7 @@ export async function saveRemoteNutrition(userId: string, preferenceIds: string[
     }, { onConflict: 'client_id' })
     .setHeader('Authorization', `Bearer ${gate.token}`);
   if (saved.error) return failed(saved.error);
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.nutritionalUpdated };
 }
 
@@ -333,6 +352,7 @@ export async function saveRemoteGuardian(userId: string, input: GuardianInput): 
     })
     .setHeader('Authorization', `Bearer ${gate.token}`);
   if (inserted.error) return failed(inserted.error);
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.guardianSaved };
 }
 
@@ -345,6 +365,7 @@ export async function removeRemoteGuardian(userId: string): Promise<ServiceResul
     .eq('client_id', userId)
     .setHeader('Authorization', `Bearer ${gate.token}`);
   if (removed.error) return failed(removed.error);
+  await touchProfileUpdated(gate.client, gate.token, userId);
   return { ok: true, message: MSG.guardianSaved };
 }
 

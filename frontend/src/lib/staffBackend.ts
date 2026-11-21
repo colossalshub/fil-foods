@@ -83,16 +83,43 @@ export function backendMessage(error: { message?: string; code?: string } | stri
   return raw || 'Could not connect';
 }
 
-const PHOTO_BY_KEY: [RegExp, string][] = [
-  [/salmon|fish|bangus|tuna/i, 'salmon'],
-  [/salad|vegetable|veggie|bowl|chop suey|pinakbet/i, 'salad'],
-  [/egg|omelet|breakfast|bread|pastr|pandesal/i, 'omelette'],
-  [/bangus|sinigang|tinola|soup/i, 'bangus'],
-];
+/** Meals the customer app offers today, including the dinner copies of the lunch plates. */
+const CUSTOMER_MENU_KEYS = new Set([
+  'menu-traditional-pandesal', 'traditional-pandesal',
+  'menu-lunch-beef', 'plate-lunch-beef',
+  'menu-lunch-pork', 'plate-lunch-pork',
+  'menu-lunch-chicken', 'plate-lunch-chicken',
+  'menu-lunch-steamed', 'plate-lunch-veg-steamed',
+  'menu-dinner-beef', 'plate-dinner-beef',
+  'menu-dinner-pork', 'plate-dinner-pork',
+  'menu-dinner-chicken', 'plate-dinner-chicken',
+  'menu-dinner-steamed', 'plate-dinner-veg-steamed',
+]);
 
-export function photoKeyFor(name: string) {
-  const hit = PHOTO_BY_KEY.find(([pattern]) => pattern.test(name));
-  return hit ? hit[1] : 'wrap';
+/** Names whose bundled photo is stored under a different key than the label. */
+const PHOTO_KEY_BY_NAME: Record<string, string> = {
+  'traditional pandesal': 'traditional-pandesal',
+  'sugar free ube pandesal': 'sugar-free-ube-pandesal',
+  'whole wheat pandesal': 'whole-wheat-pandesal',
+  monay: 'menu-monay',
+  'spanish bread': 'menu-spanish-bread',
+  ensaymada: 'menu-ensaymada',
+  'cheese bread': 'menu-cheese-bread',
+  piaya: 'menu-piaya',
+};
+
+export function isCustomerMenuMeal(clientMealKey: string | null | undefined) {
+  return !!clientMealKey && CUSTOMER_MENU_KEYS.has(clientMealKey);
+}
+
+/** Photo key for a picture already bundled with the customer menu. */
+export function photoKeyFor(name: string, mealKey?: string | null) {
+  const label = name.trim();
+  const named = PHOTO_KEY_BY_NAME[label.toLowerCase()];
+  if (named) return named;
+  if (label) return label;
+  const key = mealKey?.trim();
+  return key && CUSTOMER_MENU_KEYS.has(key) ? key : '';
 }
 
 function formatWhen(iso: string | undefined) {
@@ -152,7 +179,7 @@ export function mapStaffOrder(row: Json): AdminOrder {
     price: row.total === undefined || row.total === null ? 0 : Number(row.total),
     placedAt: created || new Date().toISOString(),
     when: formatWhen(created),
-    photo: photoKeyFor(mappedItems[0]?.name || ''),
+    photo: photoKeyFor(mappedItems[0]?.name || '', mappedItems[0]?.mealKey),
     lines: mappedItems.map((item) => ({ name: item.name, price: (item.unitPrice ?? 0) * item.quantity })),
     items: mappedItems,
     assigneeId: row.assigned_delivery_id ? text(row.assigned_delivery_id) : null,
@@ -374,10 +401,12 @@ export async function fetchMenu() {
   const header = await authHeader().catch(() => '');
   const result = await select<Json[]>(() => requireSupabase()
     .from('meals')
-    .select('id, name, category, ingredients, allergens, price, is_available')
+    .select('id, name, category, ingredients, allergens, price, is_available, client_meal_key')
     .order('name')
     .setHeader('Authorization', header));
-  return result.ok ? { ok: true as const, value: (result.value || []).map(mapMeal) } : result;
+  if (!result.ok) return result;
+  const rows = (result.value || []).filter((row) => isCustomerMenuMeal(text(row.client_meal_key)));
+  return { ok: true as const, value: rows.map(mapMeal) };
 }
 
 export async function fetchStaffDirectory() {

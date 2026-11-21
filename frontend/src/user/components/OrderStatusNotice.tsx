@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,24 +8,34 @@ import { FLOATING_TAB_BAR_HEIGHT } from '../navigation/floatingTabBar';
 import {
   POLL_INTERVAL_MS,
   loadAlertsForUser,
+  markAlertRead,
+  markRemoteNotificationRead,
   subscribeToBackendOrderChanges,
 } from '../services/trackingService';
 import { colors, font, radius, spacing, fonts } from '../theme/theme';
 
-type Notice = { id: string; message: string };
+type Notice = { id: string; message: string; orderId?: string };
+type AlertRow = { id?: string; message?: string; read?: boolean; type?: string; orderId?: string };
 
-function latestStatusNotice(items: Array<{ id?: string; message?: string; read?: boolean; type?: string }>): Notice | null {
-  const next = items.find((item) => !item.read && item.type === 'status_changed' && item.message);
+function latestStatusNotice(items: AlertRow[], opened: Set<string>): Notice | null {
+  const next = items.find((item) => (
+    !!item.id
+    && !opened.has(item.id)
+    && !item.read
+    && item.type === 'status_changed'
+    && !!item.message
+  ));
   if (!next?.id || !next.message) return null;
-  return { id: next.id, message: next.message };
+  return { id: next.id, message: next.message, orderId: next.orderId };
 }
 
-/** USR-24: a status change is shown in the app, without opening the order page. */
+/** USR-24: a status change is shown on the main screens. Opening it marks that notice read (USR-25). */
 export default function OrderStatusNotice() {
   const { user } = useAuth();
   const navigation = useNavigation<{ navigate: (name: string, params?: object) => void }>();
   const insets = useSafeAreaInsets();
   const [notice, setNotice] = useState<Notice | null>(null);
+  const opened = useRef(new Set<string>());
 
   const reload = useCallback(() => {
     const userId = user?.id;
@@ -34,7 +44,7 @@ export default function OrderStatusNotice() {
       return;
     }
     loadAlertsForUser(userId)
-      .then((items) => setNotice(latestStatusNotice(items)))
+      .then((items) => setNotice(latestStatusNotice(items, opened.current)))
       .catch(() => {});
   }, [user?.id]);
 
@@ -50,11 +60,32 @@ export default function OrderStatusNotice() {
 
   if (!notice) return null;
 
+  const onOpen = () => {
+    const current = notice;
+    const userId = user?.id;
+    if (!userId) return;
+    opened.current.add(current.id);
+    setNotice(null);
+    markAlertRead(userId, 'notification', current.id);
+    void markRemoteNotificationRead(current.id).catch(() => {});
+    if (current.orderId) {
+      navigation.navigate('Main', {
+        screen: 'Orders',
+        params: { screen: 'OrderDetail', params: { orderId: current.orderId } },
+      });
+      return;
+    }
+    navigation.navigate('Main', {
+      screen: 'Account',
+      params: { screen: 'Alerts' },
+    });
+  };
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${NOTIFICATIONS_COPY.orderUpdate}. ${notice.message}`}
-      onPress={() => navigation.navigate('Account', { screen: 'Alerts' })}
+      onPress={onOpen}
       style={[styles.wrap, { bottom: insets.bottom + FLOATING_TAB_BAR_HEIGHT + spacing.md }]}
     >
       <View style={styles.card}>

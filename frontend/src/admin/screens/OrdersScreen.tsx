@@ -28,6 +28,7 @@ import { useAdmin } from '../context.js';
 import { openRoot, type ScreenProps } from '../nav.js';
 import type { Actor, AdminOrder } from '../types';
 import { ConfirmCard, FlashBanner, GreenHeader, PhoneFrame, PrimaryButton, SyncBanner, useStoreRevision } from '../components.js';
+import { photoKeyFor } from '../../lib/staffBackend.js';
 import { Card, EmptyState, OrderPhoto, Pill, PreferencesPanel, SearchBox, Section } from '../ui/blocks.js';
 import { Text } from '../ui/StaffText.js';
 import { ReviewPanel } from './DietitianScreens.js';
@@ -205,6 +206,7 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
           <Card>
             {items.map((item) => (
               <View key={`${item.name}-${item.quantity}`} style={styles.itemRow}>
+                <OrderPhoto photo={photoKeyFor(item.name, 'mealKey' in item ? item.mealKey : null)} size={44} />
                 <Text style={{ color: colors.text, flex: 1 }}>{item.name} ×{item.quantity}</Text>
                 {showPrices && item.unitPrice !== null ? <Text style={{ color: colors.text, fontWeight: '600' }}>{peso((item.unitPrice ?? 0) * item.quantity)}</Text> : null}
               </View>
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
   detail: { padding: 16, gap: 14, paddingBottom: 40 },
   headCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headName: { fontSize: 18, fontWeight: '700' },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 2 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
   total: { borderTopWidth: 1, marginTop: 6, paddingTop: 8 },
   sub: { fontWeight: '600', fontSize: 16, marginTop: 4 },
   assignCard: { flexDirection: 'row', alignItems: 'center', gap: 10 },

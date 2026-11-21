@@ -5,18 +5,18 @@ import { backendMessage, mapAuditRow, mapCustomer, mapRemovalRequest, mapStaffOr
 test('maps role-shaped staff_orders rows', () => {
   const kitchen = mapStaffOrder({
     id: 'a1', order_no: 12, status: 'paid', fulfillment_type: 'delivery', created_at: '2026-10-30T02:00:00Z',
-    client_id: 'c1', first_name: 'Ana', items: [{ name: 'Salmon Teriyaki', quantity: 2, meal_key: 'salmon' }],
+    client_id: 'c1', first_name: 'Ana', items: [{ name: 'Beef', quantity: 2, meal_key: 'plate-lunch-beef' }],
     assigned_delivery_id: null, assignee_name: null,
   });
   assert.equal(kitchen.status, 'Paid');
   assert.equal(kitchen.customerName, 'Ana');
   assert.equal(kitchen.price, 0);
   assert.equal(kitchen.items?.[0].unitPrice, null);
-  assert.equal(kitchen.photo, 'salmon');
+  assert.equal(kitchen.photo, 'Beef');
   assert.equal(kitchen.orderNo, 12);
   const admin = mapStaffOrder({
     id: 'a2', order_no: 13, status: 'ready_for_delivery', fulfillment_type: 'pick_up', first_name: 'Ben',
-    customer_name: 'Ben Torres', account_holder_name: 'Lilia Torres', total: 320, items: [{ name: 'Pinakbet', quantity: 1, unit_price: 320 }],
+    customer_name: 'Ben Torres', account_holder_name: 'Lilia Torres', total: 320, items: [{ name: 'Pinakbet', quantity: 1, unit_price: 320, meal_key: 'plate-lunch-veg-pinakbet' }],
     dietary: { allergies: [{ value: 'Eggs', note: 'Hives' }], conditions: ['Gout'], restrictions: [], nutrition: { supplied: true, lower_sodium: true } },
     delivery: { first_name: 'Ben', contact_number: '0917', address: 'Makati', notes: null },
     history: [{ status: 'paid', changed_at: '2026-10-30T02:00:00Z', changed_by: 'Admin Account' }],
@@ -28,6 +28,7 @@ test('maps role-shaped staff_orders rows', () => {
   assert.equal(admin.dietary?.nutrition.lowerSodium, true);
   assert.equal(admin.delivery?.address, 'Makati');
   assert.equal(admin.updates[0].summary, 'Paid');
+  assert.equal(admin.photo, 'Pinakbet');
 });
 
 test('maps customers, removal requests, audit rows and errors', () => {

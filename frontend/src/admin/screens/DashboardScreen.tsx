@@ -16,16 +16,6 @@ import {
   DashboardWelcomeBlock,
 } from '../components/dashboard.js';
 
-declare const require: (id: string) => number;
-
-const PHOTOS: Record<string, number> = {
-  wrap: require('../../../assets/images/meals/grilled-chicken-wrap.jpg'),
-  salad: require('../../../assets/images/meals/greek-chickpea-salad.jpg'),
-  salmon: require('../../../assets/images/meals/salmon-teriyaki.jpg'),
-  omelette: require('../../../assets/images/meals/egg-white-omelette.jpg'),
-  bangus: require('../../../assets/images/meals/grilled-bangus.jpg'),
-};
-
 export function DashboardScreen({ navigation }: ScreenProps) {
   useStoreRevision();
   const { colors, t, session, showFlash } = useAdmin();
@@ -81,7 +71,6 @@ export function DashboardScreen({ navigation }: ScreenProps) {
       </DashboardStatGrid>
       <DashboardRecentOrders
         orders={recent}
-        photos={PHOTOS}
         viewAllLabel={t('viewAll')}
         onViewAll={() => navigation.getParent()?.navigate('Orders')}
         onOrder={(id) => openRoot(navigation, 'OrderDetail', { id })}

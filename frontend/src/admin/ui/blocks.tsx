@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { MEAL_PHOTOS as USER_MEAL_PHOTOS } from '../../user/data/mealPhotos.js';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdmin } from '../context.js';
 import { nutritionTiles, ROLE_TITLE } from '../domain/roleAccess.js';
@@ -7,18 +8,9 @@ import type { DietaryInfo, StaffRole } from '../types';
 import { PrimaryButton } from '../components.js';
 import { Text, TextInput } from './StaffText.js';
 
-declare const require: (id: string) => number;
-
-export const MEAL_PHOTOS: Record<string, number> = {
-  wrap: require('../../../assets/images/meals/grilled-chicken-wrap.jpg'),
-  salad: require('../../../assets/images/meals/greek-chickpea-salad.jpg'),
-  salmon: require('../../../assets/images/meals/salmon-teriyaki.jpg'),
-  omelette: require('../../../assets/images/meals/egg-white-omelette.jpg'),
-  bangus: require('../../../assets/images/meals/grilled-bangus.jpg'),
-};
-
 export function mealPhoto(key: string | undefined) {
-  return MEAL_PHOTOS[key ?? ''] ?? MEAL_PHOTOS.wrap;
+  if (!key) return null;
+  return USER_MEAL_PHOTOS[key] ?? null;
 }
 
 /** Figma badge colours for every staff list and detail header. */
@@ -229,7 +221,15 @@ export function EmptyState({ title, action }: { title: string; action?: ReactNod
 }
 
 export function OrderPhoto({ photo, size = 58 }: { photo?: string; size?: number }) {
-  return <Image source={mealPhoto(photo)} style={{ width: size, height: size, borderRadius: 12 }} />;
+  const source = mealPhoto(photo);
+  if (!source) {
+    return (
+      <View style={{ width: size, height: size, borderRadius: 12, backgroundColor: '#E7F5EC', alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="restaurant-outline" size={Math.round(size * 0.42)} color="#1C773A" />
+      </View>
+    );
+  }
+  return <Image source={source} style={{ width: size, height: size, borderRadius: 12 }} accessibilityIgnoresInvertColors />;
 }
 
 const styles = StyleSheet.create({
