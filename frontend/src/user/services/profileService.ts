@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { getDb, nextId, stamp } from '../data/mockStore.js';
 import { isValidContact, isValidEmail, trim } from '../domain/registration.js';
+import { exceedsSodiumLimit, mealSodiumMg } from '../domain/sodium.js';
 import { MSG } from '../data/messages.js';
 import { formatTimestamp } from '../utils/time.js';
 import { getUser, normalizeContact } from './authService.js';
@@ -551,6 +552,7 @@ export function saveNutritionalPreference(userId: string, preferenceId: string |
   calories?: number | string;
   protein?: number | string;
   fat?: number | string;
+  sodium?: number | string;
 } | null): ServiceResult {
   const user = getUser(userId);
   if (!user) return { ok: false, messages: [MSG.required] };
@@ -573,6 +575,7 @@ export function saveNutritionalPreference(userId: string, preferenceId: string |
       calories: Math.max(0, Number(targets.calories) || 0),
       protein: Math.max(0, Number(targets.protein) || 0),
       fat: Math.max(0, Number(targets.fat) || 0),
+      sodium: Math.max(0, Number(targets.sodium) || 0),
     };
     if (recipient) recipient.nutritionTargets = nextTargets;
     else user.nutritionTargets = nextTargets;
@@ -591,13 +594,13 @@ export function saveNutritionalPreference(userId: string, preferenceId: string |
 export function mealMatchesNutritionalPreferences(meal: Meal, profile: MealMatchProfile | null | undefined) {
   const ids = nutritionIdsFromProfile(profile);
   if (!ids.length) return true;
-  return ids.every((id) => nutritionalPreferenceBonus(meal, id) > 0);
+  return ids.every((id) => nutritionalPreferenceBonus(meal, id, profile) > 0);
 }
 
 export function mealMatchesAnyNutritionalPreference(meal: Meal, profile: MealMatchProfile | null | undefined) {
   const ids = nutritionIdsFromProfile(profile);
   if (!ids.length) return true;
-  return ids.some((id) => nutritionalPreferenceBonus(meal, id) > 0);
+  return ids.some((id) => nutritionalPreferenceBonus(meal, id, profile) > 0);
 }
 
 export function validateGuardian(input: GuardianInput): ServiceResult {
@@ -707,11 +710,25 @@ export function mealRestrictionMatch(meal: Meal, profile: MealMatchProfile | nul
   return profile.dietaryRestrictions.some((r) => tags.includes(r));
 }
 
-function nutritionalPreferenceBonus(meal: Meal, preferenceId: string | null | undefined) {
+function sodiumLimitOf(profile: MealMatchProfile | null | undefined) {
+  const value = Number(profile?.nutritionTargets?.sodium);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function nutritionalPreferenceBonus(
+  meal: Meal,
+  preferenceId: string | null | undefined,
+  profile?: MealMatchProfile | null,
+) {
   if (!preferenceId) return 0;
   if (preferenceId === 'lower-calories' && (meal.calories as number) <= 400) return 1;
   if (preferenceId === 'higher-protein' && ((meal.protein as number) >= 25 || meal.diets?.includes('High-protein'))) return 1;
-  if (preferenceId === 'lower-sodium' && ((meal.sodium as number) <= 500 || meal.dietaryTags?.includes('Low-sodium'))) return 1;
+  if (preferenceId === 'lower-sodium') {
+    const limit = sodiumLimitOf(profile);
+    const sodium = mealSodiumMg(meal);
+    if (limit != null && sodium != null) return sodium <= limit ? 1 : 0;
+    if ((meal.sodium as number) <= 500 || meal.dietaryTags?.includes('Low-sodium')) return 1;
+  }
   return 0;
 }
 
@@ -724,11 +741,13 @@ export function rankMeal(meal: Meal, profile: MealMatchProfile | null | undefine
   for (const cat of prefs.preferredCategories || []) {
     if ((meal.mealCategories || []).includes(cat)) score += 3;
   }
+  const overSodium = exceedsSodiumLimit(meal, sodiumLimitOf(profile));
   for (const restriction of profile.dietaryRestrictions || []) {
+    if (restriction === 'Low-sodium' && overSodium) continue;
     if ((meal.dietaryTags || []).includes(restriction)) score += 2;
   }
   const nutritionBonus = nutritionIdsFromProfile(profile)
-    .reduce((sum, id) => sum + nutritionalPreferenceBonus(meal, id), 0);
+    .reduce((sum, id) => sum + nutritionalPreferenceBonus(meal, id, profile), 0);
   score += nutritionBonus;
 
   for (const disliked of prefs.dislikedIngredients || []) {

@@ -1,5 +1,5 @@
 import {
-  MENU_CATALOG,
+  offeredCatalogItems,
   type MenuCatalogItem,
 } from './menuCatalog.js';
 import { STANDARD_MEAL_PRICE, MEAT_PROTEINS, VEGETABLE_STYLES } from '../services/orderService.js';
@@ -59,10 +59,12 @@ function catalogToTodayMeal(item: MenuCatalogItem): TodayMeal {
   };
 }
 
-export const TODAY_MENU: TodayMeal[] = MENU_CATALOG.filter((item) => item.available).map(catalogToTodayMeal);
+export function todayMenu() {
+  return offeredCatalogItems().map(catalogToTodayMeal);
+}
 
 export function mealsForSlot(slot: DaySlot) {
-  return TODAY_MENU.filter((meal) => meal.slot === slot);
+  return todayMenu().filter((meal) => meal.slot === slot);
 }
 
 export function nextSlot(slot: DaySlot): DaySlot {
@@ -71,5 +73,5 @@ export function nextSlot(slot: DaySlot): DaySlot {
 }
 
 export function todayMealById(id: string) {
-  return TODAY_MENU.find((meal) => meal.id === id);
+  return todayMenu().find((meal) => meal.id === id);
 }

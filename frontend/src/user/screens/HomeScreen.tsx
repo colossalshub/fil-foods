@@ -9,6 +9,7 @@ import OrderStatusBadge from '../components/OrderStatusBadge';
 import RecommendedForYouSection from '../components/RecommendedForYouSection';
 import { useAuth } from '../context/AuthContext';
 import { HOME_COPY, MEAL_DETAIL_COPY } from '../data/messages';
+import { MENU_CATALOG } from '../data/menuCatalog';
 import { readyLunchChoice } from '../domain/readyMeals';
 import { useMealProfile } from '../hooks/useMealProfile';
 import { useTabScrollInset } from '../hooks/useTabScrollInset';
@@ -137,18 +138,30 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
       );
       return;
     }
-    if (!choice) {
+    if (choice) {
+      navigation.navigate('Meals', {
+        screen: 'BuildMealCustomize',
+        params: {
+          todayMealId: choice.catalogId,
+          slot: 'Lunch',
+          meatProtein: choice.meatProtein,
+          cookingStyle: choice.cookingStyle,
+        },
+      });
+      return;
+    }
+    const item = MENU_CATALOG.find((entry) => (entry.mealId || entry.id) === meal.id || entry.id === meal.id);
+    if (!item) {
       openMeals();
+      return;
+    }
+    if (item.slot === 'Breakfast') {
+      navigation.navigate('Meals', { screen: 'MealDetail', params: { meal } });
       return;
     }
     navigation.navigate('Meals', {
       screen: 'BuildMealCustomize',
-      params: {
-        todayMealId: choice.catalogId,
-        slot: 'Lunch',
-        meatProtein: choice.meatProtein,
-        cookingStyle: choice.cookingStyle,
-      },
+      params: { todayMealId: item.id, slot: item.slot },
     });
   }, [account?.accountFor, navigation, openMeals, profile, recipientName]);
 
@@ -167,6 +180,24 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
     <AppPageShell edges={['top']}>
       <View style={[styles.page, styles.scroll, { paddingBottom: tabInset + spacing.sm }]}>
         <PageHeader title={HOME_COPY.screenTitle} subtitle={homeSubtitle} />
+
+        <View style={styles.shortcuts}>
+          {([
+            [HOME_COPY.browseMeals, openMeals],
+            [HOME_COPY.myOrders, () => navigation.navigate('Orders', { screen: 'TrackingList' })],
+            [HOME_COPY.myAccount, openAccount],
+          ] as const).map(([label, onPress]) => (
+            <Pressable
+              key={label}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={onPress}
+              style={styles.shortcut}
+            >
+              <Text style={styles.shortcutLabel}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
 
         {ordersError ? (
           <View style={styles.ordersError} accessibilityRole="alert" accessibilityLiveRegion="polite">
@@ -238,6 +269,25 @@ export default function HomeScreen({ navigation }: { navigation: HomeNavigation 
 const styles = StyleSheet.create({
   page: { flex: 1 },
   scroll: { paddingHorizontal: spacing.lg },
+  shortcuts: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  shortcut: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+    backgroundColor: colors.white,
+  },
+  shortcutLabel: {
+    fontFamily: fonts.bold,
+    fontSize: font.body,
+    lineHeight: 20,
+    color: colors.primary,
+    textAlign: 'center',
+  },
   panelCard: {
     ...card,
     marginBottom: spacing.md,

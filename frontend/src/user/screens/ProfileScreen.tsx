@@ -295,6 +295,7 @@ export default function ProfileScreen() {
   const [targetCalories, setTargetCalories] = useState('');
   const [targetProtein, setTargetProtein] = useState('');
   const [targetFat, setTargetFat] = useState('');
+  const [targetSodium, setTargetSodium] = useState('');
 
   const [guardianOpen, setGuardianOpen] = useState(false);
   const [guardianForm, setGuardianForm] = useState({ name: '', relationship: '', contactNumber: '' });
@@ -614,6 +615,7 @@ export default function ProfileScreen() {
     setTargetCalories(profile?.nutritionTargets?.calories ? String(profile.nutritionTargets.calories) : '');
     setTargetProtein(profile?.nutritionTargets?.protein ? String(profile.nutritionTargets.protein) : '');
     setTargetFat(profile?.nutritionTargets?.fat ? String(profile.nutritionTargets.fat) : '');
+    setTargetSodium(profile?.nutritionTargets?.sodium ? String(profile.nutritionTargets.sodium) : '');
     setNutritionOpen(true);
   };
 
@@ -623,6 +625,7 @@ export default function ProfileScreen() {
         calories: targetCalories,
         protein: targetProtein,
         fat: targetFat,
+        sodium: targetSodium,
       })
       : await saveRemoteNutrition(user!.id as string, nutritionChoice);
     if (!savedOrAlert(result)) return;
@@ -833,6 +836,51 @@ export default function ProfileScreen() {
   );
 
   const displayName = fullName(profile) || user?.username || '—';
+  const dietTitle = profile.accountFor === 'family' && recipientName
+    ? `Health conditions of ${recipientName}`
+    : 'Your health conditions';
+  const dietDetails = (
+    <>
+      {healthSummary}
+      <ProfileField label="Meal preferences" value={mealPrefSummary || '—'} />
+      <ProfileField label="Nutritional preferences" value={nutritionSummary || '—'} />
+    </>
+  );
+  const profileSections = profile.accountFor === 'family' ? (
+    <>
+      <ProfileCard title="Your details">
+        <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+        <ProfileField label="Middle name" value={profile.middleName} />
+        <ProfileField label="Suffix" value={profile.suffix} />
+        <ProfileField label="Contact number" value={profile.contactNumber} />
+        <ProfileField label="Email" value={profile.email} />
+      </ProfileCard>
+      <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
+        <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
+        <ProfileField label="Contact number" value={profile.mealRecipient?.contactNumber} />
+        <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
+        <Text style={styles.rowsHeading}>{dietTitle}</Text>
+        {dietDetails}
+      </ProfileCard>
+    </>
+  ) : (
+    <>
+      <ProfileCard title="Your details">
+        <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
+        <ProfileField label="Middle name" value={profile.middleName} />
+        <ProfileField label="Suffix" value={profile.suffix} />
+        <ProfileField label="Contact number" value={profile.contactNumber} />
+        <ProfileField label="Email" value={profile.email} />
+        <ProfileField label="Address" value={profile.address} />
+      </ProfileCard>
+      <ProfileCard title={dietTitle}>
+        {dietDetails}
+      </ProfileCard>
+    </>
+  );
+  const lastUpdatedLine = profile.profileLastUpdatedFormatted
+    ? `Last updated ${profile.profileLastUpdatedFormatted}`
+    : 'Last updated —';
 
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
@@ -847,7 +895,10 @@ export default function ProfileScreen() {
           <Text style={styles.identityName}>{displayName}</Text>
           <Text style={styles.identityMeta}>{registeredForSubtitle(profile)}</Text>
           <Text style={styles.identityEmail}>{profile.email}</Text>
+          <Text style={styles.identityMeta}>{lastUpdatedLine}</Text>
         </View>
+
+        {profileSections}
 
         <View style={styles.menuCard}>
           <AccountMenuRow icon="person-outline" label={ACCOUNT_COPY.editProfile} onPress={openPersonal} />
@@ -945,38 +996,9 @@ export default function ProfileScreen() {
                 />
               )}
             >
-              {profile.accountFor === 'family' ? (
-                <>
-                  <ProfileCard title="Your details">
-                    <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                    <ProfileField label="Contact number" value={profile.contactNumber} />
-                    <ProfileField label="Email" value={profile.email} />
-                  </ProfileCard>
-                  <ProfileCard title={recipientName ? `Meal recipient: ${recipientName}` : 'Meal recipient'}>
-                    <ProfileField label="Relationship" value={profile.mealRecipient?.relationship} />
-                    <ProfileField label="Address" value={profile.mealRecipient?.deliveryAddress} />
-                    {healthSummary}
-                  </ProfileCard>
-                </>
-              ) : (
-                <>
-                  <ProfileCard title="Personal information">
-                    <ProfileNameRow firstName={profile.firstName} lastName={profile.lastName} />
-                    <ProfileField label="Contact number" value={profile.contactNumber} />
-                    <ProfileField label="Email" value={profile.email} />
-                    <ProfileField label="Address" value={profile.address} />
-                  </ProfileCard>
-                  <ProfileCard title="Health Information">
-                    {healthSummary}
-                  </ProfileCard>
-                </>
-              )}
+              {profileSections}
               {healthEditLinks}
-              <Text style={styles.lastUpdated}>
-                {profile.profileLastUpdatedFormatted
-                  ? `Last updated ${profile.profileLastUpdatedFormatted}`
-                  : 'Last updated —'}
-              </Text>
+              <Text style={styles.lastUpdated}>{lastUpdatedLine}</Text>
             </BackPageShell>
           </SlideLayer>
 
@@ -1250,6 +1272,7 @@ export default function ProfileScreen() {
             <AppInput label="Daily calories (optional)" value={targetCalories} onChangeText={setTargetCalories} keyboardType="number-pad" />
             <AppInput label="Daily protein (g) (optional)" value={targetProtein} onChangeText={setTargetProtein} keyboardType="number-pad" />
             <AppInput label="Daily fat limit (g) (optional)" value={targetFat} onChangeText={setTargetFat} keyboardType="number-pad" />
+            <AppInput label="Sodium limit (mg per meal)" value={targetSodium} onChangeText={setTargetSodium} keyboardType="number-pad" />
           </ProfileModalShell>
 
           <ProfileModalShell

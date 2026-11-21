@@ -56,6 +56,17 @@ export default function OrderConfirmScreen({ navigation }: {
     ? checkout.address
     : 'Pickup at F.I.L Foods counter';
 
+  const mealLines = items.map((row) => {
+    const custom = row.customizationLabel ? ` (${row.customizationLabel})` : '';
+    return `${row.meal.category || 'Meal'}: ${row.meal.name}${custom}`;
+  });
+  const verificationLines = [
+    ...mealLines,
+    ...party.map((line) => `${line.label}: ${line.value}`),
+    `${checkout.fulfillmentType === 'pickup' ? 'Pickup' : 'Delivery'}: ${addressLine}`,
+    `Schedule: ${scheduleLabel}`,
+  ];
+
   const send = async () => {
     const result = await placeOrder();
     if (result.allergenBlocked) {
@@ -69,17 +80,21 @@ export default function OrderConfirmScreen({ navigation }: {
     navigation.navigate('OrderSubmitted', { order: result.order });
   };
 
-  // Revised USR-23: resubmitting a returned order asks once more before it goes back to the Dietitian.
+  // USR-20: the summary is the first check. This dialog is the second, and it
+  // repeats the meals, meal times, customizations, recipient and fulfillment.
   const onConfirm = () => {
-    if (!checkout.resubmitOrderId) {
-      send();
-      return;
-    }
     const ref = checkout.resubmitOrderRef || '';
-    Alert.alert(ORDERS_COPY.resubmitConfirmTitle, ORDERS_COPY.resubmitConfirmBody(ref), [
-      { text: 'Cancel', style: 'cancel' },
-      { text: ORDERS_COPY.resubmitConfirm, onPress: () => { send(); } },
-    ]);
+    const body = checkout.resubmitOrderId
+      ? `${ORDERS_COPY.resubmitConfirmBody(ref)}\n\n${verificationLines.join('\n')}`
+      : verificationLines.join('\n');
+    Alert.alert(
+      checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirmTitle : CHECKOUT_MSG.confirmTitle,
+      body,
+      [
+        { text: CHECKOUT_MSG.goBack, style: 'cancel' },
+        { text: checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirm : CHECKOUT_MSG.confirmSend, onPress: () => { send(); } },
+      ],
+    );
   };
 
   return (
@@ -92,10 +107,12 @@ export default function OrderConfirmScreen({ navigation }: {
             <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
             {planLabel}
           </Text>
-          <Text style={checkoutFlow.line}>
-            <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.meals}: `}</Text>
-            {`${items.length} meals`}
-          </Text>
+          {items.map((row) => (
+            <Text key={row.meal.id} style={checkoutFlow.line}>
+              <Text style={checkoutFlow.lineBold}>{`${row.meal.category || 'Meal'}: `}</Text>
+              {`${row.meal.name}${row.customizationLabel ? ` (${row.customizationLabel})` : ''}`}
+            </Text>
+          ))}
           <Text style={checkoutFlow.line}>
             <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.deliveryAddress}: `}</Text>
             {addressLine}

@@ -722,6 +722,7 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
         ? `${TRACKING_PREFIX}${orderRef.slice(ORDER_REF_PREFIX.length)}`
         : undefined,
       status: 'For Dietitian Review',
+      paymentStatus: 'Pending',
       statusHistory: [{ status: 'For Dietitian Review', at: placedIso }],
       accountFor: user.accountFor || 'self',
       orderedByName: [user.firstName, user.lastName].filter(Boolean).join(' '),
@@ -764,6 +765,10 @@ export function confirmOrder(userId: string, payload: ConfirmOrderPayload) {
         id: resubmitTarget.id,
         placedAt: resubmitTarget.placedAt,
         reviewReason: undefined,
+        paymentStatus: 'Pending',
+        paymentMethod: undefined,
+        transactionReference: undefined,
+        paidAt: undefined,
         statusHistory: [...(resubmitTarget.statusHistory || []), { status: CLIENT_ORDER_STATUS.FOR_DIETITIAN_REVIEW, at: placedIso }],
       });
       appendAuditEvent(getDb(), {

@@ -1,4 +1,5 @@
 import type { Meal } from '../types';
+import { sodiumFromIngredients } from '../domain/sodium.js';
 import { STANDARD_MEAL_PRICE } from '../services/orderService.js';
 
 export type MenuSlot = 'Breakfast' | 'Lunch' | 'Dinner';
@@ -280,6 +281,52 @@ export const MENU_CATALOG: MenuCatalogItem[] = [
   ...DINNER_VEG,
 ];
 
+/**
+ * USR-16 / USR-18: five food items for the day.
+ * Breakfast is a bread. The other four are meat choices and a vegetable choice.
+ * Those savory foods are the same items at Lunch and Dinner — a meal time does not
+ * get its own private short list. Admin availability can replace an item; the day
+ * still offers at most five foods.
+ */
+export const DAILY_FOOD_ITEM_IDS = [
+  'menu-traditional-pandesal',
+  'menu-lunch-beef',
+  'menu-lunch-pork',
+  'menu-lunch-chicken',
+  'menu-lunch-steamed',
+] as const;
+
+export const DAILY_FOOD_ITEM_LIMIT = 5;
+
+export function dailyFoodItems(catalog: MenuCatalogItem[] = MENU_CATALOG) {
+  const available = catalog.filter((item) => item.available);
+  const byId = new Map(available.map((item) => [item.id, item]));
+  const picked: MenuCatalogItem[] = [];
+  for (const id of DAILY_FOOD_ITEM_IDS) {
+    const item = byId.get(id);
+    if (item) picked.push(item);
+  }
+  for (const item of available) {
+    if (picked.length >= DAILY_FOOD_ITEM_LIMIT) break;
+    if (!picked.some((row) => row.id === item.id)) picked.push(item);
+  }
+  return picked.slice(0, DAILY_FOOD_ITEM_LIMIT);
+}
+
+/** The five foods, with each Lunch meat or vegetable also offered at Dinner. */
+export function offeredCatalogItems(catalog: MenuCatalogItem[] = MENU_CATALOG) {
+  const available = catalog.filter((item) => item.available);
+  const byId = new Map(available.map((item) => [item.id, item]));
+  const rows: MenuCatalogItem[] = [];
+  for (const item of dailyFoodItems(catalog)) {
+    rows.push(item);
+    if (item.slot === 'Breakfast') continue;
+    const dinner = byId.get(item.id.replace('lunch', 'dinner'));
+    if (dinner && dinner.id !== item.id) rows.push(dinner);
+  }
+  return rows;
+}
+
 export const MENU_SLOT_SUBTITLE: Record<MenuSlot, string> = {
   Breakfast: 'Pastries and breads available now',
   Lunch: 'Meat and vegetable choices for lunch',
@@ -328,7 +375,7 @@ export function resolveMenuMeal(item: MenuCatalogItem): Meal {
     cuisine: 'Filipino',
     calories: item.calories ?? 300,
     protein: item.protein ?? 10,
-    sodium: 450,
+    sodium: sodiumFromIngredients(item.ingredients) ?? undefined,
     price: item.price ?? STANDARD_MEAL_PRICE,
     emoji: '🍽️',
     diets: [],
@@ -347,9 +394,9 @@ export function menuItemById(id: string) {
   return MENU_CATALOG.find((item) => item.id === id);
 }
 
-/** Every available menu item as a Meal, for search and ranking. */
+/** The five food items offered today, as meals, for browse, search and ranking. */
 export function allMenuMeals() {
-  return MENU_CATALOG.filter((item) => item.available).map((item) => ({ item, meal: resolveMenuMeal(item) }));
+  return offeredCatalogItems().map((item) => ({ item, meal: resolveMenuMeal(item) }));
 }
 
 /**
@@ -364,12 +411,18 @@ export function customizedMenuMeal(base: MenuCatalogItem, choice: { vegetableSty
   ));
   const meal = resolveMenuMeal(base);
   const allergens = new Set(meal.allergens || []);
-  const ingredients = new Set(meal.ingredients || []);
+  const ingredientNames = new Set(meal.ingredients || []);
   for (const part of parts) {
     (part.allergens || []).forEach((tag) => allergens.add(tag));
-    (part.ingredients || []).forEach((name) => ingredients.add(name));
+    (part.ingredients || []).forEach((name) => ingredientNames.add(name));
   }
-  return { ...meal, allergens: [...allergens], ingredients: [...ingredients] } as Meal;
+  const ingredients = [...ingredientNames];
+  return {
+    ...meal,
+    allergens: [...allergens],
+    ingredients,
+    sodium: sodiumFromIngredients(ingredients) ?? meal.sodium,
+  } as Meal;
 }
 
 /** Fields staff can change in Menu Management that the user menu must follow (ADM-17/18, USR-16). */

@@ -1,20 +1,8 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
-## Meal service specifications (User 5)
+## Meal service
 
-Full module map: [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md).
-
-| Role | Stories | Index |
-|---|---|---|
-| User (client) | USR-01–USR-50 | [`docs/specs/user-module.md`](docs/specs/user-module.md) |
-| Admin | ADM-01–ADM-21 | [`docs/specs/admin-module.md`](docs/specs/admin-module.md) |
-| Dietitian | DIT-01–DIT-16 | [`docs/specs/dietitian-module.md`](docs/specs/dietitian-module.md) |
-| Kitchen | KIT-01–KIT-15 | [`docs/specs/kitchen-module.md`](docs/specs/kitchen-module.md) |
-| Delivery | DEL-01–DEL-17 | [`docs/specs/delivery-module.md`](docs/specs/delivery-module.md) |
-
-Client behavior follows **USR-01 through USR-50**; staff apps follow the matching ADM/DIT/KIT/DEL handoffs under `.github/`. Traceability: [`docs/implementation-traceability.md`](docs/implementation-traceability.md) (User), [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md) (staff).
-
-The User 5 PDF set supersedes the older USR-01–USR-42 handoff. Quoted labels and messages must be used as written. The account holder and the meal recipient are different people when the account is for a family member. Record cross-module conflicts instead of inventing staff behavior. Do not treat spreadsheet Passed / Failed / Total rows as features.
+Follow User Story v6 (`docs/specs/User_Story_v6_20_11_2026.xlsx`). Story ranges and the short indexes are in `docs/specs/meal-service-modules.md`. Read one story's acceptance criteria from the workbook when you implement it. Quoted labels stay as written. On a family account the account holder and the meal recipient are different people.
 
 ## Expo has changed — do not trust your training data
 

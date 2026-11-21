@@ -12,6 +12,7 @@ import { useCheckout } from '../context/CheckoutContext';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import type { DaySlot } from '../data/todayMenu';
 import { ORDERS_COPY } from '../data/messages';
+import { CHECKOUT_MSG } from '../data/checkoutCopy';
 import { orderPartyLines } from '../domain/audience';
 import {
   TRACKING_MSG,
@@ -47,6 +48,9 @@ export default function OrderDetailScreen() {
     reviewReason?: string;
     status?: string;
     paymentStatusLabel?: string;
+    paymentMethod?: string;
+    transactionReference?: string;
+    paymentDateLabel?: string;
     placedDateLabel?: string;
     items?: {
       slot: string;
@@ -191,8 +195,36 @@ export default function OrderDetailScreen() {
                 <Text style={styles.value}>{order.placedDateLabel}</Text>
               </MetaLine>
               <MetaLine label={ORDERS_COPY.paymentStatus}>
-                <OrderStatusBadge status={order.paymentStatusLabel || order.status || ''} variant="outline" />
+                <OrderStatusBadge status={order.paymentStatusLabel || ''} variant="outline" />
               </MetaLine>
+              {order.paymentMethod ? (
+                <MetaLine label={CHECKOUT_MSG.paymentMethod}>
+                  <Text style={styles.value}>{order.paymentMethod}</Text>
+                </MetaLine>
+              ) : null}
+              {order.transactionReference ? (
+                <MetaLine label={CHECKOUT_MSG.transactionReference}>
+                  <Text style={styles.value}>{order.transactionReference}</Text>
+                </MetaLine>
+              ) : null}
+              {order.paymentDateLabel ? (
+                <MetaLine label={CHECKOUT_MSG.paymentDate}>
+                  <Text style={styles.value}>{order.paymentDateLabel}</Text>
+                </MetaLine>
+              ) : null}
+              {order.status === 'Awaiting Payment' && !(order.paymentMethod === 'Cash on Delivery' && order.paymentStatusLabel === 'Pending') ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => navigation.navigate('OrderPayment', { orderId: order.id })}
+                  style={styles.resubmitButton}
+                >
+                  <Text style={styles.resubmitLabel}>
+                    {order.paymentStatusLabel === 'Failed' || order.paymentStatusLabel === 'Cancelled'
+                      ? CHECKOUT_MSG.tryAgain
+                      : CHECKOUT_MSG.chooseHowToPay}
+                  </Text>
+                </Pressable>
+              ) : null}
               {partyLines.map((line) => (
                 <MetaLine key={line.label} label={line.label}>
                   <Text style={styles.value}>{line.value}</Text>

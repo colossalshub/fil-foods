@@ -1,14 +1,14 @@
 # Meal Service Specification Traceability Plan
 
-Source of truth: [User Module specification](./specs/user-module.md) ([canonical PDF](./specs/FIL_Foods_User_Module.pdf), [verbatim transcription](../.github/Meal_Service_User_Stories_AI_Agent_Handoff.md)). Current stories are **USR-01 through USR-50**.
+Source of truth: [User Story v6](./specs/User_Story_v6_20_11_2026.xlsx) (20 Nov 2026), indexed in [user-module.md](./specs/user-module.md). Current stories are **USR-01 through USR-50**. v6 keeps those IDs.
 
-Staff modules (Admin, Dietitian, Kitchen, Delivery) are indexed in [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). Staff story traceability lives in [`implementation-traceability-staff.md`](./implementation-traceability-staff.md). When a User story depends on staff behavior (menu, Dietitian review, kitchen/delivery status, audit), map the matching **ADM / DIT / KIT / DEL** story before marking the User criterion complete.
+Staff modules are indexed in [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). Staff story traceability lives in [`implementation-traceability-staff.md`](./implementation-traceability-staff.md). When a User story depends on staff behavior (menu, Dietitian review, kitchen/delivery status, audit), map the matching **ADM / DIT / KIT / DEL** story before marking the User criterion complete.
 
-The User 5 PDF supersedes the older USR-01–USR-42 specification. It adds USR-43–USR-50 and revises earlier requirements, including signup, family-recipient data, account deletion, accessibility, and versioned Terms and Conditions.
+USR-43–USR-50 cover account purpose, the separate meal recipient, account deletion, accessibility, and versioned Terms and Conditions.
 
 ## Revised workbook (2026-11-19)
 
-The User sheet of the revised workbook changes these stories (canonical export refreshed):
+The User sheet of the 19 Nov 2026 workbook changes these stories:
 
 | Story | Change | State |
 |---|---|---|

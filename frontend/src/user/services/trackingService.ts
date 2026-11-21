@@ -27,6 +27,21 @@ export const TRACKING_MSG = {
   orderCancelled: (orderRef: string) => `Order ${orderRef} was cancelled.`,
 };
 
+/** USR-20 AC 14. COD is a payment method, not one of these statuses. */
+export const PAYMENT_STATUS = {
+  PENDING: 'Pending',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+  CANCELLED: 'Cancelled',
+  REFUNDED: 'Refunded',
+};
+
+export const PAYMENT_METHOD = {
+  GCASH: 'GCash',
+  MAYA: 'Maya',
+  COD: 'Cash on Delivery',
+};
+
 export const ORDER_STATUS = {
   FOR_DIETITIAN_REVIEW: 'For Dietitian Review',
   RETURNED_FOR_CHANGES: 'Returned for Changes',
@@ -448,6 +463,8 @@ function toListItem(order: Order) {
     fulfillmentMethod: fulfillmentType === 'pickup' ? 'Pickup' : 'Delivery',
     fulfillmentSummary: formatFulfillmentLine(order.fulfillment?.type, order.fulfillment?.scheduledAt),
     totalLabel: formatPeso(Number(order.total || 0)),
+    paymentStatus: paymentStatusOf(order),
+    paymentMethod: order.paymentMethod || '',
     placedAt: order.placedAt,
     lastUpdatedAt: order.lastUpdatedAt,
     terminal: isTerminalStatus(order.status),
@@ -464,7 +481,10 @@ function toDetail(order: Order) {
     reviewReason: order.status === ORDER_STATUS.RETURNED_FOR_CHANGES ? order.reviewReason || '' : undefined,
     status: order.status,
     statusMeta: getStatusMeta(order.status),
-    paymentStatusLabel: paymentStatusLabel(order.status),
+    paymentStatusLabel: paymentStatusOf(order),
+    paymentMethod: order.paymentMethod || '',
+    transactionReference: order.transactionReference || '',
+    paymentDateLabel: order.paidAt ? formatTimestamp(order.paidAt) : '',
     placedDateLabel: formatOrderPlacedDate(order.placedAt),
     items: itemsWithMealSlots(order.items),
     accountFor: order.accountFor,
@@ -769,23 +789,103 @@ export function __testResetAlerts() {
   db.announcements = [];
 }
 
-export function payClientOrder(userId: string, orderId: string) {
+let transactionSequence = 0;
+
+function nextTransactionReference() {
+  transactionSequence += 1;
+  const year = new Date().getFullYear();
+  return `TXN-${year}-${String(transactionSequence).padStart(4, '0')}`;
+}
+
+export type PaymentOutcome = 'paid' | 'failed' | 'cancelled' | 'recorded';
+
+/**
+ * USR-20. GCash and Maya are confirmed only after the gateway reports success.
+ * Cash on Delivery is recorded and stays Pending until Delivery Staff collects it.
+ * A failed or cancelled online payment does not mark the order Paid and does not
+ * move it into the Kitchen queue.
+ */
+export function settleClientPayment(
+  userId: string,
+  orderId: string,
+  input: { method: string; outcome: PaymentOutcome },
+) {
   const orders = ensureOrdersArray();
   const order = orders.find((row) => row.id === orderId && row.userId === userId);
   if (!order) return { ok: false as const, message: TRACKING_MSG.orderNotFound };
   if (order.status !== ORDER_STATUS.AWAITING_PAYMENT) {
     return { ok: false as const, message: 'Payment is available after Dietitian approval.' };
   }
+  if (order.paymentStatus === PAYMENT_STATUS.PAID) {
+    return { ok: false as const, message: 'This order is already paid.' };
+  }
   const at = stamp();
-  order.status = ORDER_STATUS.PAID;
-  order.statusHistory = [...(order.statusHistory || []), { status: ORDER_STATUS.PAID, at }];
-  order.lastUpdatedAt = at;
+  const orderRef = orderRefOf(order);
+  order.paymentMethod = input.method;
+
+  if (input.method === PAYMENT_METHOD.COD || input.outcome === 'recorded') {
+    order.paymentStatus = PAYMENT_STATUS.PENDING;
+    order.transactionReference = undefined;
+    order.paidAt = undefined;
+    pushNotification(order.userId, {
+      type: 'payment',
+      orderId: order.id,
+      orderRef,
+      trackingNumber: deliveryTrackingOf(order),
+      message: `Cash on Delivery was selected for order ${orderRef}. Payment is pending until it is collected.`,
+      status: PAYMENT_STATUS.PENDING,
+    });
+    return { ok: true as const, order };
+  }
+
+  if (input.outcome === 'failed') {
+    order.paymentStatus = PAYMENT_STATUS.FAILED;
+    pushNotification(order.userId, {
+      type: 'payment',
+      orderId: order.id,
+      orderRef,
+      trackingNumber: deliveryTrackingOf(order),
+      message: `Payment for order ${orderRef} failed. You can try again.`,
+      status: PAYMENT_STATUS.FAILED,
+    });
+    return { ok: true as const, order };
+  }
+
+  if (input.outcome === 'cancelled') {
+    order.paymentStatus = PAYMENT_STATUS.CANCELLED;
+    pushNotification(order.userId, {
+      type: 'payment',
+      orderId: order.id,
+      orderRef,
+      trackingNumber: deliveryTrackingOf(order),
+      message: `Payment for order ${orderRef} was cancelled.`,
+      status: PAYMENT_STATUS.CANCELLED,
+    });
+    return { ok: true as const, order };
+  }
+
+  order.paymentStatus = PAYMENT_STATUS.PAID;
+  order.transactionReference = nextTransactionReference();
+  order.paidAt = at;
+  recordStatusChange(order, ORDER_STATUS.PAID, at);
   return { ok: true as const, order };
 }
 
+export function payClientOrder(userId: string, orderId: string) {
+  return settleClientPayment(userId, orderId, { method: PAYMENT_METHOD.GCASH, outcome: 'paid' });
+}
+
+export function paymentStatusOf(order: { status?: string; paymentStatus?: string }) {
+  if (order.paymentStatus) return order.paymentStatus;
+  return paymentStatusLabel(order.status || '');
+}
+
 export function paymentStatusLabel(status: string) {
-  if (status === ORDER_STATUS.CANCELLED) return ORDER_STATUS.CANCELLED;
-  if (status === ORDER_STATUS.FOR_DIETITIAN_REVIEW || status === ORDER_STATUS.RETURNED_FOR_CHANGES) return ORDERS_COPY.paymentPending;
-  if (status === ORDER_STATUS.AWAITING_PAYMENT) return ORDER_STATUS.AWAITING_PAYMENT;
-  return ORDER_STATUS.PAID;
+  if (status === ORDER_STATUS.CANCELLED) return PAYMENT_STATUS.CANCELLED;
+  if (
+    status === ORDER_STATUS.FOR_DIETITIAN_REVIEW
+    || status === ORDER_STATUS.RETURNED_FOR_CHANGES
+    || status === ORDER_STATUS.AWAITING_PAYMENT
+  ) return PAYMENT_STATUS.PENDING;
+  return PAYMENT_STATUS.PAID;
 }

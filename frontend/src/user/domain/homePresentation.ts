@@ -41,7 +41,47 @@ export function profileMatchLabels(profile: MealMatchProfile | null | undefined)
   return labels;
 }
 
-/** One sentence in place of the profile chip box and the suitability badge. */
+function joinNames(names: string[]) {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
+ * Why this meal is on Home: the specific match, then the allergies it leaves out
+ * and the diet or health record it still fits. USR-35.
+ */
+export function mealFitLine(
+  reason: string | undefined,
+  profile: MealMatchProfile | null | undefined,
+  recipientName?: string | null,
+) {
+  const allergies = (profile?.allergies || [])
+    .map((item) => item.name?.trim())
+    .filter((name): name is string => Boolean(name));
+  const diet = [
+    ...(profile?.dietaryRestrictions || []),
+    ...(profile?.healthConditions || []),
+  ].map((item) => item.trim()).filter(Boolean);
+  const who = recipientName?.trim() || '';
+  const match = (reason || '').trim().replace(/\.$/, '');
+  const specific = match && match !== 'Fits your dietary information' ? match : '';
+  const parts: string[] = [];
+  if (specific) parts.push(specific);
+  if (allergies.length) {
+    const list = joinNames(allergies);
+    parts.push(who ? HOME_COPY.leavesOutFor(list, who) : HOME_COPY.leavesOut(list));
+  }
+  const uncovered = diet.filter((item) => !specific.toLowerCase().includes(item.toLowerCase()));
+  if (uncovered.length) {
+    const list = joinNames(uncovered.map((item) => item.toLowerCase()));
+    parts.push(who ? HOME_COPY.fitsDietFor(list, who) : HOME_COPY.fitsDiet(list));
+  }
+  if (!parts.length) return match ? `${match}.` : '';
+  return `${parts.join('. ')}.`;
+}
+
+/** One sentence in place of the profile box and the suitability badge. */
 export function matchedProfileLine(
   profile: MealMatchProfile | null | undefined,
   recipientName?: string | null,

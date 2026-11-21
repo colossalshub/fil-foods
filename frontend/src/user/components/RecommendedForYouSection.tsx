@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { HOME_COPY, HOME_MEAL_NOTES } from '../data/messages';
+import { HOME_COPY } from '../data/messages';
 import type { Meal, MealMatchProfile } from '../types';
-import { mealCardCopy } from '../domain/homePresentation';
-import { readyLunchMeals } from '../domain/readyMeals';
+import { mealCardCopy, mealFitLine } from '../domain/homePresentation';
+import { dailyFoodItems, resolveMenuMeal } from '../data/menuCatalog';
 import { MEAL_PHOTOS } from '../data/mealPhotos';
 import {
   ORDER_MSG,
@@ -16,19 +16,25 @@ import { card, colors, font, radius, spacing, fonts } from '../theme/theme';
 
 function RecommendedMealCard({
   meal,
+  reason,
+  profile,
+  recipientName,
   width,
   fill,
   onPress,
 }: {
   meal: Meal;
+  reason?: string;
+  profile?: MealMatchProfile | null;
+  recipientName?: string | null;
   width: number;
   fill?: boolean;
   onPress: () => void;
 }) {
   const copy = mealCardCopy(meal);
   const price = meal.price != null ? formatPeso(meal.price) : null;
-  const note = meal.id ? HOME_MEAL_NOTES[meal.id] : undefined;
-  const label = [copy.title, note?.description, note?.benefit, price, HOME_COPY.addMeal].filter(Boolean).join('. ');
+  const fit = mealFitLine(reason, profile, recipientName);
+  const label = [copy.title, fit.replace(/\.$/, ''), price, HOME_COPY.addMeal].filter(Boolean).join('. ');
 
   return (
     <View style={[styles.mealCard, { width, marginRight: spacing.md }, fill && styles.mealCardFill]}>
@@ -51,10 +57,10 @@ function RecommendedMealCard({
         onPress={onPress}
         style={({ pressed }) => [styles.mealCopy, pressed && styles.mealCardPressed]}
       >
-        <Text style={styles.mealName} numberOfLines={1}>{copy.title}</Text>
-        {note ? <Text style={styles.mealDescription} numberOfLines={1}>{note.description}</Text> : null}
+        <Text style={styles.mealName}>{copy.title}</Text>
+        {fit ? <Text style={styles.fitLine}>{fit}</Text> : null}
         <View style={styles.mealFooter}>
-          {price ? <Text style={styles.mealPrice} numberOfLines={1}>{price}</Text> : <View />}
+          {price ? <Text style={styles.mealPrice}>{price}</Text> : <View />}
           <View style={styles.addChip} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Ionicons name="add" size={16} color={colors.white} />
             <Text style={styles.addChipText}>{HOME_COPY.addMeal}</Text>
@@ -67,12 +73,16 @@ function RecommendedMealCard({
 
 function MealRail({
   meals,
+  profile,
+  recipientName,
   cardWidth,
   fill,
   onOpenMeal,
   label,
 }: {
-  meals: Meal[];
+  meals: Array<{ meal: Meal; reason?: string }>;
+  profile?: MealMatchProfile | null;
+  recipientName?: string | null;
   cardWidth: number;
   fill?: boolean;
   onOpenMeal: (meal: Meal) => void;
@@ -138,17 +148,20 @@ function MealRail({
   };
 
   return (
-    <View style={[styles.railViewport, fill && styles.railFill]}>
+    <View style={[styles.railViewport, { width: cardWidth }, fill && styles.railFill]}>
       <View
         style={[fill ? styles.railFill : undefined, styles.railGesture]}
         accessibilityLabel={label}
         {...pan.panHandlers}
       >
         <Animated.View style={[styles.railTrack, fill && styles.railTrackFill, { transform: [{ translateX: offset }] }]}>
-          {meals.map((meal) => (
+          {meals.map(({ meal, reason }) => (
             <RecommendedMealCard
               key={meal.id}
               meal={meal}
+              reason={reason}
+              profile={profile}
+              recipientName={recipientName}
               width={cardWidth}
               fill={fill}
               onPress={() => onOpenMeal(meal)}
@@ -193,18 +206,13 @@ export default function RecommendedForYouSection({
   fill?: boolean;
 }) {
   const { width: windowWidth } = useWindowDimensions();
-  const cardWidth = Math.min(280, Math.max(168, windowWidth - spacing.lg * 2 - 128));
+  // One full card. A peek of the next card was cutting names like "Chicken lunch plate".
+  const cardWidth = Math.min(480, Math.max(260, windowWidth - spacing.lg * 2));
   const namedRecipient = recipientName?.trim() || '';
   const recommendations = useMemo(() => {
-    const offered = readyLunchMeals();
-    const result = getRecommendedMeals(offered, profile, offered.length);
-    const order = new Map(offered.map((meal, index) => [meal.id, index]));
-    return {
-      ...result,
-      items: [...result.items].sort(
-        (a, b) => (order.get(a.meal.id) ?? 0) - (order.get(b.meal.id) ?? 0),
-      ),
-    };
+    // USR-16 / USR-35: recommend today's five foods, highest rank first (USR-12).
+    const offered = dailyFoodItems().map(resolveMenuMeal);
+    return getRecommendedMeals(offered, profile, offered.length);
   }, [profile]);
   const noMatchBody = namedRecipient
     ? HOME_COPY.noMatchingBodyFor(namedRecipient)
@@ -213,6 +221,11 @@ export default function RecommendedForYouSection({
   return (
     <View style={[styles.wrap, fill && styles.wrapFill]}>
       <Text style={styles.title} accessibilityRole="header">{sectionTitle}</Text>
+      {!loading && recommendations.items.length ? (
+        <Text style={styles.lead}>
+          {namedRecipient ? HOME_COPY.recommendedLeadFor(namedRecipient) : HOME_COPY.recommendedLead}
+        </Text>
+      ) : null}
 
       {loading ? (
         <Text style={styles.statusText}>{HOME_COPY.loadingRecommendations}</Text>
@@ -245,7 +258,9 @@ export default function RecommendedForYouSection({
 
       {!loading && recommendations.items.length ? (
         <MealRail
-          meals={recommendations.items.map(({ meal }) => meal)}
+          meals={recommendations.items}
+          profile={profile}
+          recipientName={namedRecipient}
           cardWidth={cardWidth}
           fill={fill}
           onOpenMeal={onOpenMeal}
@@ -316,6 +331,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   mealCopy: {
+    alignSelf: 'stretch',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
@@ -349,6 +365,12 @@ const styles = StyleSheet.create({
     fontSize: font.lg,
     lineHeight: 24,
     color: colors.heading,
+  },
+  fitLine: {
+    fontFamily: fonts.regular,
+    fontSize: font.body,
+    lineHeight: 22,
+    color: colors.text,
   },
   mealDescription: {
     fontFamily: fonts.regular,

@@ -10,6 +10,7 @@ import OrderSummaryScreen from '../screens/checkout/OrderSummaryScreen';
 import OrderConfirmScreen from '../screens/checkout/OrderConfirmScreen';
 import OrderSubmittedScreen from '../screens/checkout/OrderSubmittedScreen';
 import OrderPaymentScreen from '../screens/checkout/OrderPaymentScreen';
+import OrderPaymentGatewayScreen from '../screens/checkout/OrderPaymentGatewayScreen';
 import OrderPaymentSuccessScreen from '../screens/checkout/OrderPaymentSuccessScreen';
 
 const Stack = createNativeStackNavigator();
@@ -27,6 +28,7 @@ export default function MealsStack() {
       <Stack.Screen name="OrderConfirm" component={OrderConfirmScreen} />
       <Stack.Screen name="OrderSubmitted" component={OrderSubmittedScreen} />
       <Stack.Screen name="OrderPayment" component={OrderPaymentScreen} />
+      <Stack.Screen name="OrderPaymentGateway" component={OrderPaymentGatewayScreen} />
       <Stack.Screen name="OrderPaymentSuccess" component={OrderPaymentSuccessScreen} />
       <Stack.Screen name="Checkout" component={OrderScreen} />
     </Stack.Navigator>

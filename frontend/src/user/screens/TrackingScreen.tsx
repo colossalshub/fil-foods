@@ -41,6 +41,7 @@ type OrderListItem = {
   placedAt?: string;
   lastUpdatedAt?: string;
   totalLabel?: string;
+  paymentStatus?: string;
   dateLabel?: string;
 };
 
@@ -68,6 +69,9 @@ function OrderListCard({
           <Text style={styles.tracking}>{order.orderRef}</Text>
           {order.trackingNumber ? <Text style={styles.mealsLine}>{order.trackingNumber}</Text> : null}
           <OrderStatusBadge status={customerFacingStatus(order.status || '')} variant="outline" />
+          {order.paymentStatus ? (
+            <Text style={styles.fulfillmentLine}>{`${ORDERS_COPY.paymentStatus}: ${order.paymentStatus}`}</Text>
+          ) : null}
           <Text style={styles.fulfillmentLine}>{scheduleLine}</Text>
           <Text style={styles.mealsLine} numberOfLines={1}>{order.meals}</Text>
         </View>

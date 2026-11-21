@@ -30,7 +30,7 @@ Without `frontend/.env`, the app runs on local sample data. With Supabase config
 
 ## Capabilities and Constraints
 
-Client stories USR-01 through USR-50 and staff stories ADM-01–ADM-21, DIT-01–DIT-17, KIT-01–KIT-15, and DEL-01–DEL-17 (there is no DEL-14) are binding. Quoted UI strings, validation messages, screen labels, and story IDs stay as written. DIT-17 is beyond the original dietitian spec and stays marked that way. Spreadsheet Passed / Failed / Total rows are QA status, not features. When a client story depends on staff behavior, that staff story is implemented or the conflict is recorded. Staff behavior is not invented to fill a gap.
+User Story v6 is binding: USR-01–USR-50, ADM-01–ADM-21, DIT-01–DIT-16, KIT-01–KIT-15, and DEL-01–DEL-17 except DEL-14. Quoted UI strings, validation messages, screen labels, and story IDs stay as written. DIT-17 is not in v6; the app keeps condition-removal approval as an extra. Spreadsheet Passed / Failed / Total rows are QA status, not features. When a client story depends on staff behavior, that staff story is implemented or the conflict is recorded. Staff behavior is not invented to fill a gap.
 
 Confirmed client capabilities include: account purpose (myself or a family member), registration, verification, sign-in, password reset, Google continuation where specified, logout, account deletion, profile and recipient health, diet, allergies, preferences, and a guardian contact, meal browse and detail, cart and schedule, order placement, tracking and alerts, help and FAQ, feedback, terms acceptance with re-accept on a new version, and a suggested day of meals.
 
@@ -46,7 +46,7 @@ The product name is F.I.L. FOODS, expanded as Food Is Life. No voice, visual ide
 
 ## Evidence on Hand
 
-Requirements and wording live in `docs/specs/` (indexes and PDFs) and the verbatim handoffs under `.github/`. Implementation status is `docs/implementation-traceability.md` (client) and `docs/implementation-traceability-staff.md` (staff). Algorithm notes are `docs/algorithms.md`. Draft privacy policy and terms are `docs/privacy-policy.md` and `docs/terms-and-conditions.md`. Security checklist is `docs/security-controls.md`.
+Requirements and wording live in `docs/specs/User_Story_v6_20_11_2026.xlsx`, with short indexes under `docs/specs/`. Implementation status is `docs/implementation-traceability.md` (client) and `docs/implementation-traceability-staff.md` (staff). Algorithm notes are `docs/algorithms.md`. Draft privacy policy and terms are `docs/privacy-policy.md` and `docs/terms-and-conditions.md`. Security checklist is `docs/security-controls.md`.
 
 There are no customer testimonials, case studies, press mentions, or market benchmarks in the repo. Do not invent them. The app is in development, built by Relish (Group 4), III-BCSAD, S.Y. 2026–2027.
 

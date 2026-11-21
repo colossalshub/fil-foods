@@ -18,6 +18,7 @@ import {
   profileAllergensInMeal,
 } from '../services/orderService';
 import { MENU_CATALOG, mealInitials } from '../data/menuCatalog';
+import { exceedsSodiumLimit, mealSodiumMg } from '../domain/sodium';
 import { MEAL_PHOTOS } from '../data/mealPhotos';
 import type { Meal } from '../types';
 import { colors, font, radius, spacing, control, fonts } from '../theme/theme';
@@ -68,6 +69,9 @@ export default function MealDetailScreen({ route, navigation }: {
   const cartRow = items.find((row) => row.meal.id === meal.id);
   const listedAllergens = meal.allergens || [];
   const conflictSet = useMemo(() => new Set(allergens), [allergens]);
+  const sodiumMg = mealSodiumMg(meal);
+  const sodiumLimit = Number(profile?.nutritionTargets?.sodium) || 0;
+  const sodiumOver = exceedsSodiumLimit(meal, sodiumLimit);
 
   const needsAccount = !user?.id || user.role === 'visitor';
   const mealTime = mealTimeLabel(meal.category);
@@ -211,6 +215,18 @@ export default function MealDetailScreen({ route, navigation }: {
 
           <Text style={styles.sectionLabel}>{MEAL_DETAIL_COPY.ingredients}</Text>
           <Text style={styles.sectionBody}>{(meal.ingredients || []).join(', ') || '—'}</Text>
+
+          {sodiumMg != null ? (
+            <>
+              <Text style={styles.sectionLabel}>{MEAL_DETAIL_COPY.sodium}</Text>
+              <Text style={styles.sectionBody}>{MEAL_DETAIL_COPY.sodiumAmount(sodiumMg)}</Text>
+              {sodiumLimit > 0 ? (
+                <Text style={sodiumOver ? styles.error : styles.sectionBody}>
+                  {sodiumOver ? MEAL_DETAIL_COPY.sodiumAbove : MEAL_DETAIL_COPY.sodiumWithin}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
 
           <Text style={styles.sectionLabel}>{MEAL_DETAIL_COPY.allergenInformation}</Text>
           <View style={styles.allergenRow}>

@@ -9,6 +9,8 @@ import {
   advanceOrderStatus,
   cancelClientOrder,
   filterClientOrders,
+  PAYMENT_METHOD,
+  PAYMENT_STATUS,
   getAlertsForUser,
   getClientOrder,
   customerFacingStatus,
@@ -19,6 +21,7 @@ import {
   detailFromBackendOrder,
   refreshOrdersForUser,
   searchOrderByTracking,
+  settleClientPayment,
   sortOrdersForList,
 } from './trackingService.js';
 
@@ -224,4 +227,46 @@ test('a backend order opens with meals and a status timeline', () => {
   assert.equal(detail.fulfillment.typeLabel, 'Delivery');
   assert.equal(detail.orderRef, 'ORD-2026-0007');
   assert.equal(detail.trackingNumber, 'TRK-2026-0007');
+});
+
+test('USR-20: GCash is paid only after the gateway confirms; failure and cancel stay out of the kitchen; COD stays pending', () => {
+  resetStore();
+  const db = getDb();
+  db.orders = [{
+    id: 'order-pay',
+    userId: MARIA,
+    orderRef: 'ORD-2026-0040',
+    status: ORDER_STATUS.AWAITING_PAYMENT,
+    paymentStatus: PAYMENT_STATUS.PENDING,
+    fulfillment: { type: 'delivery' },
+    statusHistory: [{ status: ORDER_STATUS.AWAITING_PAYMENT, at: '2026-11-20T01:00:00.000Z' }],
+    items: [],
+    total: 300,
+  }];
+
+  const failed = settleClientPayment(MARIA, 'order-pay', { method: PAYMENT_METHOD.GCASH, outcome: 'failed' });
+  assert.equal(failed.ok, true);
+  assert.equal(failed.order.paymentStatus, PAYMENT_STATUS.FAILED);
+  assert.equal(failed.order.status, ORDER_STATUS.AWAITING_PAYMENT);
+  assert.ok(getAlertsForUser(MARIA).some((alert) => alert.message === 'Payment for order ORD-2026-0040 failed. You can try again.'));
+
+  const cancelled = settleClientPayment(MARIA, 'order-pay', { method: PAYMENT_METHOD.MAYA, outcome: 'cancelled' });
+  assert.equal(cancelled.order.paymentStatus, PAYMENT_STATUS.CANCELLED);
+  assert.equal(cancelled.order.status, ORDER_STATUS.AWAITING_PAYMENT);
+
+  const cod = settleClientPayment(MARIA, 'order-pay', { method: PAYMENT_METHOD.COD, outcome: 'recorded' });
+  assert.equal(cod.order.paymentMethod, PAYMENT_METHOD.COD);
+  assert.equal(cod.order.paymentStatus, PAYMENT_STATUS.PENDING);
+  assert.equal(cod.order.status, ORDER_STATUS.AWAITING_PAYMENT);
+  assert.equal(cod.order.transactionReference, undefined);
+
+  db.orders[0].paymentMethod = undefined;
+  const paid = settleClientPayment(MARIA, 'order-pay', { method: PAYMENT_METHOD.GCASH, outcome: 'paid' });
+  assert.equal(paid.order.paymentStatus, PAYMENT_STATUS.PAID);
+  assert.equal(paid.order.status, ORDER_STATUS.PAID);
+  assert.match(paid.order.transactionReference, /^TXN-\d{4}-\d{4}$/);
+  assert.ok(paid.order.paidAt);
+  const detail = getClientOrder(MARIA, 'order-pay');
+  assert.equal(detail.order.paymentStatusLabel, PAYMENT_STATUS.PAID);
+  assert.equal(detail.order.paymentMethod, PAYMENT_METHOD.GCASH);
 });

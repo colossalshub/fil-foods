@@ -10,10 +10,11 @@ import { ORDER_STATUS, formatFulfillmentLine } from '../../services/trackingServ
 import { deliveryTrackingOf, orderRefOf } from '../../domain/orderReference';
 
 export default function OrderPaymentSuccessScreen({ route, navigation }: {
-  route: { params?: { order?: Order; method?: string } };
+  route: { params?: { order?: Order; method?: string; outcome?: string } };
   navigation: { getParent?: () => { navigate: (name: string, params?: object) => void } | undefined };
 }) {
   const order = route.params?.order;
+  const cashOnDelivery = route.params?.outcome === 'cod';
 
   const viewOrders = () => {
     navigation.getParent?.()?.navigate('Orders', { screen: 'TrackingList' });
@@ -22,12 +23,15 @@ export default function OrderPaymentSuccessScreen({ route, navigation }: {
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
-        <PageHeader title={CHECKOUT_MSG.paidTitle} subtitle={CHECKOUT_MSG.paidLead} />
+        <PageHeader
+          title={cashOnDelivery ? CHECKOUT_MSG.codTitle : CHECKOUT_MSG.paidTitle}
+          subtitle={cashOnDelivery ? CHECKOUT_MSG.codLead : CHECKOUT_MSG.paidLead}
+        />
 
         {order ? (
           <CheckoutOrderStatusCard
-            badge={ORDER_STATUS.PAID}
-            badgeTone="ok"
+            badge={cashOnDelivery ? 'Pending' : ORDER_STATUS.PAID}
+            badgeTone={cashOnDelivery ? 'warn' : 'ok'}
             rows={[
               { label: CHECKOUT_MSG.orderReference, value: orderRefOf(order) || '—' },
                 ...(deliveryTrackingOf(order) ? [{ label: CHECKOUT_MSG.trackingNumber, value: deliveryTrackingOf(order) as string }] : []),

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { allMenuMeals, customizedMenuMeal, menuItemById } from './menuCatalog.js';
+import { DAILY_FOOD_ITEM_LIMIT, allMenuMeals, customizedMenuMeal, dailyFoodItems, menuItemById, resolveMenuMeal } from './menuCatalog.js';
+import { exceedsSodiumLimit } from '../domain/sodium.js';
 import { addCartLine } from '../context/cartRules.js';
 import {
   ORDER_MSG,
@@ -16,17 +17,38 @@ const mealFor = (id: string) => {
   return found.meal;
 };
 
-test('USR-16: Breakfast offers only pastries and breads; Lunch/Dinner offer meat or vegetable choices', () => {
-  const meals = allMenuMeals();
-  const breakfast = meals.filter(({ item }) => item.slot === 'Breakfast');
-  assert.ok(breakfast.length > 0);
-  assert.ok(breakfast.every(({ meal }) => (meal.mealCategories || []).includes('Pastries and breads')));
-  for (const slot of ['Lunch', 'Dinner']) {
-    const names = meals.filter(({ item }) => item.slot === slot && item.section === 'Meat choices').map(({ item }) => item.name);
-    assert.deepEqual([...names].sort(), ['Beef', 'Chicken', 'Fish', 'Pork']);
-    assert.ok(meals.some(({ item }) => item.slot === slot && item.section === 'Vegetable choices'));
+test('USR-16: five foods a day; lunch and dinner share the meat and vegetable choices', () => {
+  const daily = dailyFoodItems();
+  assert.equal(daily.length, DAILY_FOOD_ITEM_LIMIT);
+  assert.ok(daily.some((item) => item.slot === 'Breakfast' && item.section === 'Pastries and breads'));
+  assert.ok(daily.some((item) => item.section === 'Meat choices'));
+  assert.ok(daily.some((item) => item.section === 'Vegetable choices'));
+
+  const offered = allMenuMeals();
+  const names = (slot: string) => offered
+    .filter(({ item }) => item.slot === slot)
+    .map(({ item }) => item.name)
+    .sort();
+  assert.deepEqual(names('Lunch'), names('Dinner'));
+  for (const meat of ['Beef', 'Pork', 'Chicken']) {
+    assert.ok(names('Lunch').includes(meat), `${meat} is a lunch and dinner choice`);
   }
-  assert.ok(meals.every(({ meal }) => meal.price === 300), 'standard ₱300 per meal (USR-17)');
+  assert.ok(names('Lunch').includes('Steamed'), 'lunch and dinner include a vegetable choice');
+  assert.ok(offered.every(({ meal }) => meal.price === 300), 'standard ₱300 per meal (USR-17)');
+});
+
+test('USR-13: sodium is the sum of ingredient values and is compared with the recipient limit', () => {
+  const chicken = menuItemById('menu-lunch-chicken');
+  assert.ok(chicken);
+  const meal = resolveMenuMeal(chicken);
+  assert.equal(meal.sodium, 70 + 2 + 1 + 15);
+  assert.equal(exceedsSodiumLimit(meal, 400), false);
+  const pinakbet = menuItemById('menu-lunch-pinakbet');
+  assert.ok(pinakbet);
+  const vegetable = resolveMenuMeal(pinakbet);
+  assert.ok((vegetable.sodium || 0) > 400);
+  assert.equal(exceedsSodiumLimit(vegetable, 400), true);
+  assert.equal(exceedsSodiumLimit(vegetable, 0), false);
 });
 
 test('USR-18 / USR-20: one or two meals can be checked out; totals are ₱300 per meal', () => {

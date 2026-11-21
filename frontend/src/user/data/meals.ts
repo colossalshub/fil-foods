@@ -1,5 +1,5 @@
 import type { Meal } from '../types';
-import { MENU_CATALOG, applyRemoteMenu, resolveMenuMeal, type RemoteMenuRow } from './menuCatalog.js';
+import { MENU_CATALOG, applyRemoteMenu, offeredCatalogItems, resolveMenuMeal, type RemoteMenuRow } from './menuCatalog.js';
 import { STANDARD_MEAL_PRICE } from '../services/orderService.js';
 
 /** Browse and filter labels aligned with USR-16 meal times only. */
@@ -92,12 +92,9 @@ export const MEALS: Meal[] = [
 ];
 
 /**
- * USR-35 / USR-39: recommendations use only available admin-menu choices (USR-16).
- * Dinner mirrors Lunch with the same choice names — exclude Dinner rows here to avoid duplicate cards on Home.
+ * USR-35 / USR-39: recommendations use the five food items offered today (USR-16).
  */
-export const RECOMMENDATION_MEALS: Meal[] = MENU_CATALOG.filter(
-  (item) => item.available && (item.slot === 'Breakfast' || item.slot === 'Lunch'),
-).map(resolveMenuMeal);
+export const RECOMMENDATION_MEALS: Meal[] = offeredCatalogItems().map(resolveMenuMeal);
 /**
  * Refreshes the meal lists after the live menu loads, keeping the same
  * array objects so every importer sees the change.
@@ -108,10 +105,6 @@ export function syncMealsWithRemoteMenu(rows: RemoteMenuRow[]) {
   const available = MENU_CATALOG.filter((item) => item.available).map(resolveMenuMeal);
   const ids = new Set(available.map((meal) => meal.id));
   MEALS.splice(0, MEALS.length, ...available, ...SEARCH_FIXTURE_MEALS.filter((meal) => !ids.has(meal.id)));
-  RECOMMENDATION_MEALS.splice(
-    0,
-    RECOMMENDATION_MEALS.length,
-    ...available.filter((meal) => meal.category === 'Breakfast' || meal.category === 'Lunch'),
-  );
+  RECOMMENDATION_MEALS.splice(0, RECOMMENDATION_MEALS.length, ...offeredCatalogItems().map(resolveMenuMeal));
   return changed;
 }

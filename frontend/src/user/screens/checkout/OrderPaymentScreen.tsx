@@ -11,7 +11,8 @@ import { checkoutFlow } from '../../styles/checkoutFlow';
 import { formatPeso } from '../../services/orderService';
 import {
   ORDER_STATUS,
-  payClientOrder,
+  PAYMENT_METHOD,
+  settleClientPayment,
   refreshBackendOrder,
   refreshClientOrder,
 } from '../../services/trackingService';
@@ -20,9 +21,9 @@ import type { Order } from '../../types';
 import { deliveryTrackingOf, orderRefOf } from '../../domain/orderReference';
 
 const METHODS = [
-  { id: 'gcash', label: CHECKOUT_MSG.gcash },
-  { id: 'maya', label: CHECKOUT_MSG.maya },
-  { id: 'card', label: CHECKOUT_MSG.card },
+  { id: 'gcash', label: CHECKOUT_MSG.gcash, method: PAYMENT_METHOD.GCASH },
+  { id: 'maya', label: CHECKOUT_MSG.maya, method: PAYMENT_METHOD.MAYA },
+  { id: 'cod', label: CHECKOUT_MSG.cod, method: PAYMENT_METHOD.COD },
 ];
 
 export default function OrderPaymentScreen({ route, navigation }: {
@@ -63,12 +64,17 @@ export default function OrderPaymentScreen({ route, navigation }: {
       setError('Payment is not available in this build yet. Use a local session to try the payment flow.');
       return;
     }
-    const result = payClientOrder(user.id, orderId);
-    if (!result.ok) {
-      setError(result.message || CHECKOUT_MSG.notAvailablePay);
+    const selected = METHODS.find((item) => item.id === method) || METHODS[0];
+    if (selected.method === PAYMENT_METHOD.COD) {
+      const result = settleClientPayment(user.id, orderId, { method: selected.method, outcome: 'recorded' });
+      if (!result.ok) {
+        setError(result.message || CHECKOUT_MSG.notAvailablePay);
+        return;
+      }
+      navigation.navigate('OrderPaymentSuccess', { order: result.order, method: selected.id, outcome: 'cod' });
       return;
     }
-    navigation.navigate('OrderPaymentSuccess', { order: result.order, method });
+    navigation.navigate('OrderPaymentGateway', { orderId, method: selected.method });
   };
 
   if (awaitingReview) {
@@ -162,7 +168,7 @@ export default function OrderPaymentScreen({ route, navigation }: {
             style={[checkoutFlow.primary, { marginTop: 0 }, !canPay && checkoutFlow.primaryDisabled]}
           >
             <Text style={[checkoutFlow.primaryLabel, !canPay && checkoutFlow.primaryLabelDisabled]}>
-              {CHECKOUT_MSG.payAmount(formatPeso(order?.total || 0))}
+              {method === 'cod' ? CHECKOUT_MSG.cod : CHECKOUT_MSG.payAmount(formatPeso(order?.total || 0))}
             </Text>
           </Pressable>
         </View>

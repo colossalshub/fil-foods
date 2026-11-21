@@ -17,7 +17,7 @@ Repository: https://github.com/colossalshub/fil-foods
 
 When `frontend/.env` is missing, the app runs on local sample data. The server schema is in `supabase/`.
 
-Client requirements are **USR-01 through USR-50** in [`docs/specs/user-module.md`](docs/specs/user-module.md) (PDF: [`docs/specs/FIL_Foods_User_Module.pdf`](docs/specs/FIL_Foods_User_Module.pdf)). Staff requirements are **ADM-01–ADM-21**, **DIT-01–DIT-17**, **KIT-01–KIT-15**, and **DEL-01–DEL-17** in [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md). Implementation status: User [`docs/implementation-traceability.md`](docs/implementation-traceability.md); staff [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md).
+Requirements are User Story v6: [`docs/specs/User_Story_v6_20_11_2026.xlsx`](docs/specs/User_Story_v6_20_11_2026.xlsx). Short indexes: [`docs/specs/meal-service-modules.md`](docs/specs/meal-service-modules.md) (USR-01–USR-50, ADM-01–ADM-21, DIT-01–DIT-16, KIT-01–KIT-15, DEL-01–DEL-17 except DEL-14). Implementation status: User [`docs/implementation-traceability.md`](docs/implementation-traceability.md); staff [`docs/implementation-traceability-staff.md`](docs/implementation-traceability-staff.md).
 
 ## What the app already does
 

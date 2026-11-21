@@ -12,6 +12,8 @@ export interface NutritionTargets {
   calories?: number;
   protein?: number;
   fat?: number;
+  /** USR-13. Milligrams per meal the recipient should stay within. */
+  sodium?: number;
 }
 
 export interface Guardian {
@@ -316,6 +318,12 @@ export interface Order {
   discountAmount?: number;
   total?: number;
   planId?: string;
+  /** USR-20. Separate from order status. Pending, Paid, Failed, Cancelled, or Refunded. */
+  paymentStatus?: string;
+  /** GCash, Maya, or Cash on Delivery. */
+  paymentMethod?: string;
+  transactionReference?: string;
+  paidAt?: string;
   placedAt?: string;
   kitchenView?: KitchenView;
   deliveryFee?: number;

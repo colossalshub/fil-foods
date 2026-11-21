@@ -3,7 +3,7 @@ import test from 'node:test';
 import { getDb, resetStore } from '../data/mockStore.js';
 import { MSG } from '../data/messages.js';
 import { mealsForLabel } from './audience.js';
-import { matchedProfileLine, mealCardCopy, recentOrderedMeals } from './homePresentation.js';
+import { matchedProfileLine, mealCardCopy, mealFitLine, recentOrderedMeals } from './homePresentation.js';
 import { orderCatalogIdentity, readyLunchMeals } from './readyMeals.js';
 import { deleteAccount, termsUpdateRequired } from '../services/authService.js';
 import { submitFeedback } from '../services/feedbackService.js';
@@ -147,6 +147,26 @@ test('home meal cards use the dish name and a one-line description', () => {
     title: 'Sugar Free Ube Pandesal',
     description: 'A ube-flavored pandesal sweetened without added sugar, suitable for diabetic-friendly plans.',
   });
+});
+
+test('home meal fit line names the allergies and diet the meal still fits', () => {
+  const profile = {
+    allergies: [{ name: 'Shellfish' }, { name: 'Soy' }],
+    dietaryRestrictions: ['Low-sugar', 'Soft diet'],
+    healthConditions: [],
+  };
+  assert.equal(
+    mealFitLine('Fits your dietary information', profile),
+    'Leaves out Shellfish and Soy from your allergies. Fits your low-sugar and soft diet.',
+  );
+  assert.equal(
+    mealFitLine('Matches your preference for higher protein', profile, 'Liza'),
+    "Matches your preference for higher protein. Leaves out Shellfish and Soy, recorded for Liza. Fits Liza's low-sugar and soft diet.",
+  );
+  assert.equal(
+    mealFitLine('Matches your low-sugar diet', profile),
+    'Matches your low-sugar diet. Leaves out Shellfish and Soy from your allergies. Fits your soft diet.',
+  );
 });
 
 test('home match line joins the profile box and the suitability badge', () => {

@@ -1,10 +1,6 @@
 # Staff modules — implementation traceability
 
-Source of truth:
-- Admin: [`docs/specs/admin-module.md`](./specs/admin-module.md) ([`FIL_Foods_Admin_Module.pdf`](./specs/FIL_Foods_Admin_Module.pdf), [handoff](../.github/Meal_Service_Admin_Module_AI_Agent_Handoff.md))
-- Dietitian: [`docs/specs/dietitian-module.md`](./specs/dietitian-module.md) ([`FIL_Foods_Dietitian_Module.pdf`](./specs/FIL_Foods_Dietitian_Module.pdf), [handoff](../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md))
-- Kitchen: [`docs/specs/kitchen-module.md`](./specs/kitchen-module.md) ([`FIL_Foods_Kitchen_Module.pdf`](./specs/FIL_Foods_Kitchen_Module.pdf), [handoff](../.github/Meal_Service_Kitchen_Module_AI_Agent_Handoff.md))
-- Delivery: [`docs/specs/delivery-module.md`](./specs/delivery-module.md) ([`FIL_Foods_Delivery_Module.pdf`](./specs/FIL_Foods_Delivery_Module.pdf), [handoff](../.github/Meal_Service_Delivery_Module_AI_Agent_Handoff.md))
+Source of truth: [User Story v6](./specs/User_Story_v6_20_11_2026.xlsx) (20 Nov 2026). Indexes: [`admin-module.md`](./specs/admin-module.md), [`dietitian-module.md`](./specs/dietitian-module.md), [`kitchen-module.md`](./specs/kitchen-module.md), [`delivery-module.md`](./specs/delivery-module.md). DIT-17 and DEL-14 are not in v6.
 
 Cross-module map: [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). User client traceability: [`implementation-traceability.md`](./implementation-traceability.md).
 
@@ -12,7 +8,7 @@ Status values: **Done** — workflow implemented in the staff app and enforced b
 
 ## Revised workbook (2026-11-19)
 
-The module workbook was revised on 2026-11-19 (canonical exports refreshed from it). Changes that touch the staff app, and their state:
+The module workbook was revised on 19 Nov 2026. Changes that touch the staff app, and their state:
 
 | Story | Change in the revised workbook | State |
 |---|---|---|

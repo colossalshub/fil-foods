@@ -4,6 +4,7 @@ import OrderStatusScreen from '../screens/OrderStatusScreen';
 import OrderDetailScreen from '../screens/OrderDetailScreen';
 import OrderScreen from '../screens/OrderScreen';
 import OrderPaymentScreen from '../screens/checkout/OrderPaymentScreen';
+import OrderPaymentGatewayScreen from '../screens/checkout/OrderPaymentGatewayScreen';
 import OrderPaymentSuccessScreen from '../screens/checkout/OrderPaymentSuccessScreen';
 
 const Stack = createNativeStackNavigator();
@@ -15,6 +16,7 @@ export default function TrackingStack() {
       <Stack.Screen name="OrderStatus" component={OrderStatusScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="OrderPayment" component={OrderPaymentScreen} />
+      <Stack.Screen name="OrderPaymentGateway" component={OrderPaymentGatewayScreen} />
       <Stack.Screen name="OrderPaymentSuccess" component={OrderPaymentSuccessScreen} />
       <Stack.Screen name="Checkout" component={OrderScreen} />
     </Stack.Navigator>

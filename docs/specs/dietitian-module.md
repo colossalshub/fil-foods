@@ -1,22 +1,14 @@
-# Dietitian Module specification (current)
+# Dietitian module (User Story v6)
 
-**Authority:** [`canonical/dietitian-module.export.md`](./canonical/dietitian-module.export.md). PDF (may lag): [`FIL_Foods_Dietitian_Module.pdf`](./FIL_Foods_Dietitian_Module.pdf).
+Index only. Acceptance criteria are in [`User_Story_v6_20_11_2026.xlsx`](./User_Story_v6_20_11_2026.xlsx), sheet Dietitian Module. Map: [`meal-service-modules.md`](./meal-service-modules.md).
 
-Verbatim handoff: [`.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md`](../../.github/Meal_Service_Dietitian_Module_AI_Agent_Handoff.md). Cross-module flow: [`meal-service-modules.md`](./meal-service-modules.md). Staff implementation status: [`docs/implementation-traceability-staff.md`](../implementation-traceability-staff.md).
-
-Do not treat spreadsheet Passed / Failed / Total rows as features. Unresolved conflicts with the User, Admin, Dietitian, Kitchen, or Delivery modules must be recorded, not silently reinterpreted.
-
-## Scope
-
-DIT-01 through DIT-16 (16 stories in the revised workbook of 2026-11-19). DIT-17 was removed from the workbook; the app keeps condition-removal approval as an extra beyond the spec (owner decision, see the staff traceability doc).
-
-## Module precondition and postcondition
+**Scope:** DIT-01–DIT-16. DIT-17 is not in v6. The app still has condition-removal approval as an extra; see the staff traceability doc.
 
 **Precondition:** The Dietitian has a staff account created by the Admin and is logged in. User profiles, allergies, health conditions, doctor-provided restrictions, menu items and submitted orders are available.
 
 **Postcondition:** The Dietitian has reviewed the user’s dietary information and submitted meal selections, and has approved or returned orders for correction before payment. Health information changes are recorded.
 
-## Story catalog
+## Stories
 
 | ID | Epic | I want to |
 |---|---|---|
@@ -36,16 +28,3 @@ DIT-01 through DIT-16 (16 stories in the revised workbook of 2026-11-19). DIT-17
 | DIT-14 | Menu | view all menu items without being able to change them |
 | DIT-15 | Orders | review submitted meal selections and the user's dietary information |
 | DIT-16 | Access Control | be blocked from staff management, sales figures and menu management |
-| ~~DIT-17~~ | Health Information Approval | *Removed in the revised workbook — kept in the app as an extra beyond spec.* |
-
-## User Module touchpoints
-
-- **USR-09** — Doctor-given restrictions visible to Dietitian
-- **USR-18** — Customizations pending Dietitian review
-- **USR-20** — Payment gate after Dietitian approval (DIT-15)
-- **USR-35 / USR-39** — Clinical suitability vs client-side filtering
-- **DIT-17 (beyond spec)** — Health-condition removal approval, kept by owner decision
-
-## Cross-module chain
-
-See [`meal-service-modules.md`](./meal-service-modules.md) for the end-to-end order and data flow across USR, ADM, DIT, KIT, and DEL stories.
