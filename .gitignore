@@ -57,3 +57,7 @@ android/
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Python bytecode
+__pycache__/
+*.pyc
