@@ -6,8 +6,6 @@ Built by Relish (Group 4), III-BCSAD, S.Y. 2026–2027.
 
 Repository: https://github.com/colossalshub/fil-foods
 
-https://fil-foods.vercel.app/
-
 ## Where things are
 
 | Folder | What it is |
