@@ -11,6 +11,7 @@ import GoogleSignIn from '../../components/GoogleSignIn';
 import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import { useAuth } from '../../context/AuthContext';
 import { login } from '../../services/authService';
+import { setPendingDestination } from '../../navigation/pendingDestination';
 import { consumeLoginNotice, subscribeLoginNotice } from '../../navigation/loginNotice';
 import type { FieldMap } from '../../types';
 import { colors, font, spacing, fonts } from '../../theme/theme';
@@ -50,6 +51,8 @@ export default function LoginScreen({ navigation }: {
     const res = await login({ username: username.trim(), password, keepLoggedIn: keep });
     setLoading(false);
     if (res.ok) {
+      // USR-02: a successful login opens the meal menu.
+      setPendingDestination('Meals');
       signIn(res.user, { keepLoggedIn: keep, session: res.session });
       return;
     }

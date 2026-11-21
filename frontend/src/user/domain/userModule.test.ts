@@ -228,4 +228,9 @@ test('a newer terms version is required before Home', () => {
     termsAcceptedAt: '2026-11-12T01:00:00.000Z',
     termsAcceptedVersion: '0.9',
   }), true);
+  assert.equal(termsUpdateRequired({
+    profileComplete: true,
+    termsAcceptedAt: '2026-11-12T01:00:00.000Z',
+    termsAcceptedVersion: null,
+  }), false);
 });

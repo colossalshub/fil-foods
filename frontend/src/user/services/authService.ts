@@ -28,7 +28,10 @@ export function termsUpdateRequired(user: {
   termsAcceptedVersion?: string | null;
 } | null | undefined) {
   if (!user?.profileComplete || !user.termsAcceptedAt) return false;
-  return (user.termsAcceptedVersion || TERMS_VERSION) !== TERMS_VERSION;
+  // An acceptance saved before versions existed is the current terms.
+  // An older stored version still has to be accepted again.
+  if (!user.termsAcceptedVersion) return false;
+  return user.termsAcceptedVersion !== TERMS_VERSION;
 }
 
 const MAX_FAILED_ATTEMPTS = 5;

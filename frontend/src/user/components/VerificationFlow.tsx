@@ -11,7 +11,8 @@ import { verifyResetCode } from '../services/authService';
 import { verifyContactChange } from '../services/profileService';
 import { EMAIL_SUBJECT, EMAIL_TEMPLATE, MSG, SMS_TEMPLATE } from '../data/messages';
 import {
-  liveSendBlock, newLiveCodeState, recordLiveSend, recordLiveWrong, sendLiveCode, verifyLiveCode,
+  liveSendBlock, newLiveCodeState, recordLiveSend, recordLiveWrong, sendContactEmailCode, sendLiveCode,
+  verifyContactEmailCode, verifyLiveCode,
   LIVE_MAX_WRONG, type LiveCodeState,
 } from '../services/liveAuthService';
 import { colors, font, radius, spacing, fonts } from '../theme/theme';
@@ -71,7 +72,9 @@ export default function VerificationFlow({
       return;
     }
     setLoading(true);
-    const result = await sendLiveCode(livePurpose, nextChannel, email);
+    const result = purpose === 'contact'
+      ? await sendContactEmailCode(email)
+      : await sendLiveCode(livePurpose, nextChannel, email);
     setLoading(false);
     if (!result.ok) {
       setMessages([result.message || MSG.sendFailed]);
@@ -80,7 +83,13 @@ export default function VerificationFlow({
     setLiveState(recordLiveSend(liveState, Date.now()));
     setSent(true);
     setCode('');
-    setMessages([]);
+    const sentNote = purpose === 'reset'
+      ? MSG.checkEmailResetLink
+      : purpose === 'account'
+        ? MSG.checkEmailLink
+        : '';
+    setTone(sentNote ? 'ok' : 'error');
+    setMessages(sentNote ? [sentNote] : []);
   };
 
   const request = async (nextChannel: string) => {
@@ -125,7 +134,9 @@ export default function VerificationFlow({
       return;
     }
     setLoading(true);
-    const result = await verifyLiveCode(livePurpose, email, code);
+    const result = purpose === 'contact'
+      ? await verifyContactEmailCode(email, code)
+      : await verifyLiveCode(livePurpose, email, code);
     setLoading(false);
     if (!result.ok) {
       setTone('error');
@@ -214,8 +225,8 @@ export default function VerificationFlow({
 
       {!sent ? (
         <>
-          <AppButton title="Send code by SMS" onPress={() => request('sms')} loading={loading && channel === 'sms'} />
-          <AppButton title="Send code by email" variant="outline" onPress={() => request('email')} loading={loading && channel === 'email'} />
+          <AppButton title="Send code by SMS" onPress={() => (live ? requestLive('sms') : request('sms'))} loading={loading && channel === 'sms'} />
+          <AppButton title="Send code by email" variant="outline" onPress={() => (live ? requestLive('email') : request('email'))} loading={loading && channel === 'email'} />
         </>
       ) : (
         <>
@@ -229,8 +240,13 @@ export default function VerificationFlow({
             placeholder="123456"
           />
           <AppButton title="Verify" onPress={onVerify} loading={live && loading} />
-          <AppButton title="Resend code" variant="outline" onPress={() => request(channel || '')} loading={loading} />
-          <AppButton title={otherLabel} variant="outline" onPress={() => request(otherChannel)} />
+          <AppButton
+            title="Resend code"
+            variant="outline"
+            onPress={() => (live ? requestLive(channel || 'email') : request(channel || ''))}
+            loading={loading}
+          />
+          <AppButton title={otherLabel} variant="outline" onPress={() => (live ? requestLive(otherChannel) : request(otherChannel))} />
         </>
       )}
 

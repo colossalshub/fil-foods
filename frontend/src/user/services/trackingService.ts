@@ -10,16 +10,18 @@ import { getUser } from './authService.js';
 import { formatTimestamp } from '../utils/time.js';
 import { deliveryTrackingOf, orderRefOf } from '../domain/orderReference.js';
 import {
+  getClientNotifications,
   getClientOrderById,
   getClientOrders,
   subscribeToClientOrders,
 } from './backendOrderService.js';
-import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
+import { isSupabaseConfigured, requireSupabase } from '../../lib/supabaseClient.js';
 import { bestWordMatch, normalizeText, osaDistance, substringMatch, textWords } from '../../lib/algorithms/stringMatch.js';
 import { recentOrderedMeals } from '../domain/homePresentation.js';
 
 export const TRACKING_MSG = {
   noOrders: 'You have no orders yet.',
+  loadingOrders: 'Loading your orders…',
   noOrdersLead: 'Your orders will show up here once you place one.',
   orderNotFound: 'Order not found.',
   unableRefresh: 'Unable to refresh. Please check your connection.',
@@ -754,11 +756,48 @@ export function getAlertsForUser(userId: string) {
   );
 }
 
+/** USR-25: the inbox is the notifications saved for this account. */
+export async function loadAlertsForUser(userId: string) {
+  const local = getAlertsForUser(userId);
+  if (!isSupabaseConfigured) return local;
+  try {
+    const rows = await getClientNotifications();
+    const remote = (rows || []).map((row) => {
+      const record = row as {
+        id?: string;
+        title?: string;
+        body?: string;
+        is_read?: boolean;
+        created_at?: string;
+        notification_type?: string;
+        order_id?: string;
+      };
+      const message = [record.title, record.body].filter(Boolean).join('. ');
+      return {
+        kind: 'notification',
+        id: String(record.id || message),
+        message,
+        read: !!record.is_read,
+        createdAt: record.created_at || '',
+        timeLabel: formatTimestamp(record.created_at),
+        type: record.notification_type,
+        orderId: record.order_id,
+      };
+    });
+    const seen = new Set(remote.map((item) => item.id));
+    return [...remote, ...local.filter((item) => !seen.has(item.id))].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  } catch {
+    return local;
+  }
+}
+
 export function markAlertRead(userId: string, kind: string, id: string) {
   if (kind === 'notification') {
     const row = ensureNotifications().find((n) => n.id === id && n.userId === userId);
     if (row) row.read = true;
-    return { ok: !!row };
+    return { ok: !!row || isRemoteNotificationId(id) };
   }
   if (kind === 'announcement') {
     const row = ensureAnnouncements().find((a) => a.id === id);
@@ -769,6 +808,18 @@ export function markAlertRead(userId: string, kind: string, id: string) {
     return { ok: !!row };
   }
   return { ok: false };
+}
+
+const REMOTE_NOTIFICATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isRemoteNotificationId(id: string) {
+  return REMOTE_NOTIFICATION_ID.test(id);
+}
+
+/** USR-24: a saved status notice stays unread until the customer opens it. */
+export async function markRemoteNotificationRead(id: string) {
+  if (!isSupabaseConfigured || !isRemoteNotificationId(id)) return;
+  await requireSupabase().from('notifications').update({ is_read: true }).eq('id', id);
 }
 
 export function __testPushAnnouncement(message: string, { at }: { at?: string } = {}) {

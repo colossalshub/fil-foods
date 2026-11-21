@@ -9,9 +9,7 @@ import FormMessage from '../../components/FormMessage';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import VerificationFlow from '../../components/VerificationFlow';
 import { lookupPasswordReset } from '../../services/authService';
-import { lookupLiveReset, sendLiveCode } from '../../services/liveAuthService';
-import { noteResetRequested } from '../../services/emailLinkAuth';
-import EmailLinkPanel from '../../components/EmailLinkPanel';
+import { lookupLiveReset } from '../../services/liveAuthService';
 import { isSupabaseConfigured } from '../../../lib/supabaseClient';
 import { MSG } from '../../data/messages';
 import { colors, font, spacing, fonts } from '../../theme/theme';
@@ -23,7 +21,7 @@ export default function ForgotPasswordScreen({ navigation }: {
   const [value, setValue] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
-  const [resetUser, setResetUser] = useState<{ userId: string; phone?: string; email?: string; linkSent?: boolean } | null>(null);
+  const [resetUser, setResetUser] = useState<{ userId: string; phone?: string; email?: string } | null>(null);
 
   const [checking, setChecking] = useState(false);
   const onContinue = async () => {
@@ -44,26 +42,16 @@ export default function ForgotPasswordScreen({ navigation }: {
       return;
     }
     setFieldError('');
-    if (isSupabaseConfigured && result.email) {
-      // Supabase's default reset email carries a link (USR-04); the code form stays under "Have a code?".
-      setChecking(true);
-      const sent = await sendLiveCode('reset', 'email', result.email);
-      setChecking(false);
-      if (!sent.ok) {
-        setMessages([sent.message || MSG.sendFailed]);
-        return;
-      }
-      noteResetRequested();
-      setResetUser({ userId: '', email: result.email, linkSent: true });
-      return;
-    }
-    setResetUser({ userId: result.userId || '', phone: result.phone, email: result.email });
+    setResetUser({
+      userId: result.userId || '',
+      phone: result.phone,
+      email: result.email,
+    });
   };
 
   const codeFlow = resetUser ? (
     <VerificationFlow
       live={isSupabaseConfigured}
-      alreadySent={Boolean(resetUser.linkSent)}
       userId={resetUser.userId}
       purpose="reset"
       phone={resetUser.phone}
@@ -85,21 +73,11 @@ export default function ForgotPasswordScreen({ navigation }: {
               <HelpButton color={colors.primary} />
             </View>
             <Text style={styles.title} accessibilityRole="header">Forgot password</Text>
-            {resetUser?.linkSent ? null : (
-              <Text style={styles.body}>
-                Enter the contact number or email on your account, then choose SMS or email for your code.
-              </Text>
-            )}
+            <Text style={styles.body}>
+              Enter the contact number or email on your account, then choose SMS or email for your code.
+            </Text>
 
-            {resetUser?.linkSent ? (
-              <EmailLinkPanel
-                purpose="reset"
-                email={resetUser.email}
-                lead={MSG.checkEmailResetLink}
-                alreadySent
-                codeFlow={codeFlow}
-              />
-            ) : resetUser ? (
+            {resetUser ? (
               codeFlow
             ) : (
               <>

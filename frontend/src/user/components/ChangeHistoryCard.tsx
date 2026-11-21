@@ -44,9 +44,13 @@ function ChangeHistoryCard({ entry, recipientName }: Props) {
           </View>
         </View>
       )}
-      <Text style={styles.meta}>
-        {`Changed by ${entry.whoName}${recipientName ? ` · Recipient: ${recipientName}` : ''}`}
-      </Text>
+      {entry.whoName ? (
+        <Text style={styles.meta}>
+          {`Changed by ${entry.whoName}${recipientName ? ` · Recipient: ${recipientName}` : ''}`}
+        </Text>
+      ) : recipientName ? (
+        <Text style={styles.meta}>{`Recipient: ${recipientName}`}</Text>
+      ) : null}
     </View>
   );
 }

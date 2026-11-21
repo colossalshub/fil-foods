@@ -8,6 +8,8 @@ import { useAuth } from '../../context/AuthContext';
 import { CHECKOUT_MSG } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { formatPeso } from '../../services/orderService';
+import { isSupabaseConfigured } from '../../../lib/supabaseClient';
+import { payOrderOnBackend } from '../../services/backendOrderService';
 import {
   refreshClientOrder,
   settleClientPayment,
@@ -16,9 +18,8 @@ import type { Order } from '../../types';
 import { orderRefOf } from '../../domain/orderReference';
 
 /**
- * USR-20: GCash and Maya leave the app's payment choice and open a checkout page.
- * This page is the local stand-in for that gateway. Paid is recorded only after
- * Pay now. Cancel returns to the order without marking it paid.
+ * USR-20: GCash and Maya open this checkout page. Pay now records the payment
+ * on the customer's order. Cancel returns to the order without marking it paid.
  */
 export default function OrderPaymentGatewayScreen({ route, navigation }: {
   route: { params?: { orderId?: string; method?: string } };
@@ -44,8 +45,23 @@ export default function OrderPaymentGatewayScreen({ route, navigation }: {
     load();
   }, [load]));
 
-  const finish = (outcome: 'paid' | 'failed' | 'cancelled') => {
+  const finish = async (outcome: 'paid' | 'failed' | 'cancelled') => {
     if (!user?.id || !orderId) return;
+    const remoteOrder = /^[0-9a-f-]{36}$/i.test(orderId);
+    if (outcome === 'paid' && isSupabaseConfigured && remoteOrder) {
+      try {
+        await payOrderOnBackend(orderId);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : CHECKOUT_MSG.notAvailablePay);
+        return;
+      }
+      navigation.navigate('OrderPaymentSuccess', {
+        order: order || { id: orderId, total: 0 },
+        method,
+        outcome: 'paid',
+      });
+      return;
+    }
     const result = settleClientPayment(user.id, orderId, { method, outcome });
     if (!result.ok) {
       setError(result.message || CHECKOUT_MSG.notAvailablePay);

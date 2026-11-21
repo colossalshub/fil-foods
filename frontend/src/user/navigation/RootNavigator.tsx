@@ -27,7 +27,7 @@ import { colors } from '../theme/theme';
 import { isStaffProfileRole } from '../../lib/staffAuth.js';
 import { fetchRemoteMeals } from '../../lib/mealCatalogBackend.js';
 import { syncMealsWithRemoteMenu } from '../data/meals.js';
-import { configureAuthRedirect, liveUserFromProfile, loadLiveRecipient } from '../services/liveAuthService.js';
+import { configureAuthRedirect, ensureRecordedTermsVersion, liveUserFromProfile, loadLiveRecipient } from '../services/liveAuthService.js';
 import { completeAuthLink, type LinkOutcome } from '../services/emailLinkAuth.js';
 import { authRedirectUrl } from '../../lib/authRedirect';
 import { stripAuthParams } from '../../lib/authLink.js';
@@ -87,9 +87,10 @@ export default function RootNavigator() {
               setKeepLoggedIn(false);
             } else {
               setSession(restoredSession);
-              const recipient = await loadLiveRecipient(profile, restoredSession.access_token).catch(() => null);
+              const profileWithTerms = await ensureRecordedTermsVersion(profile, restoredSession.access_token);
+              const recipient = await loadLiveRecipient(profileWithTerms, restoredSession.access_token).catch(() => null);
               setUser({
-                ...liveUserFromProfile(profile, recipient),
+                ...liveUserFromProfile(profileWithTerms, recipient),
                 accessToken: restoredSession.access_token,
                 refreshToken: restoredSession.refresh_token,
                 expiresAt: restoredSession.expires_at,
@@ -207,7 +208,7 @@ export default function RootNavigator() {
     setSession(null);
     setKeepLoggedIn(false);
     try {
-      if (isSupabaseConfigured && supabase) await supabase.auth.signOut();
+      if (isSupabaseConfigured && supabase) await supabase.auth.signOut({ scope: 'global' });
     } catch {
       // The saved token is still removed below.
     }

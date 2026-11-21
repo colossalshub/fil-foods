@@ -239,14 +239,32 @@ export async function payOrderOnBackend(orderId: string, authSession?: AuthToken
   return Array.isArray(data) ? data[0] : data;
 }
 
+const orderListeners = new Set<() => void>();
+let orderChannel: ReturnType<ReturnType<typeof requireSupabase>['channel']> | null = null;
+
+function publishOrderChange() {
+  orderListeners.forEach((listener) => listener());
+}
+
 export function subscribeToClientOrders(onChange: () => void) {
   const client = requireSupabase();
-  const channel = client
-    .channel('client-orders')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, onChange)
-    .subscribe();
+  orderListeners.add(onChange);
+  if (!orderChannel) {
+    orderChannel = client
+      .channel('client-order-status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, publishOrderChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, publishOrderChange);
+    ensureSession().then((session) => {
+      if (!orderChannel) return;
+      if (session?.access_token) client.realtime.setAuth(session.access_token);
+      orderChannel.subscribe();
+    });
+  }
   return () => {
-    client.removeChannel(channel);
+    orderListeners.delete(onChange);
+    if (orderListeners.size === 0 && orderChannel) {
+      client.removeChannel(orderChannel);
+      orderChannel = null;
+    }
   };
 }

@@ -24,6 +24,7 @@ export const MSG = {
   inactive: 'This account is inactive. Please contact support.',
   googleNeedsName: 'Continue with Google needs your name and email address to create your account.',
   linkPrompt: 'An account with this email already exists. Log in to link your Google account.',
+  linkGoogleAction: 'Link Google',
   googleLinked: 'Your Google account is linked.',
   googleAlreadyLinked: 'This Google account is already linked to another account.',
   verified: 'Your account is verified.',
@@ -183,6 +184,23 @@ export const HOME_COPY = {
   goBack: 'Go back',
 };
 
+/** USR-16 / USR-18 meal day — the three meal times and today's foods. */
+export const MEAL_DAY_COPY = {
+  screenTitle: "Today's meals",
+  forYou: (name: string) => (name ? `For you, ${name}.` : 'For you.'),
+  forName: (name: string) => `For ${name}.`,
+  chosenCount: (count: number) => `${count} of 3 chosen`,
+  notChosen: 'Not chosen',
+  change: 'Change',
+  remove: 'Remove',
+  search: 'Search',
+  review: "Review today's meals",
+  rule: 'One meal per meal time. Maximum 3 meals per day. You can order one, two or all three meal times.',
+  kcalToday: (kcal: string) => `${kcal} Kcal today`,
+  reviewTitle: 'Subject to Dietitian review',
+  reviewBody: 'Final suitability requires Dietitian review.',
+};
+
 /** Short lines under each finished dish on Home. */
 export const HOME_MEAL_NOTES: Record<string, { description: string; benefit: string }> = {
   'ready-pork-adobo': {
@@ -228,6 +246,7 @@ export const NOTIFICATIONS_COPY = {
   emptyBody: 'Notifications will appear here.',
   tagAnnouncement: 'Announcement',
   tagFamilyMember: 'Family Member',
+  orderUpdate: 'Order update',
 };
 
 export const ORDERS_COPY = {

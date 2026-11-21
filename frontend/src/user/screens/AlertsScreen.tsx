@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import BackPageShell from '../components/BackPageShell';
 import { useAuth } from '../context/AuthContext';
 import { NOTIFICATIONS_COPY } from '../data/messages';
-import { getAlertsForUser, markAlertRead } from '../services/trackingService';
+import { loadAlertsForUser, markAlertRead, markRemoteNotificationRead, subscribeToBackendOrderChanges } from '../services/trackingService';
 import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
 
 type AlertItem = {
@@ -115,17 +115,20 @@ export default function AlertsScreen() {
   const userId = user?.id;
   const [items, setItems] = useState<AlertItem[]>([]);
 
-  const reload = useCallback(() => {
+  const reload = useCallback(async () => {
     if (!userId) {
       setItems([]);
       return;
     }
-    setItems(getAlertsForUser(userId));
+    setItems(await loadAlertsForUser(userId));
   }, [userId]);
 
   useFocusEffect(
     useCallback(() => {
       reload();
+      return subscribeToBackendOrderChanges(() => {
+        reload();
+      });
     }, [reload]),
   );
 
@@ -138,7 +141,7 @@ export default function AlertsScreen() {
   const onOpen = (item: AlertItem) => {
     if (!userId) return;
     markAlertRead(userId, item.kind, item.id);
-    reload();
+    void markRemoteNotificationRead(item.id).finally(() => reload());
     if (item.orderId) {
       navigation.getParent()?.navigate('Orders', {
         screen: 'OrderDetail',

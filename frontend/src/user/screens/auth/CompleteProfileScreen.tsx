@@ -31,9 +31,9 @@ export default function CompleteProfileScreen() {
   const needsPersonalDetails = !familyAccount
     && (!user?.firstName || !user?.lastName || !user?.contactNumber || !user?.address || !user?.termsAcceptedAt);
   const stages = familyAccount
-    ? ['recipient', 'healthAndDiet', 'recommendations']
-    : [...(needsPersonalDetails ? ['personal'] : []), 'healthAndDiet', 'recommendations'];
-  const firstStageIndex = familyAccount || needsPersonalDetails ? 0 : 1;
+    ? ['recipient', 'allergies', 'health', 'recommendations']
+    : [...(needsPersonalDetails ? ['personal'] : []), 'allergies', 'health', 'recommendations'];
+  const firstStageIndex = 0;
   const [step, setStep] = useState(firstStageIndex);
   const hasPreviousStage = step > firstStageIndex;
   const currentStage = stages[step] || stages[stages.length - 1];
@@ -193,20 +193,24 @@ export default function CompleteProfileScreen() {
     ? 'Meal recipient details'
     : currentStage === 'personal'
       ? 'Your details'
-      : currentStage === 'healthAndDiet'
+      : currentStage === 'allergies'
         ? 'Food allergies'
-        : 'Recommended foods';
+        : currentStage === 'health'
+          ? 'Health and restrictions'
+          : 'Recommended foods';
   const subtitle = currentStage === 'recipient'
     ? 'Family Member account · recipient information.'
     : currentStage === 'personal'
       ? 'Confirm your details and the address where your meals should be delivered.'
-      : currentStage === 'healthAndDiet'
-        ? 'Choose the meal recipient’s allergies, health conditions and dietary restrictions.'
-        : 'Recommended meals based on the recipient’s allergies and restrictions.';
+      : currentStage === 'allergies'
+        ? 'Record the meal recipient’s food allergies. Meals that contain them cannot be ordered.'
+        : currentStage === 'health'
+          ? 'Select a health condition or a restriction given by the doctor.'
+          : 'Recommended meals based on the recipient’s allergies and restrictions.';
 
   return (
     <AuthLayout variant="back" title={title} onBack={hasPreviousStage ? () => setStep((current) => current - 1) : leave} backgroundFrame>
-      <Text style={styles.progress}>STEP {step + 1} OF 3</Text>
+      <Text style={styles.progress}>STEP {step + 1} OF {stages.length}</Text>
       <Text style={styles.lead}>{subtitle}</Text>
       <FormMessage messages={messages} />
 
@@ -334,26 +338,29 @@ export default function CompleteProfileScreen() {
         </>
       ) : null}
 
-      {currentStage === 'healthAndDiet' ? (
-        <>
-          <View style={styles.allergyCard}>
-            <View style={styles.chips}>
-              {ALLERGY_PRESETS.map((allergy) => (
-                <Chip
-                  key={allergy}
-                  label={allergy}
-                  active={allergies.includes(allergy)}
-                  onPress={() => toggle(allergies, setAllergies, allergy)}
-                />
-              ))}
+      {currentStage === 'allergies' ? (
+        <View style={styles.allergyCard}>
+          <View style={styles.chips}>
+            {ALLERGY_PRESETS.map((allergy) => (
               <Chip
-                label="No allergies"
-                active={allergies.length === 0 && !allergyOther.trim()}
-                onPress={() => { setAllergies([]); setAllergyOther(''); }}
+                key={allergy}
+                label={allergy}
+                active={allergies.includes(allergy)}
+                onPress={() => toggle(allergies, setAllergies, allergy)}
               />
-            </View>
-            <AppInput label="Other allergy (optional)" value={allergyOther} onChangeText={setAllergyOther} autoCapitalize="words" />
+            ))}
+            <Chip
+              label="No allergies"
+              active={allergies.length === 0 && !allergyOther.trim()}
+              onPress={() => { setAllergies([]); setAllergyOther(''); }}
+            />
           </View>
+          <AppInput label="Other allergy (optional)" value={allergyOther} onChangeText={setAllergyOther} autoCapitalize="words" />
+        </View>
+      ) : null}
+
+      {currentStage === 'health' ? (
+        <>
           <Text style={styles.sectionTitle}>Health &amp; Restrictions</Text>
           <Text style={styles.sectionDescription}>Select known conditions and add doctor-provided restrictions.</Text>
           <Text style={styles.inputLabel}>Health conditions</Text>

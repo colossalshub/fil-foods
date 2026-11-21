@@ -6,6 +6,8 @@ import { MSG } from '../data/messages.js';
 
 WebBrowser.maybeCompleteAuthSession();
 
+const linkedThisSession = new Set<string>();
+
 const redirectTo = AuthSession.makeRedirectUri({
   scheme: 'filfoods',
   path: 'auth/callback',
@@ -100,8 +102,33 @@ export async function continueWithGoogle({ accountFor }: {
     if (!profile.profile_complete && !purpose) {
       return { ok: false, status: 'needs_account_type', message: MSG.registrationTypeRequired, user: mapped };
     }
+    const row = profile as { auth_provider?: string; google_linked?: boolean; id: string };
+    const passwordAccount = row.auth_provider === 'password';
+    const alreadyLinked = row.google_linked === true || linkedThisSession.has(row.id);
+    if (passwordAccount && !alreadyLinked) {
+      await client.auth.signOut();
+      await forgetSession();
+      return { ok: false, status: 'needs_password_link', message: MSG.linkPrompt, user: mapped };
+    }
     return { ok: true, user: mapped };
   } catch (error) {
     return { ok: false, message: errorMessage(error) };
   }
+}
+
+/** Confirms the password on an existing account before Google stays linked to it. */
+export async function confirmGoogleLink(email: string, password: string, userId: string) {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error || !data.session) return { ok: false as const, message: MSG.invalidCredentials };
+  const session = await rememberSession(data.session);
+  if (!session?.access_token) return { ok: false as const, message: MSG.invalidCredentials };
+  linkedThisSession.add(userId);
+  await client.from('profiles').update({ google_linked: true }).eq('id', userId);
+  return {
+    ok: true as const,
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
+    expiresAt: session.expires_at,
+  };
 }

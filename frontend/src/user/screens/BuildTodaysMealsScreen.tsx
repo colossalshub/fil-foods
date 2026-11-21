@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import {
-  Alert, Image, Pressable, ScrollView, StyleSheet, Text, View,
+  Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
@@ -16,12 +16,14 @@ import {
 } from '../data/todayMenu';
 import { useAuth } from '../context/AuthContext';
 import { useMealProfile } from '../hooks/useMealProfile';
-import { useTabScrollInset } from '../hooks/useTabScrollInset';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { floatingTabBottomInset } from '../navigation/floatingTabBar';
 import { MENU_CATALOG, resolveMenuMeal } from '../data/menuCatalog';
 import { useCart } from '../context/CartContext';
-import { warningRecipientName } from '../domain/audience';
-import { ORDER_MSG, formatPeso, profileAllergensInMeal } from '../services/orderService';
-import { SPECIAL_REQUEST_COPY } from '../data/messages';
+import { recipientDisplayName, warningRecipientName } from '../domain/audience';
+import { mealFitLine } from '../domain/homePresentation';
+import { ORDER_MSG, formatPeso, profileAllergensInMeal, recommendationReason } from '../services/orderService';
+import { MEAL_DAY_COPY, SPECIAL_REQUEST_COPY } from '../data/messages';
 import SpecialRequestEditor from '../components/SpecialRequestEditor';
 import {
   feeForSpecialRequest,
@@ -40,10 +42,11 @@ const BADGE = {
   fresh: { background: colors.soft, text: colors.primary },
 };
 
-function MealChoice({ meal, selected, warnings, request, allergies, onPress, onRemove, onRequest }: {
+function MealChoice({ meal, selected, warnings, fit, request, allergies, onPress, onRemove, onRequest }: {
   meal: TodayMeal;
   selected: boolean;
   warnings: string[];
+  fit?: string;
   request?: SpecialRequest | null;
   allergies: Array<{ name?: string }>;
   onPress: () => void;
@@ -65,7 +68,7 @@ function MealChoice({ meal, selected, warnings, request, allergies, onPress, onR
         accessibilityRole="button"
         accessibilityState={{ selected, disabled: warnings.length > 0 }}
         disabled={warnings.length > 0}
-        accessibilityLabel={`${meal.name}, ${meal.calories} Kcal, ${meal.price} pesos${warnings.length ? `, ${warnings.join(' ')}` : ''}`}
+        accessibilityLabel={`${meal.name}, ${formatPeso(meal.price)}${fit ? `. ${fit}` : ''}${warnings.length ? `. ${warnings.join(' ')}` : ''}`}
         onPress={onPress}
         style={styles.cardPress}
       >
@@ -78,8 +81,8 @@ function MealChoice({ meal, selected, warnings, request, allergies, onPress, onR
         )}
         <View style={styles.cardBody}>
           <Text style={styles.mealName}>{meal.name}</Text>
-          <Text style={styles.mealMeta}>{meal.calories} Kcal · ₱{meal.price}</Text>
-          <Text style={styles.note}>{meal.note}</Text>
+          {fit ? <Text style={styles.fitLine}>{fit}</Text> : <Text style={styles.note}>{meal.note}</Text>}
+          <Text style={styles.mealMeta}>{`${formatPeso(meal.price)} · ${meal.calories} Kcal`}</Text>
           {warnings.map((text) => (
             <Text key={text} style={styles.warning}>{text}</Text>
           ))}
@@ -157,12 +160,11 @@ export default function BuildTodaysMealsScreen({ navigation }: {
 }) {
   const route = useRoute() as { params?: { advanceFromSlot?: DaySlot; openSummary?: boolean } };
   const { user } = useAuth();
-  const { items, addItem, removeSlot, setSpecialRequest } = useCart();
+  const { items, removeSlot, setSpecialRequest } = useCart();
   const { profile } = useMealProfile(user);
-  const tabInset = useTabScrollInset();
+  const tabInset = floatingTabBottomInset(useSafeAreaInsets());
   const [slot, setSlot] = useState<DaySlot>('Breakfast');
   const [requestError, setRequestError] = useState('');
-  const [openActions, setOpenActions] = useState<DaySlot | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const scrollViewport = useRef(0);
@@ -173,7 +175,6 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   // USR-18: opening a meal time that already has a meal lands on that meal.
   const showSlot = (next: DaySlot) => {
     setRequestError('');
-    setOpenActions(null);
     setSlot(next);
     setScrollRequest((count) => count + 1);
   };
@@ -282,14 +283,13 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   }), [items]);
   const summaryCalories = summaryRows.reduce((sum, row) => sum + row.calories, 0);
   const summaryPrice = summaryRows.reduce((sum, row) => sum + row.price, 0);
-  const allChosen = chosenCount === DAY_SLOTS.length;
-  // Every meal time is optional (USR-18): suggest the next empty one without forcing it.
-  const pendingSlots = DAY_SLOTS.filter((item) => !chosen[item]);
-  const preferredNext = nextSlot(slot);
-  const suggestedSlot = pendingSlots.filter((item) => item !== slot).includes(preferredNext)
-    ? preferredNext
-    : pendingSlots.find((item) => item !== slot);
   const recipientName = warningRecipientName(user);
+  const holderName = user?.firstName?.trim()
+    || recipientDisplayName(user)
+    || '';
+  const forWhom = user?.accountFor === 'family' && recipientName
+    ? MEAL_DAY_COPY.forName(recipientName)
+    : MEAL_DAY_COPY.forYou(holderName);
   const allergyNames = (profile?.allergies || []).map((item) => (typeof item === 'string' ? item : item.name));
   const allergyOwner = recipientName ? `${recipientName}'s` : 'your';
   const allergyNote = allergyNames.length
@@ -305,18 +305,10 @@ export default function BuildTodaysMealsScreen({ navigation }: {
 
   const selectMeal = (meal: TodayMeal) => {
     if (warningsFor(meal).length) return;
-    if (meal.customizable) {
-      navigation.navigate('BuildMealCustomize', { todayMealId: meal.id, slot: meal.slot });
-      return;
-    }
     const catalogItem = MENU_CATALOG.find((item) => item.id === meal.id);
     const catalog = catalogItem ? resolveMenuMeal(catalogItem) : undefined;
-    if (catalog) {
-      const error = addItem(catalog, 1, undefined, { daySlot: meal.slot, todayMealId: meal.id });
-      if (error) {
-        Alert.alert('Could not add meal', error);
-      }
-    }
+    if (!catalog) return;
+    navigation.navigate('MealDetail', { meal: catalog, initials: meal.badgeLabel });
   };
 
   // One, two or three meals can go to checkout; nothing has to be chosen in order.
@@ -324,45 +316,41 @@ export default function BuildTodaysMealsScreen({ navigation }: {
   const onPrimaryAction = () => {
     if (canCheckout) navigation.navigate('FulfillmentChoice');
   };
-  const showNextSlot = canCheckout && !allChosen && Boolean(suggestedSlot) && Boolean(chosen[slot]);
+  const fitFor = (meal: TodayMeal) => {
+    const catalogItem = MENU_CATALOG.find((item) => item.id === meal.id);
+    if (!catalogItem || !profile) return '';
+    const resolved = resolveMenuMeal(catalogItem);
+    return mealFitLine(recommendationReason(resolved, profile), profile, recipientName);
+  };
 
   return (
     <AppPageShell edges={['top']}>
       <View style={styles.pageBody}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: tabInset + spacing.lg }]}
         showsVerticalScrollIndicator={false}
         scrollEnabled={!summaryOpen}
         onLayout={(event) => { scrollViewport.current = event.nativeEvent.layout.height; }}
         onContentSizeChange={(_width, height) => { scrollContent.current = height; }}
       >
         <PageHeader
-          title="Today's meals"
-          subtitle="Choose one meal for each time."
+          title={MEAL_DAY_COPY.screenTitle}
+          subtitle={forWhom}
+          caption={MEAL_DAY_COPY.chosenCount(chosenCount)}
         />
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.nutritionLabel}>{`TODAY'S NUTRITION`}</Text>
-          <Text style={styles.calories}>{calories} Kcal today</Text>
-          <Text style={styles.reviewTitle}>Subject to Dietitian review</Text>
-          <Text style={styles.reviewBody}>Final suitability requires Dietitian review.</Text>
-        </View>
-
-        {/* USR-37: the Meal tab opens the meal catalog and its search tools. */}
         <Pressable
-          accessibilityRole="search"
-          accessibilityLabel="Search meals"
+          accessibilityRole="button"
+          accessibilityLabel={MEAL_DAY_COPY.search}
           accessibilityHint="Opens the menu with search"
           onPress={() => navigation.navigate('MealBrowse')}
-          style={styles.searchEntry}
+          style={styles.searchBtn}
         >
-          <Ionicons name="search" size={22} color={colors.primary} />
-          <Text style={styles.searchEntryText}>Search meals</Text>
+          <Ionicons name="search" size={18} color={colors.primary} />
+          <Text style={styles.searchBtnLabel}>{MEAL_DAY_COPY.search}</Text>
         </Pressable>
 
-        <Text style={styles.progressLabel}>{`Meals chosen today: ${chosenCount} of 3`}</Text>
-        <View style={styles.progressRow} accessibilityRole="progressbar">
+        <View style={styles.dayList}>
           {DAY_SLOTS.map((item) => {
             const active = item === slot;
             const row = items.find((entry) => entry.daySlot === item);
@@ -375,114 +363,84 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                 key={item}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={row ? `${item}, ${row.meal.name}` : `${item}, not chosen yet`}
+                accessibilityLabel={row ? `${item}, ${row.meal.name}` : `${item}, ${MEAL_DAY_COPY.notChosen}`}
                 accessibilityHint="Shows meals for this time"
                 onPress={() => showSlot(item)}
                 style={({ pressed }) => [
-                  styles.progressCol,
-                  active && styles.progressColOn,
-                  pressed && styles.progressColPressed,
+                  styles.dayRow,
+                  active && styles.dayRowOn,
+                  pressed && styles.dayRowPressed,
                 ]}
               >
-                <Text style={[styles.progressSlot, active && styles.progressSlotOn]}>{item}</Text>
-                <View style={[
-                  styles.progressSegment,
-                  (active || chosen[item]) && styles.progressSegmentOn,
-                ]} />
-                <View style={[
-                  styles.chosenPhoto,
-                  !row && styles.progressPlaceholder,
-                  active && !row && styles.progressPlaceholderOn,
-                  openActions === item && styles.chosenPhotoOpen,
-                ]}>
-                  {photo ? (
-                    <Image source={photo} style={styles.chosenPhotoImage} resizeMode="cover" accessible={false} />
-                  ) : (
-                    <Text style={[styles.progressEmpty, active && styles.progressSlotOn]}>Choose</Text>
-                  )}
-                  {row ? (
+                {photo ? (
+                  <Image source={photo} style={styles.dayPhoto} resizeMode="cover" accessible={false} />
+                ) : (
+                  <View style={styles.dayPhotoEmpty} />
+                )}
+                <View style={styles.dayCopy}>
+                  <Text style={[styles.daySlot, active && styles.daySlotOn]}>{item}</Text>
+                  <Text style={styles.dayName}>{row ? row.meal.name : MEAL_DAY_COPY.notChosen}</Text>
+                </View>
+                {row ? (
+                  <View style={styles.dayActions}>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={row.meal.name}
-                      accessibilityHint="Shows edit and delete"
+                      accessibilityLabel={`${MEAL_DAY_COPY.change} ${row.meal.name}`}
                       onPress={(event) => {
                         event.stopPropagation();
-                        setOpenActions((current) => (current === item ? null : item));
+                        if (todayMeal?.customizable && row.todayMealId) {
+                          navigation.navigate('BuildMealCustomize', {
+                            todayMealId: row.todayMealId,
+                            slot: item,
+                            meatProtein: row.customization?.meatProtein,
+                            cookingStyle: row.customization?.cookingStyle,
+                          });
+                          return;
+                        }
+                        showSlot(item);
                       }}
-                      style={styles.chosenPhotoHit}
-                    />
-                  ) : null}
-                  {openActions === item && row ? (
-                        <View style={styles.chosenActions}>
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Edit ${row.meal.name}`}
-                            onPress={(event) => {
-                              event.stopPropagation();
-                              if (todayMeal?.customizable && row.todayMealId) {
-                                navigation.navigate('BuildMealCustomize', {
-                                  todayMealId: row.todayMealId,
-                                  slot: item,
-                                  meatProtein: row.customization?.meatProtein,
-                                  cookingStyle: row.customization?.cookingStyle,
-                                });
-                                return;
-                              }
-                              setOpenActions(null);
-                              setSlot(item);
-                            }}
-                            style={({ pressed }) => [styles.chosenIcon, pressed && styles.chosenIconPressed]}
-                          >
-                            <Ionicons name="pencil" size={16} color={colors.heading} />
-                          </Pressable>
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`Remove ${row.meal.name} from ${item}`}
-                            onPress={(event) => {
-                              event.stopPropagation();
-                              setRequestError('');
-                              setOpenActions(null);
-                              removeSlot(item);
-                            }}
-                            style={({ pressed }) => [styles.chosenIcon, pressed && styles.chosenIconPressed]}
-                          >
-                            <Ionicons name="close" size={18} color={colors.heading} />
-                          </Pressable>
-                        </View>
-                      ) : null}
-                </View>
-                <Text style={styles.chosenLine} numberOfLines={2}>{row ? row.meal.name : ' '}</Text>
+                      style={styles.dayAction}
+                    >
+                      <Text style={styles.dayActionLabel}>{MEAL_DAY_COPY.change}</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${MEAL_DAY_COPY.remove} ${row.meal.name} from ${item}`}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        setRequestError('');
+                        removeSlot(item);
+                      }}
+                      style={styles.dayAction}
+                    >
+                      <Text style={styles.dayRemoveLabel}>{MEAL_DAY_COPY.remove}</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </Pressable>
             );
           })}
         </View>
 
-        {canCheckout ? (
-          <View style={styles.orderActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`View summary of order, ${chosenCount} of 3 meals`}
-              onPress={() => setSummaryOpen(true)}
-              style={styles.next}
-            >
-              <Text style={styles.nextLabel}>View summary of order</Text>
-            </Pressable>
-            {showNextSlot && suggestedSlot ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Next, choose ${suggestedSlot}`}
-                onPress={() => showSlot(suggestedSlot)}
-                style={styles.secondaryBtn}
-              >
-                <Text style={styles.secondaryLabel}>{`Next · Choose ${suggestedSlot} →`}</Text>
-              </Pressable>
-            ) : null}
+        <Text style={styles.rule}>{MEAL_DAY_COPY.rule}</Text>
+
+        {chosenCount > 0 ? (
+          <View style={styles.reviewNote}>
+            <Text style={styles.reviewKcal}>{MEAL_DAY_COPY.kcalToday(calories.toLocaleString('en-PH'))}</Text>
+            <Text style={styles.reviewBody}>{`${MEAL_DAY_COPY.reviewTitle}. ${MEAL_DAY_COPY.reviewBody}`}</Text>
           </View>
         ) : null}
 
-        <Text style={styles.rule}>
-          One meal per meal time. Maximum 3 meals per day. You can order one, two or all three meal times.
-        </Text>
+        {canCheckout ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${MEAL_DAY_COPY.review}, ${MEAL_DAY_COPY.chosenCount(chosenCount)}`}
+            onPress={() => setSummaryOpen(true)}
+            style={[styles.next, styles.reviewButton]}
+          >
+            <Text style={styles.nextLabel}>{MEAL_DAY_COPY.review}</Text>
+          </Pressable>
+        ) : null}
 
         <View onLayout={(event) => { choicesOffset.current = event.nativeEvent.layout.y; }}>
         {mealGroups.map(({ title, meals }) => (
@@ -502,6 +460,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                 meal={meal}
                 selected={chosen[slot] === meal.id}
                 warnings={warningsFor(meal)}
+                fit={fitFor(meal)}
                 request={chosenRow?.specialRequest}
                 allergies={profile?.allergies || []}
                 onPress={() => selectMeal(meal)}
@@ -843,7 +802,48 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: fonts.bold, fontSize: font.body },
   cardBody: { flex: 1 },
   mealName: { fontFamily: fonts.semibold, fontSize: font.lg, lineHeight: 24, color: colors.heading },
-  mealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 24, color: colors.muted },
+  fitLine: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.text },
+  mealMeta: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 24, color: colors.heading },
+  searchBtn: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+    paddingRight: spacing.sm,
+  },
+  searchBtnLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
+  dayList: { gap: spacing.sm },
+  dayRow: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.white,
+    padding: spacing.sm,
+  },
+  dayRowOn: { borderColor: colors.primary, backgroundColor: colors.mint },
+  dayRowPressed: { backgroundColor: colors.soft },
+  dayPhoto: { width: 48, height: 48, borderRadius: 12 },
+  dayPhotoEmpty: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.soft,
+  },
+  dayCopy: { flex: 1, minWidth: 0 },
+  daySlot: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading },
+  daySlotOn: { color: colors.primary },
+  dayName: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.text },
+  dayActions: { alignItems: 'flex-end' },
+  dayAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  dayActionLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
+  dayRemoveLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.danger },
   note: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 24, color: colors.text },
   radio: {
     width: 28,
@@ -872,7 +872,9 @@ const styles = StyleSheet.create({
   },
   calories: { fontFamily: fonts.bold, marginTop: spacing.sm, fontSize: 28, lineHeight: 34, color: colors.heading },
   reviewTitle: { fontFamily: fonts.semibold, marginTop: spacing.sm, fontSize: font.body, lineHeight: 24, color: colors.heading },
-  reviewBody: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.muted },
+  reviewNote: { marginTop: spacing.md, gap: 2 },
+  reviewKcal: { fontFamily: fonts.semibold, fontSize: font.body, lineHeight: 24, color: colors.heading },
+  reviewBody: { fontFamily: fonts.regular, marginTop: 2, fontSize: font.body, lineHeight: 22, color: colors.text },
   allergy: { fontFamily: fonts.regular, marginTop: spacing.lg, fontSize: font.body, lineHeight: 22, color: colors.text },
   next: {
     minHeight: 52,
@@ -881,5 +883,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  reviewButton: { marginTop: spacing.md },
   nextLabel: { fontFamily: fonts.bold, fontSize: font.body, color: colors.white },
 });

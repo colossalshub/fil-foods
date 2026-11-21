@@ -6,7 +6,7 @@ import HelpButton from '../../components/HelpButton';
 import LogoPlaceholder from '../../components/LogoPlaceholder';
 import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import VerificationFlow from '../../components/VerificationFlow';
-import EmailLinkPanel from '../../components/EmailLinkPanel';
+import FormMessage from '../../components/FormMessage';
 import { useAuth } from '../../context/AuthContext';
 import { continueAfterEmailConfirm } from '../../services/emailLinkAuth';
 import { getPublicUser } from '../../services/authService';
@@ -22,15 +22,12 @@ export default function VerifyAccountScreen({ navigation, route }: {
     ? { id: params.email, firstName: params.firstName || '', contactNumber: params.phone, email: params.email }
     : getPublicUser(params.userId);
   const { signIn } = useAuth();
-  const [continuing, setContinuing] = useState(false);
   const [linkMessages, setLinkMessages] = useState<string[]>([]);
 
-  // After tapping the email link (in the app, or on a web page): sign in with the password just entered.
+  // After the email code is accepted, sign in with the password just entered.
   const onConfirmed = async () => {
     setLinkMessages([]);
-    setContinuing(true);
     const result = await continueAfterEmailConfirm(params.email);
-    setContinuing(false);
     if (result.ok) {
       await signIn(result.user, { session: result.session, keepLoggedIn: false });
       return;
@@ -74,16 +71,22 @@ export default function VerifyAccountScreen({ navigation, route }: {
           <LogoPlaceholder />
           <Text style={styles.title} accessibilityRole="header">Verify your account</Text>
           {user && params.live ? (
-            <EmailLinkPanel
-              purpose="account"
-              email={user.email}
-              lead={MSG.checkEmailLink}
-              alreadySent={!params.fromLogin}
-              onContinue={onConfirmed}
-              continueLoading={continuing}
-              messages={linkMessages}
-              codeFlow={codeFlow}
-            />
+            <>
+              <Text style={styles.body}>
+                {user.firstName ? `${user.firstName}, enter` : 'Enter'} the 6-digit code we send to your phone or email.
+              </Text>
+              <VerificationFlow
+                live
+                userId={user.id}
+                purpose="account"
+                phone={user.contactNumber}
+                email={user.email}
+                successMessage={MSG.verified}
+                successButtonTitle="Continue"
+                onVerified={() => { void onConfirmed(); }}
+              />
+              <FormMessage messages={linkMessages} />
+            </>
           ) : user ? (
             <>
               <Text style={styles.body}>

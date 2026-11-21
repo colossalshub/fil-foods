@@ -70,7 +70,7 @@ export default function MealDetailScreen({ route, navigation }: {
   const listedAllergens = meal.allergens || [];
   const conflictSet = useMemo(() => new Set(allergens), [allergens]);
   const sodiumMg = mealSodiumMg(meal);
-  const sodiumLimit = Number(profile?.nutritionTargets?.sodium) || 0;
+  const sodiumLimit = Number(profile?.nutritionTargets?.sodium) || 400;
   const sodiumOver = exceedsSodiumLimit(meal, sodiumLimit);
 
   const needsAccount = !user?.id || user.role === 'visitor';

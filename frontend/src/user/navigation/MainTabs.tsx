@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { View } from 'react-native';
 import { CommonActions, StackActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import { CheckoutProvider } from '../context/CheckoutContext';
 import TrackingStack from './TrackingStack';
 import { consumePendingDestination } from './pendingDestination';
 import { FloatingTabBar, floatingTabScreenOptions } from './floatingTabBar';
+import OrderStatusNotice from '../components/OrderStatusNotice';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +27,7 @@ export default function MainTabs() {
   return (
     <CartProvider>
     <CheckoutProvider>
+    <View style={{ flex: 1 }}>
     <Tab.Navigator
       initialRouteName={initialRoute}
       tabBar={(props) => <FloatingTabBar {...props} />}
@@ -103,6 +106,8 @@ export default function MainTabs() {
         })}
       />
     </Tab.Navigator>
+    <OrderStatusNotice />
+    </View>
     </CheckoutProvider>
     </CartProvider>
   );

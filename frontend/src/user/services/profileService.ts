@@ -57,6 +57,7 @@ const HISTORY_SECTION_LABEL: Record<string, string> = {
   restrictions: 'Dietary restrictions',
   allergies: 'Food allergies',
   nutrition: 'Nutritional preferences',
+  personal: 'Personal information',
 };
 
 function sameEmail(a: unknown, b: unknown) {

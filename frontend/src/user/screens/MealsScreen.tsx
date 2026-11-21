@@ -19,6 +19,7 @@ import {
   formatPeso,
   fuzzySearchMeals,
   profileAllergensInMeal,
+  recommendationReason,
 } from '../services/orderService';
 import {
   mealMatchesNutritionalPreferences,
@@ -35,10 +36,11 @@ const MENU_SLOTS: MenuSlot[] = ['Breakfast', 'Lunch', 'Dinner'];
 /** USR-26 / USR-13: label of the menu filter that applies the saved nutritional preferences. */
 const NUTRITION_GOALS_LABEL = 'Use my nutrition goals';
 
-function MenuRow({ item, photo, warnings, onPress }: {
+function MenuRow({ item, photo, warnings, reason, onPress }: {
   item: MenuCatalogItem;
   photo?: number;
   warnings: string[];
+  reason?: string;
   onPress: () => void;
 }) {
   // USR-11 B / USR-12 (revised): a meal with a recorded allergen is disabled, with the reason shown.
@@ -69,6 +71,7 @@ function MenuRow({ item, photo, warnings, onPress }: {
           ) : null}
         </View>
         {item.subtitle ? <Text style={styles.rowSubtitle}>{item.subtitle}</Text> : null}
+        {reason && warnings.length === 0 ? <Text style={styles.rowSubtitle}>{reason}</Text> : null}
         {!available && warnings.length === 0 ? (
           <Text style={styles.statusOff}>{MEAL_DETAIL_COPY.notAvailable}</Text>
         ) : null}
@@ -219,6 +222,7 @@ export default function MealsScreen({ navigation }: {
                     item={row.item}
                     photo={MEAL_PHOTOS[String(row.meal.id)] || MEAL_PHOTOS[row.item.id]}
                     warnings={warningsFor(row.meal)}
+                    reason={profile ? recommendationReason(row.meal, profile) : undefined}
                     onPress={() => openItem(row.item)}
                   />
                   {index < section.items.length - 1 ? <View style={styles.divider} /> : null}

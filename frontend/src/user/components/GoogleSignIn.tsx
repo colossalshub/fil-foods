@@ -4,8 +4,10 @@ import type { AccountFor, AuthUser, PublicUser } from '../types';
 import { Text, View } from 'react-native';
 import { colors, font, spacing, fonts } from '../theme/theme';
 import AppButton from './AppButton';
+import AppInput from './AppInput';
 import FormMessage from './FormMessage';
-import { continueWithGoogle } from '../services/supabaseGoogleAuthService';
+import { confirmGoogleLink, continueWithGoogle } from '../services/supabaseGoogleAuthService';
+import { MSG } from '../data/messages';
 
 export default function GoogleSignIn({ accountFor, onSuccess, color, style }: {
   accountFor?: AccountFor;
@@ -16,6 +18,8 @@ export default function GoogleSignIn({ accountFor, onSuccess, color, style }: {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
+  const [linkUser, setLinkUser] = useState<AuthUser | null>(null);
+  const [password, setPassword] = useState('');
 
   const onPress = async () => {
     setMessage('');
@@ -26,6 +30,8 @@ export default function GoogleSignIn({ accountFor, onSuccess, color, style }: {
         onSuccess?.(result.user);
       } else if (result.status === 'needs_account_type' && result.user) {
         setPendingUser(result.user);
+      } else if (result.status === 'needs_password_link' && result.user) {
+        setLinkUser(result.user);
       } else {
         setMessage(result.message);
       }
@@ -33,6 +39,40 @@ export default function GoogleSignIn({ accountFor, onSuccess, color, style }: {
       setLoading(false);
     }
   };
+
+  const onConfirmLink = async () => {
+    if (!linkUser?.email) return;
+    setMessage('');
+    setLoading(true);
+    try {
+      const result = await confirmGoogleLink(linkUser.email, password, String(linkUser.id));
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      onSuccess?.({
+        ...linkUser,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresAt: result.expiresAt,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (linkUser) {
+    return (
+      <View>
+        <Text style={{ fontFamily: fonts.regular, fontSize: font.body, color: colors.text, marginBottom: spacing.md }}>
+          {MSG.linkPrompt}
+        </Text>
+        <AppInput label="Password" value={password} onChangeText={setPassword} secure />
+        <AppButton title={MSG.linkGoogleAction} onPress={onConfirmLink} loading={loading} color={color} style={style} />
+        <FormMessage messages={message} />
+      </View>
+    );
+  }
 
   if (pendingUser) {
     return (

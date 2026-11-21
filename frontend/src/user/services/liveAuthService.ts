@@ -50,9 +50,9 @@ export function authErrorMessage(error: AuthErrorLike, context: 'signup' | 'send
   if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || /rate limit/i.test(raw)) {
     return MSG.tooManyCodeRequests;
   }
-  if (code === 'otp_expired' || /expired|invalid/i.test(raw)) {
-    return context === 'verify' ? MSG.wrongCode : MSG.sendFailed;
-  }
+  if (code === 'otp_expired' && !/invalid/i.test(raw)) return MSG.codeExpired;
+  if (/expired/i.test(raw) && !/invalid/i.test(raw)) return MSG.codeExpired;
+  if (context === 'verify') return MSG.wrongCode;
   if (code === 'user_already_exists' || code === 'email_exists' || /already registered/i.test(raw)) return MSG.duplicateEmail;
   if (code === 'same_password' || /different from the old password/i.test(raw)) return MSG.samePassword;
   if (code === 'weak_password' || /password should be/i.test(raw)) return MSG.shortPassword;
@@ -109,6 +109,21 @@ export function liveUserFromProfile(profile: ProfileRow, recipient?: RecipientRo
     plan: null,
     biometricUnlock: { enabled: false },
   };
+}
+
+/** A finished customer already accepted the terms. Store the current version when it was never written. */
+export async function ensureRecordedTermsVersion(profile: ProfileRow, accessToken: string) {
+  const accepted = profile?.terms_accepted_at;
+  const version = profile?.terms_version;
+  const id = typeof profile?.id === 'string' ? profile.id : '';
+  if (!accepted || version || !id) return profile;
+  const saved = await requireSupabase()
+    .from('profiles')
+    .update({ terms_version: TERMS_VERSION, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .setHeader('Authorization', `Bearer ${accessToken}`);
+  if (saved.error) return profile;
+  return { ...profile, terms_version: TERMS_VERSION };
 }
 
 /** Loads the signed-in account's recipient (Family Member accounts) for liveUserFromProfile. */
@@ -206,6 +221,28 @@ export async function sendLiveCode(purpose: 'account' | 'reset', channel: string
   return { ok: true };
 }
 
+/** Email code that proves the signed-in customer before a new phone number is saved. */
+export async function sendContactEmailCode(email: string | undefined): Promise<ServiceResult> {
+  if (!email) return { ok: false, message: MSG.sendFailed };
+  const client = requireSupabase();
+  const { error } = await client.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false },
+  });
+  if (error) return { ok: false, message: authErrorMessage(error, 'send') };
+  return { ok: true };
+}
+
+export async function verifyContactEmailCode(email: string | undefined, code: string): Promise<ServiceResult> {
+  const token = String(code || '').trim();
+  if (!token) return { ok: false, message: MSG.required };
+  if (!email) return { ok: false, message: MSG.wrongCode };
+  const client = requireSupabase();
+  const { error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) return { ok: false, message: authErrorMessage(error, 'verify') };
+  return { ok: true };
+}
+
 export async function verifyLiveCode(purpose: 'account' | 'reset', email: string | undefined, code: string): Promise<ServiceResult> {
   const token = String(code || '').trim();
   if (!token) return { ok: false, message: MSG.required };
@@ -251,7 +288,7 @@ export async function finishLiveSignup(accessToken: string, meta: Record<string,
 
 export async function endLiveSession() {
   try {
-    await requireSupabase().auth.signOut();
+    await requireSupabase().auth.signOut({ scope: 'global' });
   } catch {
     // The stored copy is removed below.
   }

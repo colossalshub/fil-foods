@@ -7,7 +7,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
 import AppPageShell from '../components/AppPageShell';
 import OrderStatusBadge from '../components/OrderStatusBadge';
-import { MSG, ORDERS_COPY } from '../data/messages';
+import { MEAL_DAY_COPY, MSG, ORDERS_COPY } from '../data/messages';
+import { recipientDisplayName, warningRecipientName } from '../domain/audience';
 import { CHECKOUT_MSG } from '../data/checkoutCopy';
 import FormMessage from '../components/FormMessage';
 import Chip from '../components/Chip';
@@ -126,6 +127,7 @@ export default function TrackingScreen() {
   const [searchError, setSearchError] = useState('');
   const [refreshError, setRefreshError] = useState('');
   const [orders, setOrders] = useState<OrderListItem[]>([]);
+  const [ordersReady, setOrdersReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -137,6 +139,7 @@ export default function TrackingScreen() {
   const syncOrders = useCallback(() => {
     if (!userId) {
       setOrders([]);
+      setOrdersReady(true);
       return;
     }
     if (isSupabaseConfigured) {
@@ -146,11 +149,16 @@ export default function TrackingScreen() {
             setRefreshError('');
             setOrders(backendOrders);
           }
+          setOrdersReady(true);
         })
-        .catch(() => setRefreshError(TRACKING_MSG.unableRefresh));
+        .catch(() => {
+          setRefreshError(TRACKING_MSG.unableRefresh);
+          setOrdersReady(true);
+        });
       return;
     }
     setOrders(listClientOrders(userId, filters));
+    setOrdersReady(true);
   }, [userId, filters]);
 
   useFocusEffect(
@@ -254,6 +262,11 @@ export default function TrackingScreen() {
 
   const statusOptions = listFilterStatuses();
   const parentNav = navigation.getParent();
+  const recipientName = warningRecipientName(user);
+  const holderName = user?.firstName?.trim() || recipientDisplayName(user) || '';
+  const forWhom = user?.accountFor === 'family' && recipientName
+    ? MEAL_DAY_COPY.forName(recipientName)
+    : MEAL_DAY_COPY.forYou(holderName);
 
   return (
     <AppPageShell edges={['top']} contentStyle={styles.screen}>
@@ -262,7 +275,7 @@ export default function TrackingScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onManualRefresh} />}
         keyboardShouldPersistTaps="handled"
       >
-        <PageHeader title={ORDERS_COPY.listTitle} subtitle={ORDERS_COPY.listSubtitle} />
+        <PageHeader title={ORDERS_COPY.listTitle} subtitle={forWhom} caption={ORDERS_COPY.listSubtitle} />
 
         {refreshError ? <FormMessage messages={[refreshError]} tone="error" /> : null}
 
@@ -284,7 +297,7 @@ export default function TrackingScreen() {
                   style={styles.input}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholder="TRK-2026-0001"
+                  placeholder="ORD-2026-0001"
                   placeholderTextColor={colors.inactive}
                   autoCapitalize="characters"
                   accessibilityLabel="Search orders by tracking number or meal"
@@ -323,7 +336,9 @@ export default function TrackingScreen() {
           </>
         ) : null}
 
-        {orders.length === 0 ? (
+        {!ordersReady ? (
+          <Text style={styles.emptyLead}>{TRACKING_MSG.loadingOrders}</Text>
+        ) : orders.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
               <Ionicons name="receipt-outline" size={34} color={colors.primary} />

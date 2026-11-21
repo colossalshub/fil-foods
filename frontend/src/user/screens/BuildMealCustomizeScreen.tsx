@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import BackHeader from '../components/BackHeader';
 import AppPageShell from '../components/AppPageShell';
-import { DAY_SLOTS, todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
+import { DAY_SLOTS, offeredChoiceNames, todayMealById, nextSlot, type DaySlot } from '../data/todayMenu';
 import { MENU_CATALOG, customizedMenuMeal, resolveMenuMeal } from '../data/menuCatalog';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -11,9 +11,7 @@ import { useMealProfile } from '../hooks/useMealProfile';
 import { warningRecipientName } from '../domain/audience';
 import {
   COOKING_STYLES,
-  MEAT_PROTEINS,
   ORDER_MSG,
-  VEGETABLE_STYLES,
   customizationConflict,
   formatPeso,
   profileAllergensInMeal,
@@ -28,7 +26,14 @@ import {
   type SpecialRequestDraft,
 } from '../domain/specialRequest';
 import MealPhoto from '../components/MealPhoto';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { floatingTabBottomInset } from '../navigation/floatingTabBar';
 import { colors, font, radius, spacing, fonts } from '../theme/theme';
+
+function onTodaysMenu(options: string[], name: string) {
+  if (options.includes(name)) return name;
+  return options[0] || name;
+}
 
 const DIETITIAN_NOTES: Record<string, string> = {
   Steamed: 'Steamed vegetables keep sodium lower and preserve texture.',
@@ -83,14 +88,17 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
   const slot = route.params?.slot || todayMeal?.slot || 'Lunch';
   const presetProtein = route.params?.meatProtein;
   const presetStyle = route.params?.cookingStyle;
+  const meatOptions = offeredChoiceNames(slot, 'Meat choices');
+  const vegetableOptions = offeredChoiceNames(slot, 'Vegetable choices');
   const { user } = useAuth();
   const { profile } = useMealProfile(user);
   const { addItem, items } = useCart();
+  const tabInset = floatingTabBottomInset(useSafeAreaInsets());
   const [vegetableStyle, setVegetableStyle] = useState(
-    () => todayMeal?.defaultVegetableStyle || VEGETABLE_STYLES[0],
+    () => onTodaysMenu(vegetableOptions, todayMeal?.defaultVegetableStyle || ''),
   );
   const [meatProtein, setMeatProtein] = useState(
-    () => presetProtein || todayMeal?.defaultMeatProtein || MEAT_PROTEINS[2],
+    () => onTodaysMenu(meatOptions, presetProtein || todayMeal?.defaultMeatProtein || ''),
   );
   const [cookingStyle, setCookingStyle] = useState(
     () => presetStyle || COOKING_STYLES[2],
@@ -106,7 +114,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
     setRequestMealId(route.params?.todayMealId || '');
     setRequestOpen(Boolean(savedRequest?.options.length || savedRequest?.note));
     setRequest({ options: savedRequest?.options || [], note: savedRequest?.note || '' });
-    if (presetProtein) setMeatProtein(presetProtein);
+    if (presetProtein) setMeatProtein(onTodaysMenu(meatOptions, presetProtein));
     if (presetStyle) setCookingStyle(presetStyle);
   }
 
@@ -129,28 +137,29 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
     );
   }
 
-  // USR-18: a Lunch or Dinner choice is either vegetables (steamed, stir-fried or
-  // Pinakbet) or meat (Beef, Pork, Chicken or Fish) with a Filipino cooking style.
+  // USR-16 / USR-18: customize only a food offered today. Cooking style is how that meat is prepared.
   const isVegetableChoice = todayMeal.group === 'Vegetable choices';
-  const chosenItem = MENU_CATALOG.find((item) => item.slot === slot && item.name === (isVegetableChoice ? vegetableStyle : meatProtein)
+  const vegetable = onTodaysMenu(vegetableOptions, vegetableStyle);
+  const meat = onTodaysMenu(meatOptions, meatProtein);
+  const chosenItem = MENU_CATALOG.find((item) => item.slot === slot && item.name === (isVegetableChoice ? vegetable : meat)
     && item.section === (isVegetableChoice ? 'Vegetable choices' : 'Meat choices'));
   const displayName = isVegetableChoice
-    ? (vegetableStyle === 'Pinakbet' ? 'Pinakbet' : `${vegetableStyle} vegetables`)
-    : `${meatProtein} ${cookingStyle}`;
+    ? (vegetable === 'Pinakbet' ? 'Pinakbet' : `${vegetable} vegetables`)
+    : `${meat} ${cookingStyle}`;
   const calories = chosenItem?.calories ?? todayMeal.calories;
   const protein = chosenItem?.protein ?? todayMeal.protein;
   const highCalorie = calories >= 600;
   const baseItem = chosenItem || MENU_CATALOG.find((item) => item.id === todayMeal.id);
   const plate = baseItem
-    ? customizedMenuMeal(baseItem, isVegetableChoice ? { vegetableStyle } : { meatProtein })
+    ? customizedMenuMeal(baseItem, isVegetableChoice ? { vegetableStyle: vegetable } : { meatProtein: meat })
     : catalogMeal;
   const customization = isVegetableChoice
-    ? { vegetableStyle }
-    : { meatProtein, cookingStyle };
+    ? { vegetableStyle: vegetable }
+    : { meatProtein: meat, cookingStyle };
   const recipientName = warningRecipientName(user);
   const allergens = profile ? profileAllergensInMeal(plate, profile) : [];
   const restrictionConflict = profile ? customizationConflict(customization, profile) : '';
-  const dietitianNote = isVegetableChoice ? DIETITIAN_NOTES[vegetableStyle] : DIETITIAN_NOTES[cookingStyle];
+  const dietitianNote = isVegetableChoice ? DIETITIAN_NOTES[vegetable] : DIETITIAN_NOTES[cookingStyle];
   // Point the user at the next meal time that still needs a meal, or to the review once all three are set.
   const filledSlots = new Set(items.map((row) => row.daySlot).filter(Boolean));
   const remaining = DAY_SLOTS.filter((item) => item !== slot && !filledSlots.has(item));
@@ -205,7 +214,7 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
 
   return (
     <AppPageShell edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: tabInset + spacing.lg }]} showsVerticalScrollIndicator={false}>
         <BackHeader
           title={`Build Your ${slot}`}
           backLabel="Today's meals"
@@ -213,16 +222,16 @@ export default function BuildMealCustomizeScreen({ route, navigation }: {
           onBack={() => navigation.goBack()}
         />
         {isVegetableChoice ? (
-          <ChoiceRow title="Vegetables" options={[...VEGETABLE_STYLES]} value={vegetableStyle} onChange={setVegetableStyle} />
+          <ChoiceRow title="Vegetables" options={vegetableOptions} value={vegetable} onChange={setVegetableStyle} />
         ) : (
           <>
-            <ChoiceRow title="Meat Option" options={[...MEAT_PROTEINS]} value={meatProtein} onChange={setMeatProtein} />
+            <ChoiceRow title="Meat Option" options={meatOptions} value={meat} onChange={setMeatProtein} />
             <ChoiceRow
               title="Pinoy Cooking Style"
               options={[...COOKING_STYLES]}
               value={cookingStyle}
               onChange={setCookingStyle}
-              photoName={(option) => `${meatProtein} ${option}`}
+              photoName={(option) => `${meat} ${option}`}
             />
           </>
         )}

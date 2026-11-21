@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DAILY_FOOD_ITEM_LIMIT, allMenuMeals, customizedMenuMeal, dailyFoodItems, menuItemById, resolveMenuMeal } from './menuCatalog.js';
+import { offeredChoiceNames } from './todayMenu.js';
 import { exceedsSodiumLimit } from '../domain/sodium.js';
 import { addCartLine } from '../context/cartRules.js';
 import {
@@ -35,6 +36,13 @@ test('USR-16: five foods a day; lunch and dinner share the meat and vegetable ch
   }
   assert.ok(names('Lunch').includes('Steamed'), 'lunch and dinner include a vegetable choice');
   assert.ok(offered.every(({ meal }) => meal.price === 300), 'standard ₱300 per meal (USR-17)');
+});
+
+test('USR-16: Build Your Lunch and Dinner only offer the foods on today\'s menu', () => {
+  for (const slot of ['Lunch', 'Dinner'] as const) {
+    assert.deepEqual(offeredChoiceNames(slot, 'Meat choices'), ['Beef', 'Pork', 'Chicken']);
+    assert.deepEqual(offeredChoiceNames(slot, 'Vegetable choices'), ['Steamed']);
+  }
 });
 
 test('USR-13: sodium is the sum of ingredient values and is compared with the recipient limit', () => {

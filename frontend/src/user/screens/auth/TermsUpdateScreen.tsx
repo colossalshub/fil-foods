@@ -8,7 +8,8 @@ import { TermsModal } from '../../components/LegalModals';
 import { useAuth } from '../../context/AuthContext';
 import { MSG } from '../../data/messages';
 import { TERMS_LAST_UPDATED, TERMS_VERSION } from '../../data/terms';
-import { acceptUpdatedTerms, logout } from '../../services/authService';
+import { acceptUpdatedTerms, getUser, logout } from '../../services/authService';
+import { acceptRemoteTerms } from '../../services/remoteProfileService';
 import { setPendingDestination } from '../../navigation/pendingDestination';
 import { setLoginNotice } from '../../navigation/loginNotice';
 import { colors, font, spacing, fonts } from '../../theme/theme';
@@ -19,20 +20,33 @@ export default function TermsUpdateScreen() {
   const [showTerms, setShowTerms] = useState(false);
   const [message, setMessage] = useState('');
 
-  const onAccept = () => {
+  const onAccept = async () => {
     if (!accepted) {
       setMessage(MSG.termsRequired);
       return;
     }
     if (!user?.id) return;
-    const result = acceptUpdatedTerms(String(user.id));
-    if (!result.ok || !result.user) {
-      setMessage(result.message || MSG.acceptanceSaveFailed);
+    if (getUser(String(user.id))) {
+      const result = acceptUpdatedTerms(String(user.id));
+      if (!result.ok || !result.user) {
+        setMessage(result.message || MSG.acceptanceSaveFailed);
+        return;
+      }
+      setPendingDestination('Home');
+      signIn(result.user, { keepLoggedIn: true });
       return;
     }
-    // USR-50 H: after accepting the new version, continue to the Home screen.
+    const remote = await acceptRemoteTerms(String(user.id));
+    if (!remote.ok) {
+      setMessage(remote.message || MSG.acceptanceSaveFailed);
+      return;
+    }
     setPendingDestination('Home');
-    signIn(result.user, { keepLoggedIn: true });
+    signIn({
+      ...user,
+      termsAcceptedAt: new Date().toISOString(),
+      termsAcceptedVersion: TERMS_VERSION,
+    }, { keepLoggedIn: true });
   };
 
   const onDecline = () => {

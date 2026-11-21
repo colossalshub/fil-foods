@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
-import type { Allergy, FieldMap, PersonalInfoInput, Profile } from '../types';
+import type { Allergy, FieldMap, PersonalInfoInput, Profile, ProfileHistoryEntry } from '../types';
 import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
 import AppModal from '../components/AppModal';
@@ -19,7 +19,7 @@ import FormMessage from '../components/FormMessage';
 import VerificationFlow from '../components/VerificationFlow';
 import { PrivacyModal, TermsModal } from '../components/LegalModals';
 import { useAuth } from '../context/AuthContext';
-import { recipientDisplayName } from '../domain/audience';
+import { saveMealRecipientWithBackend } from '../services/backendOrderService';
 import { setLoginNotice } from '../navigation/loginNotice';
 import { deleteAccount, deletionBlockReason, findTermsAcceptance, getPublicUser, getUser, isGoogleOnlyAccount, logout } from '../services/authService';
 import { ACCOUNT_COPY, FEEDBACK_COPY, MSG, NOTIFICATIONS_COPY } from '../data/messages';
@@ -69,6 +69,8 @@ import {
   saveRemoteMealPreferences,
   saveRemoteNutrition,
   saveRemotePersonal,
+  saveRemoteContact,
+  loadRemoteChangeHistory,
 } from '../services/remoteProfileService';
 import {
   MEAL_CATEGORY_PRESETS,
@@ -77,6 +79,7 @@ import {
   PROFILE_HEALTH_OPTIONS,
 } from '../constants/profileFormOptions';
 import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
+import { recipientDisplayName } from '../domain/audience';
 
 function fullName(profile: Profile | null | undefined) {
   return [profile?.firstName, profile?.middleName, profile?.lastName, profile?.suffix]
@@ -302,6 +305,7 @@ export default function ProfileScreen() {
   const [guardianMessages, setGuardianMessages] = useState<string[]>([]);
 
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [remoteHistory, setRemoteHistory] = useState<ProfileHistoryEntry[]>([]);
   const [healthOverviewOpen, setHealthOverviewOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
 
@@ -318,13 +322,14 @@ export default function ProfileScreen() {
   const [unlockNeedsPassword, setUnlockNeedsPassword] = useState(false);
 
   const acceptance = findTermsAcceptance(user?.username);
-  const history = localProfile && user?.id
+  const localHistory = localProfile && user?.id
     ? readChangeHistory(user.id as string, user.id as string)
     : [];
-  const historyRecipientName = localProfile
-    ? (localProfile.accountFor === 'family'
-      ? recipientDisplayName(localProfile.mealRecipient)
-      : recipientDisplayName(localProfile))
+  const history = localProfile ? localHistory : remoteHistory;
+  const historyRecipientName = profile
+    ? (profile.accountFor === 'family'
+      ? recipientDisplayName(profile.mealRecipient)
+      : recipientDisplayName(profile))
     : null;
   const activity = localProfile && user?.id
     ? readActivityRecord(user.id as string, user.id as string)
@@ -335,6 +340,16 @@ export default function ProfileScreen() {
     setRefreshKey((k) => k + 1);
     signIn(getPublicUser(user!.id as string));
   }, [signIn, user]);
+
+  useEffect(() => {
+    if (localProfile || !user?.id || !historyOpen) return;
+    let cancelled = false;
+    const actor = [user.firstName, user.lastName].filter(Boolean).join(' ');
+    loadRemoteChangeHistory(user.id as string, actor).then((rows) => {
+      if (!cancelled) setRemoteHistory(rows);
+    });
+    return () => { cancelled = true; };
+  }, [localProfile, user, historyOpen, refreshKey]);
 
   useEffect(() => {
     if (!user?.id || !device.supported) return;
@@ -455,6 +470,17 @@ export default function ProfileScreen() {
         setPersonalErrors(result.fields || {});
         return;
       }
+      if ('needsVerification' in result && result.needsVerification) {
+        setVerifyMeta({
+          channel: result.channel,
+          phone: result.phone,
+          email: result.email,
+        });
+        setPersonalStep('verify');
+        setPersonalDirty(false);
+        return;
+      }
+      if (!result.values) return;
       signIn({
         ...user,
         firstName: result.values!.firstName,
@@ -500,6 +526,25 @@ export default function ProfileScreen() {
     phone?: string;
     email?: string;
   }) => {
+    if (!localProfile && verifyMeta?.phone && (!payload || typeof payload === 'string')) {
+      void (async () => {
+        const saved = await saveRemoteContact(user!.id as string, verifyMeta.phone as string);
+        if (!saved.ok) {
+          Alert.alert('Could not save', saved.message || 'Try again.');
+          return;
+        }
+        signIn({
+          ...user,
+          contactNumber: verifyMeta.phone,
+          contact_number: verifyMeta.phone,
+        });
+        setPersonalOpen(false);
+        setPersonalDirty(false);
+        setRefreshKey((k) => k + 1);
+        flash(MSG.profileUpdated);
+      })();
+      return;
+    }
     if (!payload || typeof payload === 'string') return;
     if (payload?.complete === false) {
       setVerifyMeta((prev) => ({
@@ -693,8 +738,50 @@ export default function ProfileScreen() {
     setRecipientOpen(false);
   };
 
-  const onSaveRecipient = () => {
+  const onSaveRecipient = async () => {
     if (!user?.id) return;
+    if (!getUser(String(user.id))) {
+      try {
+        await saveMealRecipientWithBackend({
+          firstName: recipientForm.firstName,
+          middleName: recipientForm.middleName,
+          lastName: recipientForm.lastName,
+          suffix: recipientForm.suffix,
+          contactNumber: recipientForm.contactNumber,
+          relationship: recipientForm.relationship,
+          deliveryAddress: recipientForm.deliveryAddress,
+        });
+        signIn({
+          ...user,
+          accountFor: 'family',
+          mealRecipient: {
+            id: user.mealRecipient?.id || '',
+            firstName: recipientForm.firstName,
+            middleName: recipientForm.middleName,
+            lastName: recipientForm.lastName,
+            suffix: recipientForm.suffix,
+            contactNumber: recipientForm.contactNumber,
+            relationship: recipientForm.relationship,
+            deliveryAddress: recipientForm.deliveryAddress,
+            healthConditions: user.mealRecipient?.healthConditions || [],
+            dietaryRestrictions: user.mealRecipient?.dietaryRestrictions || [],
+            allergies: user.mealRecipient?.allergies || [],
+            mealPreferences: user.mealRecipient?.mealPreferences || { preferredCategories: [], dislikedIngredients: [] },
+            nutritionalPreference: user.mealRecipient?.nutritionalPreference || null,
+            nutritionalPreferences: user.mealRecipient?.nutritionalPreferences || [],
+            nutritionTargets: user.mealRecipient?.nutritionTargets || {},
+          },
+        });
+      } catch (error) {
+        setRecipientMessages([error instanceof Error ? error.message : MSG.required]);
+        return;
+      }
+      setRecipientDirty(false);
+      setRecipientOpen(false);
+      reload();
+      flash(MSG.profileUpdated);
+      return;
+    }
     const result = saveMealRecipient(String(user.id), recipientForm);
     if (!result.ok) {
       setRecipientMessages(result.messages || [MSG.required]);
@@ -1121,6 +1208,7 @@ export default function ProfileScreen() {
                   key={verifyKey}
                   userId={user!.id as string}
                   purpose="contact"
+                  live={!localProfile}
                   phone={verifyMeta?.phone}
                   email={verifyMeta?.email}
                   autoChannel={verifyMeta?.channel}

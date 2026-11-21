@@ -1,6 +1,6 @@
 import { accessTokenStillValid } from '../../lib/authSession.js';
 import { requireSupabase, rememberSession } from '../../lib/supabaseClient.js';
-import { liveUserFromProfile, loadLiveRecipient } from './liveAuthService.js';
+import { ensureRecordedTermsVersion, liveUserFromProfile, loadLiveRecipient } from './liveAuthService.js';
 
 const functionUrl = () => {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -47,12 +47,13 @@ export async function loginWithSupabase({ username, password, deviceKey }: {
       return { ok: false, message: (error as { message?: string } | undefined)?.message || 'Could not start your session. Please try again.' };
     }
   }
-  const recipient = await loadLiveRecipient(result.profile, session!.access_token).catch(() => null);
+  const profile = await ensureRecordedTermsVersion(result.profile, session!.access_token);
+  const recipient = await loadLiveRecipient(profile, session!.access_token).catch(() => null);
   return {
     ok: true,
     session,
     user: {
-      ...liveUserFromProfile(result.profile, recipient),
+      ...liveUserFromProfile(profile, recipient),
       accessToken: session!.access_token,
       refreshToken: session!.refresh_token,
       expiresAt: session!.expires_at,

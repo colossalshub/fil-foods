@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isSupabaseConfigured, requireSupabase } from '../../lib/supabaseClient';
 
 const KEY = 'filfoods.helpGuideSeen';
 
@@ -20,7 +21,15 @@ async function readRaw(userId?: string | null) {
 
 export async function hasSeenHelpGuide(userId?: string | null) {
   const raw = await readRaw(userId);
-  return raw === '1';
+  if (raw === '1') return true;
+  if (!userId || !isSupabaseConfigured || testStore) return false;
+  const { data, error } = await requireSupabase()
+    .from('profiles')
+    .select('guide_seen_at')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data?.guide_seen_at) return false;
+  return true;
 }
 
 export async function markHelpGuideSeen(userId?: string | null) {
@@ -30,6 +39,11 @@ export async function markHelpGuideSeen(userId?: string | null) {
     return;
   }
   await AsyncStorage.setItem(key, '1');
+  if (!userId || !isSupabaseConfigured) return;
+  await requireSupabase()
+    .from('profiles')
+    .update({ guide_seen_at: new Date().toISOString() })
+    .eq('id', userId);
 }
 
 export async function clearHelpGuideSeen(userId?: string | null) {

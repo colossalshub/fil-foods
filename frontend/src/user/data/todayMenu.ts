@@ -67,6 +67,11 @@ export function mealsForSlot(slot: DaySlot) {
   return todayMenu().filter((meal) => meal.slot === slot);
 }
 
+/** Names offered today for a meal time and group. USR-16: nothing else is selectable. */
+export function offeredChoiceNames(slot: DaySlot, group: string) {
+  return mealsForSlot(slot).filter((meal) => meal.group === group).map((meal) => meal.name);
+}
+
 export function nextSlot(slot: DaySlot): DaySlot {
   const index = DAY_SLOTS.indexOf(slot);
   return DAY_SLOTS[(index + 1) % DAY_SLOTS.length];
