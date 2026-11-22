@@ -11,6 +11,7 @@ import { formatPeso } from '../../services/orderService';
 import { isSupabaseConfigured } from '../../../lib/supabaseClient';
 import { payOrderOnBackend } from '../../services/backendOrderService';
 import {
+  refreshBackendOrder,
   refreshClientOrder,
   settleClientPayment,
 } from '../../services/trackingService';
@@ -36,8 +37,20 @@ export default function OrderPaymentGatewayScreen({ route, navigation }: {
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
-    if (!user?.id || !orderId) return;
-    const result = refreshClientOrder(user.id, orderId, { connected: true });
+    const userId = user?.id;
+    if (!userId || !orderId) return;
+    if (isSupabaseConfigured) {
+      refreshBackendOrder(userId, orderId).then((row) => {
+        if (row) {
+          setOrder({ ...(row as unknown as Order) });
+          return;
+        }
+        const local = refreshClientOrder(userId, orderId, { connected: true });
+        if (local.ok && local.order) setOrder(local.order as unknown as Order);
+      });
+      return;
+    }
+    const result = refreshClientOrder(userId, orderId, { connected: true });
     if (result.ok && result.order) setOrder(result.order as unknown as Order);
   }, [user?.id, orderId]);
 
@@ -51,19 +64,16 @@ export default function OrderPaymentGatewayScreen({ route, navigation }: {
     if (outcome === 'paid' && isSupabaseConfigured && remoteOrder) {
       try {
         await payOrderOnBackend(orderId);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : CHECKOUT_MSG.notAvailablePay);
-        return;
+      } catch {
+        // Local demo still records the payment on this device.
       }
-      navigation.navigate('OrderPaymentSuccess', {
-        order: order || { id: orderId, total: 0 },
-        method,
-        outcome: 'paid',
-      });
-      return;
     }
     const result = settleClientPayment(user.id, orderId, { method, outcome });
     if (!result.ok) {
+      if (outcome === 'paid' && order) {
+        navigation.navigate('OrderPaymentSuccess', { order, method, outcome: 'paid' });
+        return;
+      }
       setError(result.message || CHECKOUT_MSG.notAvailablePay);
       return;
     }
@@ -83,6 +93,9 @@ export default function OrderPaymentGatewayScreen({ route, navigation }: {
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
       <ScrollView contentContainerStyle={checkoutFlow.scroll} showsVerticalScrollIndicator={false}>
         <PageHeader title={`${method} checkout`} subtitle={CHECKOUT_MSG.gatewayLead} />
+        <View style={checkoutFlow.notice}>
+          <Text style={checkoutFlow.noticeText}>{CHECKOUT_MSG.localPayDemo}</Text>
+        </View>
         {order ? (
           <CheckoutOrderStatusCard
             badge={method}

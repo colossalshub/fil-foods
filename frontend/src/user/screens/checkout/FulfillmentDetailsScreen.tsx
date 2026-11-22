@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import BackHeader from '../../components/BackHeader';
@@ -47,11 +48,15 @@ function FulfillmentToggle({
 }
 
 export default function FulfillmentDetailsScreen({ navigation }: {
-  navigation: { navigate: (name: string) => void; goBack: () => void };
+  navigation: {
+    navigate: (name: string, params?: object, options?: { pop?: boolean }) => void;
+    goBack: () => void;
+  };
 }) {
   const { user } = useAuth();
   const { items } = useCart();
   const checkout = useCheckout();
+  const isFocused = useIsFocused();
   const type: 'delivery' | 'pickup' = checkout.fulfillmentType === 'pickup' ? 'pickup' : 'delivery';
   const mealSlots = useMemo(() => {
     const chosen = new Set(items.map((row) => row.daySlot).filter((slot): slot is DaySlot => Boolean(slot)));
@@ -64,9 +69,10 @@ export default function FulfillmentDetailsScreen({ navigation }: {
   );
 
   useEffect(() => {
-    if (!items.length) navigation.navigate('MealsList');
+    if (!isFocused) return;
+    if (!items.length) navigation.navigate('MealsList', undefined, { pop: true });
     else if (!checkout.fulfillmentType) navigation.goBack();
-  }, [items.length, navigation, checkout.fulfillmentType]);
+  }, [isFocused, items.length, navigation, checkout.fulfillmentType]);
 
   useEffect(() => {
     if (type === 'delivery' && !useCustomAddress && savedAddress && !checkout.address) {
@@ -86,7 +92,7 @@ export default function FulfillmentDetailsScreen({ navigation }: {
     if (type === 'delivery' && !useCustomAddress) {
       checkout.setAddress(savedAddress);
     }
-    navigation.navigate('OrderSummary');
+    navigation.navigate('OrderSummary', undefined, { pop: true });
   };
 
   const scheduleSection = type === 'delivery'

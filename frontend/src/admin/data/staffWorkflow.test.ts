@@ -87,6 +87,19 @@ test('pickup orders: kitchen completes, never assigned', async () => {
   assert.equal((await setOrderStatusAsync(kitchen, '00355', 'Completed')).ok, true);
 });
 
+test('Ana’s ready order is Pork Pinoy Steak, and the tracking number appears at dispatch', async () => {
+  const ready = orderFor(ana, '00353');
+  assert.equal(ready?.lines[0]?.name, 'Pork Pinoy Steak');
+  assert.equal(ready?.orderRef, 'ORD-2026-0353');
+  assert.equal(ready?.trackingNumber, undefined);
+  assert.equal(orderFor(ana, '00354')?.trackingNumber, 'TRK-2026-0354');
+  assert.equal((await setOrderStatusAsync(ana, '00353', 'Out for Delivery')).ok, true);
+  const started = orderFor(ana, '00353');
+  assert.equal(started?.status, 'Out for Delivery');
+  assert.equal(started?.trackingNumber, 'TRK-2026-0353');
+  assert.equal(started?.orderRef, 'ORD-2026-0353');
+});
+
 test('role lists and search', () => {
   assert.deepEqual(ordersFor(ana).map((o) => o.id).sort(), ['00353', '00354']);
   assert.ok(ordersFor(kitchen).every((o) => o.price === 0));

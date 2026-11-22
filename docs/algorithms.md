@@ -1,11 +1,12 @@
 # Algorithms in F.I.L. FOODS
 
-The app uses five algorithms for two problems. Each pair has a simple **baseline** and the version the app actually **uses**. The benchmark notebook (`docs/benchmarking/FIL_Foods_Algorithm_Benchmark.ipynb`) compares them.
+The app uses six algorithms. Search and meal-planning each have a simple **baseline** and the version the app **uses**. Delivery routing is a separate sample. The benchmark notebook (`docs/benchmarking/FIL_Foods_Algorithm_Benchmark.ipynb`) compares the first five.
 
 | Problem | Baseline | Used by the app |
 |---|---|---|
 | Search with typing mistakes | 1. Substring matching, 2. Levenshtein distance | 3. Optimal String Alignment (OSA), with substring as the first tier |
 | Picking one meal per slot for a day | 4. Greedy equal-share selection | 5. Exhaustive search |
+| Shortest delivery route on a sample map | — | 6. Dijkstra’s algorithm |
 
 All string code is in [`frontend/src/lib/algorithms/stringMatch.ts`](../frontend/src/lib/algorithms/stringMatch.ts). Nutrition code is in [`frontend/src/user/services/nutritionService.ts`](../frontend/src/user/services/nutritionService.ts).
 
@@ -103,7 +104,7 @@ if a_i = b_(j-1) and a_(i-1) = b_j:
 | FAQ search | Help → FAQ | `searchFaq` in `frontend/src/user/data/helpContent.ts` |
 | Orders search | Orders tab → "Search and filter orders" | `searchClientOrders` in `frontend/src/user/services/trackingService.ts` (tracking number, then meal names, status, Pickup/Delivery) |
 | Staff order search | Admin → Orders | `searchOrders` in `frontend/src/admin/domain/search.ts` |
-| Meal catalog search | none right now (the Menu screen has no search box since the redesign) | `fuzzySearchMeals` in `frontend/src/user/services/orderService.ts` |
+| Meal catalog search | Meals tab | `fuzzySearchMeals` in `frontend/src/user/services/orderService.ts`, called from `MealsScreen` |
 
 ### How a search uses 1 and 3 together
 
@@ -145,7 +146,21 @@ If no combination fits, the solver returns the closest one and says so. It never
 
 **Cost:** O(n₁·n₂·…·nₛ) combinations, i.e. O(kˢ) for k meals per slot and s slots. 20 meals per slot and 3 slots is 8,000 combinations: fine. The cost grows very fast with more slots.
 
-**In the app:** `solveNutritionPlan`, called by `NutritionDayPanel` ("Daily nutrition targets" → "Suggest a day of meals"). Note: since the Menu redesign, no screen currently renders that panel, so the solver is covered by tests but not reachable in the UI.
+**In the app:** `solveNutritionPlan`, called by `NutritionDayPanel` ("Daily nutrition targets" → "Suggest a day of meals"). No screen currently renders that panel, so the solver is covered by tests but not reachable in the UI.
+
+---
+
+## 6. Dijkstra’s shortest path (used)
+
+**Idea:** on a graph with positive distances, grow a set of stops whose shortest path is already final. Each step takes the unvisited stop with the smallest known distance and relaxes its edges.
+
+**The sample:** six stops (Hub, North, East, South, Juan, West) and fixed kilometre weights in `ROUTE_EDGES`. The recipient’s first name picks a stop (`destinationFor`). Unknown names use South.
+
+**Worked example:** Hub → Juan. The direct edge is 3.1 km. Hub → West → Juan is 1.1 + 1.4 = **2.5 km**, and that is the path the screen shows. Hub → South is Hub → West → Juan → South, **3.7 km**.
+
+**Cost:** this implementation scans the remaining stops on every step, so O(V²) with V = 6. That is the whole graph.
+
+**In the app:** `shortestPath` in `frontend/src/lib/algorithms/routeGraph.ts`, rendered by `DeliveryRoute` on the delivery order brief. It is this fixed sample, not a live map or the rider’s GPS.
 
 ---
 
@@ -158,3 +173,4 @@ If no combination fits, the solver returns the closest one and says so. It never
 | 3 | `osaDistance`, `fuzzyWordMatch`, `bestWordMatch` | same | same |
 | 4 | `greedyEqualShareSelection` | `frontend/src/user/services/nutritionService.ts` | `frontend/src/user/services/nutritionAlgorithms.test.ts` |
 | 5 | `solveNutritionPlan` | same | same, plus `securityNutrition.test.ts` |
+| 6 | `shortestPath` | `frontend/src/lib/algorithms/routeGraph.ts` | `frontend/src/lib/algorithms/routeGraph.test.ts` |

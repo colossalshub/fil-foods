@@ -250,6 +250,7 @@ export const ACCOUNT_COPY = {
     `You are not subscribed yet. Subscribe to get meals that fit ${name}'s allergies and health needs.`,
   planRenews: (when: string) => `renews ${when}`,
   subscriptionCovers: (name: string) => `Meals for ${name}`,
+  changeOrCancel: 'Change or cancel',
   subscriptionLoadError: 'We could not load your subscription status. Please try again.',
   tryAgain: 'Try again',
   noActivityYet: 'No activity recorded yet.',

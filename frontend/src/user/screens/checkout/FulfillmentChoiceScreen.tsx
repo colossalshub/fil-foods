@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import BackHeader from '../../components/BackHeader';
@@ -43,10 +44,14 @@ function MethodCard({
 }
 
 export default function FulfillmentChoiceScreen({ navigation }: {
-  navigation: { navigate: (name: string) => void; goBack: () => void };
+  navigation: {
+    navigate: (name: string, params?: object, options?: { pop?: boolean }) => void;
+    goBack: () => void;
+  };
 }) {
   const { items } = useCart();
   const checkout = useCheckout();
+  const isFocused = useIsFocused();
   const [draftType, setDraftType] = useState<'delivery' | 'pickup' | null>(
     checkout.fulfillmentType === 'delivery' || checkout.fulfillmentType === 'pickup'
       ? checkout.fulfillmentType
@@ -54,13 +59,14 @@ export default function FulfillmentChoiceScreen({ navigation }: {
   );
 
   useEffect(() => {
-    if (!items.length) navigation.navigate('MealsList');
-  }, [items.length, navigation]);
+    if (!isFocused || items.length) return;
+    navigation.navigate('MealsList', undefined, { pop: true });
+  }, [isFocused, items.length, navigation]);
 
   const onContinue = () => {
     if (!draftType) return;
     checkout.setFulfillmentType(draftType);
-    navigation.navigate('FulfillmentDetails');
+    navigation.navigate('FulfillmentDetails', undefined, { pop: true });
   };
 
   return (

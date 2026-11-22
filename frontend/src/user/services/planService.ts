@@ -199,6 +199,16 @@ export function planEndMessage(renewalIso: string) {
   return `Your plan will end on ${formatPlanDate(renewalIso)}.`;
 }
 
+export function subscriptionForCheckout<T extends { status?: string; name?: string; priceLabel?: string }>(
+  userId: string | undefined,
+  authPlan?: T | null,
+) {
+  const stored = userId ? getPlanForUser(userId) : null;
+  const plan = stored || authPlan || null;
+  if (!plan || plan.status !== 'active') return null;
+  return plan;
+}
+
 export function getPlanForUser(userId: string) {
   const user = getUser(userId);
   if (!user) return null;

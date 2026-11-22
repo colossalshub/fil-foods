@@ -10,7 +10,7 @@ import {
   parseQuantityInput,
   validateFulfillment,
 } from '../services/orderService';
-import { confirmChoosePlan, setPendingPlanPeriod } from '../services/planService';
+import { confirmChoosePlan, setPendingPlanPeriod, subscriptionForCheckout } from '../services/planService';
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js';
 import { placeOrderWithBackend, saveMealRecipientWithBackend } from '../services/backendOrderService.js';
 import { mapBackendOrder } from '../services/trackingService.js';
@@ -72,10 +72,12 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
     }
     setFieldError('');
 
-    if (checkout.planId === 'standard') {
+    const subscribed = subscriptionForCheckout(user.id, user.plan);
+    const planId = subscribed ? 'standard' : checkout.planId;
+    if (planId === 'standard') {
       setPendingPlanPeriod(null);
     } else {
-      setPendingPlanPeriod(checkout.planId);
+      setPendingPlanPeriod(planId);
     }
 
     const attemptKey = JSON.stringify({
@@ -106,7 +108,7 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           await saveMealRecipientWithBackend(user.mealRecipient, authSession);
         }
         const payload = {
-          planId: checkout.planId,
+          planId,
           authSession,
           fulfillmentType: fulfillment.type,
           schedule: check.scheduled!.toISOString(),
@@ -145,8 +147,8 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           message: resubmitOrderId ? ORDER_MSG.orderResubmitted : ORDER_MSG.orderSuccess,
         };
         attemptRef.current = { id: null, key: '' };
-        if (result?.ok && checkout.planId !== 'standard') {
-          confirmChoosePlan(user.id, checkout.planId as 'weekly' | 'monthly' | 'yearly');
+        if (result?.ok && planId !== 'standard') {
+          confirmChoosePlan(user.id, planId as 'weekly' | 'monthly' | 'yearly');
         }
       } else {
         result = confirmOrder(user.id, {
@@ -154,11 +156,11 @@ export function usePlaceOrder(user: AuthUser | null | undefined, session: AuthTo
           fulfillment,
           now: new Date(),
           clientRequestId: attemptRef.current.id || '',
-          planId: checkout.planId,
+          planId,
           resubmitOrderId: checkout.resubmitOrderId,
         }) as NonNullable<typeof result>;
-        if (result?.ok && checkout.planId !== 'standard') {
-          confirmChoosePlan(user.id, checkout.planId as 'weekly' | 'monthly' | 'yearly');
+        if (result?.ok && planId !== 'standard') {
+          confirmChoosePlan(user.id, planId as 'weekly' | 'monthly' | 'yearly');
         }
       }
     } catch (error) {

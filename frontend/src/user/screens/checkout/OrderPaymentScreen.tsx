@@ -60,10 +60,6 @@ export default function OrderPaymentScreen({ route, navigation }: {
       setError(CHECKOUT_MSG.notAvailablePay);
       return;
     }
-    if (isSupabaseConfigured) {
-      setError('Payment is not available in this build yet. Use a local session to try the payment flow.');
-      return;
-    }
     const selected = METHODS.find((item) => item.id === method) || METHODS[0];
     if (selected.method === PAYMENT_METHOD.COD) {
       const result = settleClientPayment(user.id, orderId, { method: selected.method, outcome: 'recorded' });
@@ -135,6 +131,9 @@ export default function OrderPaymentScreen({ route, navigation }: {
 
             {!alreadyPaid ? (
               <>
+                <View style={checkoutFlow.notice}>
+                  <Text style={checkoutFlow.noticeText}>{CHECKOUT_MSG.localPayDemo}</Text>
+                </View>
                 <Text style={checkoutFlow.paymentSectionTitle}>{CHECKOUT_MSG.chooseHowToPay}</Text>
                 {METHODS.map((item) => {
                   const active = method === item.id;

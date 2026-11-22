@@ -273,7 +273,7 @@ const SEED_ORDERS: SeedOrder[] = [
   ['00347', 'customer-ana', 'Cancelled', 85, '2026-10-29T19:15:00+08:00', 'omelette', 'Egg White Omelette', { wasPaid: false }],
   ['00346', 'customer-mark', 'Completed', 140, '2026-10-29T18:35:00+08:00', 'bangus', 'Grilled Bangus'],
   ['00352', 'customer-rosa', 'Paid', 130, '2026-10-30T10:05:00+08:00', 'wrap', 'Chicken Adobo', { specialInstructions: 'Gate code 4471.' }],
-  ['00353', 'customer-ana', 'Ready for Delivery', 195, '2026-10-30T11:00:00+08:00', 'salad', 'Spring Salad', { assigneeId: 'staff-ana', assigneeName: 'Ana Reyes', specialInstructions: 'Leave with the guard if no one answers.' }],
+  ['00353', 'customer-ana', 'Ready for Delivery', 300, '2026-10-30T11:00:00+08:00', 'Pork Pinoy Steak', 'Pork Pinoy Steak', { assigneeId: 'staff-ana', assigneeName: 'Ana Reyes', specialInstructions: 'Leave with the guard if no one answers.' }],
   ['00354', 'customer-ben', 'Out for Delivery', 95, '2026-10-30T09:30:00+08:00', 'salad', 'Pinakbet', { assigneeId: 'staff-ana', assigneeName: 'Ana Reyes' }],
   ['00355', 'customer-elena', 'Preparing', 110, '2026-10-30T12:15:00+08:00', 'bangus', 'Chicken Tinola', { fulfillment: 'pick_up' }],
   ['00356', 'customer-ben', 'Awaiting Payment', 160, '2026-10-30T14:00:00+08:00', 'wrap', 'Beef Caldereta'],
@@ -290,7 +290,9 @@ function seedOrder([id, clientId, status, price, placedAt, photo, meal, extra]: 
     id,
     orderNo: Number(id),
     orderRef: `ORD-2026-${id.slice(-4)}`,
-    trackingNumber: fulfillment === 'delivery' ? `TRK-2026-${id.slice(-4)}` : undefined,
+    trackingNumber: fulfillment === 'delivery' && (status === 'Out for Delivery' || status === 'Completed')
+      ? `TRK-2026-${id.slice(-4)}`
+      : undefined,
     clientId,
     customerName: customer.name,
     firstName: first,
@@ -877,6 +879,10 @@ function applyLocalOrderStatus(actor: Actor, order: AdminOrder, status: OrderSta
   const from = order.status;
   order.status = status;
   if (status === 'Paid') order.wasPaid = true;
+  if (status === 'Out for Delivery' && order.fulfillment !== 'pick_up' && !order.trackingNumber) {
+    const suffix = order.orderRef?.startsWith('ORD-') ? order.orderRef.slice(4) : `2026-${order.id.slice(-4)}`;
+    order.trackingNumber = `TRK-${suffix}`;
+  }
   const at = new Date().toISOString();
   order.updates.push({ at, by: actor.name, summary: `${from} → ${status}` });
   auditChange(actor, 'order.status', order.id, {

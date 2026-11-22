@@ -15,6 +15,7 @@ test('USR subscription: an active plan shows the status, plan, and renewal, with
   assert.equal(view.planName, 'Weekly plan');
   assert.equal(view.renews, 'renews 2026-12-22');
   assert.equal(view.covers, '');
+  assert.equal(view.action, 'Change or cancel');
 });
 
 test('USR subscription: a family account without a plan names the meal recipient in the offer', () => {

@@ -29,6 +29,7 @@ import { openRoot, type ScreenProps } from '../nav.js';
 import type { Actor, AdminOrder } from '../types';
 import { ConfirmCard, FlashBanner, GreenHeader, PhoneFrame, PrimaryButton, SyncBanner, useStoreRevision } from '../components.js';
 import { photoKeyFor } from '../../lib/staffBackend.js';
+import { DeliveryRoute, DeliverySteps, SodiumCheck } from '../components/DeliveryBrief.js';
 import { Card, EmptyState, OrderPhoto, Pill, PreferencesPanel, SearchBox, Section } from '../ui/blocks.js';
 import { Text } from '../ui/StaffText.js';
 import { ReviewPanel } from './DietitianScreens.js';
@@ -194,6 +195,11 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
           <View style={styles.flex}>
             <Text style={[styles.headName, { color: colors.text }]}>{order.customerName}</Text>
             <Text style={{ color: colors.text, fontWeight: '600' }}>{displayOrderNo(order)}</Text>
+            {role === 'delivery' ? (
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {order.trackingNumber ?? 'Tracking number is created when you start delivery'}
+              </Text>
+            ) : null}
             <Text style={{ color: colors.muted, fontSize: 12 }}>
               {role === 'kitchen' && order.wasPaid ? 'Approved · Paid' : order.when}
             </Text>
@@ -228,6 +234,12 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
           </Card>
         </Section>
 
+        {role === 'delivery' ? (
+          <Section title="Sodium check">
+            <SodiumCheck order={order} />
+          </Section>
+        ) : null}
+
         {order.specialInstructions && role !== 'kitchen' && !order.delivery ? (
           <Section title="Special instructions">
             <Card><Text style={{ color: colors.text }}>{order.specialInstructions}</Text></Card>
@@ -243,13 +255,22 @@ export function OrderDetailScreen({ navigation, route }: ScreenProps<{ id?: stri
               <Text style={{ color: colors.text }}>{order.delivery.address || 'Address not supplied'}</Text>
               <Text style={{ color: colors.muted }}>Delivery notes: {order.delivery.notes || 'None'}</Text>
             </Card>
-            <Text style={[styles.sub, { color: colors.text }]}>Location not available</Text>
+            {role === 'delivery' ? null : (
+              <Text style={[styles.sub, { color: colors.text }]}>Location not available</Text>
+            )}
             {order.delivery.address ? (
               <PrimaryButton title="Open in Maps" variant="outline" onPress={() => { void Linking.openURL(mapsUrl(order.delivery!.address!)); }} />
             ) : null}
             {order.delivery.contactNumber && role === 'delivery' ? (
               <PrimaryButton title={`Call ${order.delivery.firstName}`} variant="outline" onPress={() => { void Linking.openURL(`tel:${order.delivery!.contactNumber!.replace(/\s+/g, '')}`); }} />
             ) : null}
+          </Section>
+        ) : null}
+
+        {role === 'delivery' && order.delivery ? (
+          <Section title="Route">
+            <DeliverySteps order={order} />
+            <DeliveryRoute firstName={order.firstName || order.customerName} />
           </Section>
         ) : null}
 

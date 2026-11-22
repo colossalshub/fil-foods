@@ -14,6 +14,7 @@ export const SUBSCRIPTION_COPY = {
   covers: ACCOUNT_COPY.subscriptionCovers,
   loadError: ACCOUNT_COPY.subscriptionLoadError,
   tryAgain: ACCOUNT_COPY.tryAgain,
+  changeOrCancel: ACCOUNT_COPY.changeOrCancel,
 };
 
 export type SubscriptionView =
@@ -24,6 +25,7 @@ export type SubscriptionView =
     planName: string;
     renews: string;
     covers: string;
+    action: string;
   }
   | { kind: 'offer'; heading: string; body: string; action: string; covers: string };
 
@@ -52,6 +54,7 @@ export function subscriptionSection(input: {
       planName: input.planName?.trim() || '',
       renews: input.renewalDate ? SUBSCRIPTION_COPY.renews(input.renewalDate) : '',
       covers,
+      action: SUBSCRIPTION_COPY.changeOrCancel,
     };
   }
   return {

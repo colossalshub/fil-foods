@@ -176,8 +176,10 @@ function SubscriptionSection({
     : view.kind === 'offer'
       ? ACCOUNT_COPY.startPlan
       : ACCOUNT_COPY.subscription;
-  return (
-    <View style={styles.planCard}>
+  const actionLabel = view.kind === 'offer' || view.kind === 'subscribed' ? view.action : '';
+  const openPlan = actionLabel ? onSubscribe : undefined;
+  const body = (
+    <>
       <View style={styles.planTop}>
         <Ionicons name="star" size={16} color={colors.white} />
         <Text style={styles.planEyebrow}>{ACCOUNT_COPY.subscription}</Text>
@@ -202,7 +204,7 @@ function SubscriptionSection({
           <Text style={styles.planBody}>{view.body}</Text>
         </>
       ) : null}
-      {view.kind === 'offer' ? (
+      {view.kind === 'offer' || view.kind === 'subscribed' ? (
         <Pressable accessibilityRole="button" accessibilityLabel={view.action} onPress={onSubscribe} style={styles.planButton}>
           <Text style={styles.planButtonLabel}>{view.action}</Text>
           <Ionicons name="arrow-forward" size={18} color={colors.primary} />
@@ -213,7 +215,18 @@ function SubscriptionSection({
           <Text style={styles.planButtonLabel}>{view.tryAgain}</Text>
         </Pressable>
       ) : null}
-    </View>
+    </>
+  );
+  if (!openPlan) return <View style={styles.planCard}>{body}</View>;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={actionLabel}
+      onPress={openPlan}
+      style={styles.planCard}
+    >
+      {body}
+    </Pressable>
   );
 }
 

@@ -28,6 +28,9 @@ export const FULFILLMENT_COPY = {
 export const CHECKOUT_MSG = {
   planChoiceHeading: 'Plan (optional)',
   planChoiceLead: 'Standard meal is selected. You can choose a plan instead.',
+  planAlready: 'This order uses your current subscription. You do not need to choose a plan.',
+  planDiscount: 'Plan discount',
+  localPayDemo: 'Demo: nothing is charged. Pay now records the payment on this device.',
   orderSummaryTitle: 'Order Summary',
   orderSummaryLead: 'Review your meals and delivery.',
   summaryContinue: 'Continue',

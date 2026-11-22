@@ -10,12 +10,13 @@ import {
   PLAN_MSG,
   beginChoosePlan,
   cancelPlanSelection,
-  confirmChoosePlan,
+  confirmCancelPlan,
   formatPlanDate,
   getPlanDefinition,
   getPlanForUser,
   isCurrentPlanPeriod,
   listPlanPeriods,
+  requestCancelPlan,
   setPendingPlanPeriod,
 } from '../services/planService';
 import { colors, card, font, radius, spacing, touch, fonts } from '../theme/theme';
@@ -58,6 +59,8 @@ export default function PlanPicker({
     effectiveDate?: string | null;
   } | null>(null);
   const [successLines, setSuccessLines] = useState<string[]>([]);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelMessage, setCancelMessage] = useState('');
 
   const planDef = getPlanDefinition(periodId);
   const storedPlan = user?.id ? getPlanForUser(user.id) : null;
@@ -97,17 +100,24 @@ export default function PlanPicker({
   };
 
   const onConfirmSummary = () => {
-    const result = confirmChoosePlan(user!.id || '', periodId);
     setSummaryOpen(false);
-    if (!result.ok) {
-      setBanner([result.message || '']);
-      return;
-    }
-    const lines = [result.message];
-    if (result.startDate && result.renewalDate) {
-      lines.push(`Start: ${result.startDate}`, `Renewal: ${result.renewalDate}`);
-    }
-    setSuccessLines(lines.filter((line): line is string => typeof line === 'string'));
+    navigation?.navigate('PlanPayment', { periodId });
+  };
+
+  const onAskCancel = () => {
+    if (!user?.id) return;
+    const prompt = requestCancelPlan(user.id);
+    if (!prompt.ok || !prompt.message) return;
+    setCancelMessage(prompt.message);
+    setCancelOpen(true);
+  };
+
+  const onConfirmCancel = () => {
+    if (!user?.id) return;
+    const result = confirmCancelPlan(user.id);
+    setCancelOpen(false);
+    if (!result.ok || !result.message) return;
+    setSuccessLines([result.message]);
     onPlanUpdated?.();
   };
 
@@ -171,6 +181,11 @@ export default function PlanPicker({
         >
           <Text style={styles.chooseLabel}>{isCurrent ? PLAN_MSG.currentPlan : planDef.chooseLabel}</Text>
         </Pressable>
+        {storedPlan?.status === 'active' ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Cancel plan" onPress={onAskCancel} style={styles.cancelBtn}>
+            <Text style={styles.cancelLabel}>Cancel plan</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <AppModal visible={summaryOpen} animationType="slide" onRequestClose={onCancelSummary} onCloseAll={onCancelSummary}>
@@ -199,6 +214,22 @@ export default function PlanPicker({
               ) : null}
             </View>
           ) : null}
+        </BackPageShell>
+      </AppModal>
+
+      <AppModal visible={cancelOpen} animationType="slide" onRequestClose={() => setCancelOpen(false)} onCloseAll={() => setCancelOpen(false)}>
+        <BackPageShell
+          title="Cancel plan"
+          onBack={() => setCancelOpen(false)}
+          edges={['top', 'bottom']}
+          footer={(
+            <>
+              <AppButton title="Cancel plan" onPress={onConfirmCancel} color={colors.primary} />
+              <AppButton title="Keep plan" variant="outline" onPress={() => setCancelOpen(false)} color={colors.primary} style={styles.modalCancel} />
+            </>
+          )}
+        >
+          <Text style={styles.body}>{cancelMessage}</Text>
         </BackPageShell>
       </AppModal>
     </View>
@@ -247,6 +278,12 @@ const styles = StyleSheet.create({
   },
   chooseBtnDisabled: { opacity: 0.7 },
   chooseLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
+  cancelBtn: {
+    minHeight: touch.min,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.white, textDecorationLine: 'underline' },
   summaryCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
   body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
   modalCancel: { marginTop: spacing.sm },

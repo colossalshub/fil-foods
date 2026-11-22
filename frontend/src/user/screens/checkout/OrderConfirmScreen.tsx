@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BackHeader from '../../components/BackHeader';
 import InlineDialog from '../../components/InlineDialog';
 import AppPageShell from '../../components/AppPageShell';
@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
 import { getUser } from '../../services/authService';
+import { subscriptionForCheckout } from '../../services/planService';
+import { MEAL_PHOTOS } from '../../data/mealPhotos';
 import { orderPartyLines, recipientDisplayName } from '../../domain/audience';
 import { checkoutTotal, formatPeso } from '../../services/orderService';
 import { feeForSpecialRequest, specialRequestLabel } from '../../domain/specialRequest';
@@ -26,6 +28,7 @@ export default function OrderConfirmScreen({ navigation }: {
   const checkout = useCheckout();
   const userId = user?.id;
   const dbUser = useMemo(() => (userId ? getUser(userId) : null), [userId]);
+  const subscribed = subscriptionForCheckout(userId, dbUser?.plan || user?.plan);
   const { profile } = useMealProfile(user);
   const recipientName = (dbUser?.accountFor || user?.accountFor) === 'family'
     ? recipientDisplayName(dbUser?.mealRecipient || user?.mealRecipient)
@@ -41,7 +44,10 @@ export default function OrderConfirmScreen({ navigation }: {
     customization: row.customization,
     specialRequest: row.specialRequest,
   }));
-  const totals = checkoutTotal(lineItems, checkout.planId, dbUser || user || {});
+  const pricingPlanId = subscribed ? 'standard' : checkout.planId;
+  const totals = checkoutTotal(lineItems, pricingPlanId, subscribed
+    ? { ...(dbUser || user || {}), plan: subscribed }
+    : (dbUser || user || {}));
   const scheduleLabel = formatScheduleSummary(checkout.scheduleDate, checkout.scheduleTime);
   const party = orderPartyLines({
     accountFor: dbUser?.accountFor || user?.accountFor,
@@ -49,8 +55,10 @@ export default function OrderConfirmScreen({ navigation }: {
     mealRecipientName: recipientName,
     mealRecipientAddress: dbUser?.mealRecipient?.deliveryAddress || user?.mealRecipient?.deliveryAddress || '',
   });
-  const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === checkout.planId);
-  const planLabel = checkout.planId === 'standard'
+  const selectedPlan = CHECKOUT_PLANS.find((plan) => plan.id === pricingPlanId);
+  const planLabel = subscribed
+    ? `${subscribed.name} · already subscribed`
+    : pricingPlanId === 'standard'
     ? `${STANDARD_PLAN.label} · ${STANDARD_PLAN.perMealLabel}`
     : selectedPlan
       ? `${selectedPlan.label} · ${selectedPlan.priceLabel}`
@@ -103,12 +111,25 @@ export default function OrderConfirmScreen({ navigation }: {
             <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.plan}: `}</Text>
             {planLabel}
           </Text>
-          {items.map((row) => (
-            <Text key={row.meal.id} style={checkoutFlow.line}>
-              <Text style={checkoutFlow.lineBold}>{`${row.meal.category || 'Meal'}: `}</Text>
-              {`${row.meal.name}${row.customizationLabel ? ` (${row.customizationLabel})` : ''}`}
-            </Text>
-          ))}
+          {items.map((row) => {
+            const photo = mealPreview(row.meal);
+            const custom = row.customizationLabel ? ` (${row.customizationLabel})` : '';
+            return (
+              <View key={row.meal.id} style={styles.previewRow}>
+                {photo ? (
+                  <Image source={photo} style={styles.previewPhoto} resizeMode="cover" accessibilityLabel={`${row.meal.name} photo`} />
+                ) : (
+                  <View style={styles.previewPhoto} accessibilityLabel={`${row.meal.name} photo`}>
+                    <Text style={styles.previewInitial}>{(row.meal.category || row.meal.name || 'M').slice(0, 1)}</Text>
+                  </View>
+                )}
+                <Text style={[checkoutFlow.line, styles.previewCopy]}>
+                  <Text style={checkoutFlow.lineBold}>{`${row.meal.category || 'Meal'}: `}</Text>
+                  {`${row.meal.name}${custom}`}
+                </Text>
+              </View>
+            );
+          })}
           <Text style={checkoutFlow.line}>
             <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.deliveryAddress}: `}</Text>
             {addressLine}
@@ -134,6 +155,12 @@ export default function OrderConfirmScreen({ navigation }: {
               </Text>
             );
           })}
+          {totals.discountAmount ? (
+            <Text style={checkoutFlow.line}>
+              <Text style={checkoutFlow.lineBold}>{`${CHECKOUT_MSG.planDiscount}: `}</Text>
+              {`-${formatPeso(totals.discountAmount)}`}
+            </Text>
+          ) : null}
           {totals.specialRequestFees ? (
             <Text style={checkoutFlow.line}>
               <Text style={checkoutFlow.lineBold}>{`${SPECIAL_REQUEST_COPY.feesLine}: `}</Text>
@@ -233,6 +260,43 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.text,
   },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  previewPhoto: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.md,
+    backgroundColor: colors.soft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  previewInitial: {
+    fontFamily: fonts.bold,
+    fontSize: font.lg,
+    color: colors.primary,
+  },
+  previewCopy: { flex: 1, marginTop: 0 },
 });
 
 const ORDERS_TOTAL_LABEL = 'Total';
+
+function mealPreview(meal: {
+  id: string;
+  name: string;
+  catalogMealId?: string;
+  image?: number | string | { uri: string };
+}) {
+  const mapped = MEAL_PHOTOS[meal.name]
+    || MEAL_PHOTOS[String(meal.id)]
+    || (meal.catalogMealId ? MEAL_PHOTOS[meal.catalogMealId] : undefined);
+  if (mapped) return mapped;
+  if (typeof meal.image === 'number') return meal.image;
+  if (typeof meal.image === 'string') return { uri: meal.image };
+  if (meal.image && typeof meal.image === 'object') return meal.image;
+  return undefined;
+}

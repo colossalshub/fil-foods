@@ -76,6 +76,20 @@ function ShiftDashboard({ navigation, role }: ScreenProps & { role: 'kitchen' | 
           </View>
           <Ionicons name="arrow-forward" size={24} color={colors.text} />
         </Pressable>
+        {kitchen ? null : (
+          <View style={styles.counts}>
+            {[
+              ['Ready', mine.filter((order) => order.status === 'Ready for Delivery').length],
+              ['On route', mine.filter((order) => order.status === 'Out for Delivery').length],
+              ['Completed', mine.filter((order) => order.status === 'Completed').length],
+            ].map(([label, count]) => (
+              <View key={String(label)} style={[styles.count, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={{ color: colors.green, fontSize: 22, fontWeight: '700' }}>{count}</Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         {toCollect.length ? (
           <View style={{ gap: 8 }}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Ready for Pickup</Text>
@@ -139,6 +153,8 @@ const styles = StyleSheet.create({
   body: { padding: 16, gap: 14 },
   greeting: { fontSize: 20, fontWeight: '700' },
   hero: { borderRadius: 18, borderWidth: 1, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  counts: { flexDirection: 'row', gap: 8 },
+  count: { flex: 1, borderWidth: 1, borderRadius: 16, paddingVertical: 12, alignItems: 'center', gap: 2 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontSize: 17, fontWeight: '700' },
   viewAll: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 },
