@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BackHeader from '../../components/BackHeader';
+import InlineDialog from '../../components/InlineDialog';
 import AppPageShell from '../../components/AppPageShell';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -11,7 +12,7 @@ import { checkoutTotal, formatPeso } from '../../services/orderService';
 import { feeForSpecialRequest, specialRequestLabel } from '../../domain/specialRequest';
 import { CHECKOUT_MSG, CHECKOUT_PLANS, STANDARD_PLAN } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
-import { spacing } from '../../theme/theme';
+import { colors, font, fonts, radius, spacing } from '../../theme/theme';
 import { formatScheduleSummary } from '../../components/scheduleValue';
 import { useMealProfile } from '../../hooks/useMealProfile';
 import { usePlaceOrder } from '../../hooks/usePlaceOrder';
@@ -31,6 +32,8 @@ export default function OrderConfirmScreen({ navigation }: {
     : '';
 
   const { warnings, fieldError, placing, placeOrder } = usePlaceOrder(user, session, profile, recipientName);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   const lineItems = items.map((row) => ({
     meal: row.meal,
@@ -69,33 +72,26 @@ export default function OrderConfirmScreen({ navigation }: {
 
   const send = async () => {
     const result = await placeOrder();
-    if (result.allergenBlocked) {
-      Alert.alert('Allergy check', (result.messages || []).join('\n'));
+    if (result.allergenBlocked || !result.ok) {
+      setSendError((result.messages || []).join('\n') || 'Unable to send order');
       return;
     }
-    if (!result.ok) {
-      if (result.messages?.length) Alert.alert('Unable to send order', result.messages.join('\n'));
-      return;
-    }
+    setConfirmOpen(false);
     navigation.navigate('OrderSubmitted', { order: result.order });
   };
 
   // USR-20: the summary is the first check. This dialog is the second, and it
   // repeats the meals, meal times, customizations, recipient and fulfillment.
+  // It is drawn in the page because the web Alert does nothing when pressed.
   const onConfirm = () => {
-    const ref = checkout.resubmitOrderRef || '';
-    const body = checkout.resubmitOrderId
-      ? `${ORDERS_COPY.resubmitConfirmBody(ref)}\n\n${verificationLines.join('\n')}`
-      : verificationLines.join('\n');
-    Alert.alert(
-      checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirmTitle : CHECKOUT_MSG.confirmTitle,
-      body,
-      [
-        { text: CHECKOUT_MSG.goBack, style: 'cancel' },
-        { text: checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirm : CHECKOUT_MSG.confirmSend, onPress: () => { send(); } },
-      ],
-    );
+    setSendError('');
+    setConfirmOpen(true);
   };
+  const confirmTitle = checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirmTitle : CHECKOUT_MSG.confirmTitle;
+  const confirmBody = checkout.resubmitOrderId
+    ? `${ORDERS_COPY.resubmitConfirmBody(checkout.resubmitOrderRef || '')}\n\n${verificationLines.join('\n')}`
+    : verificationLines.join('\n');
+  const confirmAction = checkout.resubmitOrderId ? ORDERS_COPY.resubmitConfirm : CHECKOUT_MSG.confirmSend;
 
   return (
     <AppPageShell edges={['top', 'bottom']} contentStyle={checkoutFlow.page}>
@@ -159,6 +155,7 @@ export default function OrderConfirmScreen({ navigation }: {
           <Text key={`${w.mealId}-${w.allergen}`} style={checkoutFlow.error}>{w.message}</Text>
         ))}
         {fieldError ? <Text style={checkoutFlow.error}>{fieldError}</Text> : null}
+        {sendError ? <Text style={checkoutFlow.error}>{sendError}</Text> : null}
       </ScrollView>
 
       <View style={checkoutFlow.footer}>
@@ -182,8 +179,60 @@ export default function OrderConfirmScreen({ navigation }: {
           <Text style={checkoutFlow.outlineLabel}>{CHECKOUT_MSG.goBack}</Text>
         </Pressable>
       </View>
+
+      <InlineDialog visible={confirmOpen}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.confirmTitle} accessibilityRole="header">{confirmTitle}</Text>
+            <Text style={styles.confirmBody}>{confirmBody}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={confirmAction}
+              onPress={send}
+              disabled={placing}
+              style={[checkoutFlow.primary, { marginTop: spacing.lg }, placing && checkoutFlow.primaryDisabled]}
+            >
+              <Text style={checkoutFlow.primaryLabel}>{placing ? 'Sending…' : confirmAction}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setConfirmOpen(false)}
+              style={[checkoutFlow.outline, { marginTop: spacing.sm }]}
+            >
+              <Text style={checkoutFlow.outlineLabel}>{CHECKOUT_MSG.goBack}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </InlineDialog>
     </AppPageShell>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+    backgroundColor: 'rgba(16, 37, 28, 0.45)',
+  },
+  sheet: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    maxHeight: '80%',
+  },
+  confirmTitle: {
+    fontFamily: fonts.bold,
+    fontSize: font.lg,
+    color: colors.heading,
+  },
+  confirmBody: {
+    fontFamily: fonts.regular,
+    marginTop: spacing.md,
+    fontSize: font.body,
+    lineHeight: 22,
+    color: colors.text,
+  },
+});
 
 const ORDERS_TOTAL_LABEL = 'Total';
