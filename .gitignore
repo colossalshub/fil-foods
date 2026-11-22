@@ -33,6 +33,8 @@ yarn-error.*
 # local env files — do not commit secrets
 .env
 .env*.local
+.env.cloud
+.env*.cloud
 
 # logs
 *.log
