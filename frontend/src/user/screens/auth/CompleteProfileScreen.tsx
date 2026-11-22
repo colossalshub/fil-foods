@@ -190,7 +190,7 @@ export default function CompleteProfileScreen() {
   };
 
   const title = currentStage === 'recipient'
-    ? 'Meal recipient details'
+    ? 'Who will receive the meals?'
     : currentStage === 'personal'
       ? 'Your details'
       : currentStage === 'allergies'
@@ -199,7 +199,7 @@ export default function CompleteProfileScreen() {
           ? 'Health and restrictions'
           : 'Recommended foods';
   const subtitle = currentStage === 'recipient'
-    ? 'Family Member account · recipient information.'
+    ? 'Add the family member\'s details.'
     : currentStage === 'personal'
       ? 'Confirm your details and the address where your meals should be delivered.'
       : currentStage === 'allergies'
@@ -253,10 +253,16 @@ export default function CompleteProfileScreen() {
               ) : null}
             </>
           ) : null}
-          <Text style={styles.sectionTitle}>Meal recipient details</Text>
-          <AppInput label="First name" value={recipientFirstName} onChangeText={setRecipientFirstName} autoCapitalize="words" error={fields.recipientFirstName} />
+          <Text style={styles.sectionTitle}>Meal recipient</Text>
+          <View style={styles.nameRow}>
+            <View style={styles.nameCol}>
+              <AppInput label="First name" value={recipientFirstName} onChangeText={setRecipientFirstName} autoCapitalize="words" error={fields.recipientFirstName} errorSlot labelStyle={styles.pairLabel} />
+            </View>
+            <View style={styles.nameCol}>
+              <AppInput label="Last name" value={recipientLastName} onChangeText={setRecipientLastName} autoCapitalize="words" error={fields.recipientLastName} errorSlot labelStyle={styles.pairLabel} />
+            </View>
+          </View>
           <AppInput label="Middle name (optional)" value={recipientMiddleName} onChangeText={setRecipientMiddleName} autoCapitalize="words" />
-          <AppInput label="Last name" value={recipientLastName} onChangeText={setRecipientLastName} autoCapitalize="words" error={fields.recipientLastName} />
           <AppInput label="Suffix (optional)" value={recipientSuffix} onChangeText={setRecipientSuffix} autoCapitalize="words" />
           <Text style={styles.inputLabel}>Relationship</Text>
           <View style={styles.chips}>
@@ -416,21 +422,23 @@ export default function CompleteProfileScreen() {
         </>
       ) : null}
 
-      <AppButton
-        title="Continue"
-        onPress={currentStage === 'recommendations' ? finish : next}
-        loading={saving}
-        style={styles.continue}
-      />
-      {hasPreviousStage ? (
+      <View style={styles.footerRow}>
+        {hasPreviousStage ? (
+          <AppButton
+            title="Back"
+            variant="outline"
+            onPress={() => setStep((current) => current - 1)}
+            color={colors.primary}
+            style={styles.footerBtn}
+          />
+        ) : null}
         <AppButton
-          title="Back"
-          variant="outline"
-          onPress={() => setStep((current) => current - 1)}
-          color={colors.primary}
-          style={styles.back}
+          title={currentStage === 'recommendations' ? 'Continue' : currentStage === 'health' ? 'Finish' : 'Next'}
+          onPress={currentStage === 'recommendations' ? finish : next}
+          loading={saving}
+          style={styles.footerBtn}
         />
-      ) : null}
+      </View>
       <TermsModal
         visible={showTerms}
         onClose={() => setShowTerms(false)}
@@ -459,6 +467,9 @@ const styles = StyleSheet.create({
   mealMeta: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted, marginTop: 4 },
   mealReason: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.secondary, marginTop: spacing.sm },
   noRecommendations: { fontFamily: fonts.regular, fontSize: font.body, color: colors.muted, lineHeight: 22, marginBottom: spacing.md },
-  continue: { marginTop: spacing.md },
-  back: { marginTop: spacing.sm },
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  pairLabel: { minHeight: 44, lineHeight: 22 },
+  nameCol: { flex: 1, minWidth: 0 },
+  footerRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
+  footerBtn: { flex: 1, marginTop: 0 },
 });

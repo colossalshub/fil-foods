@@ -14,6 +14,7 @@ export default function AppInput({
   accessibilityLabel,
   leadingIcon,
   secureToggleIcon = false,
+  errorSlot = false,
   ...props
 }: TextInputProps & {
   label?: string;
@@ -25,6 +26,8 @@ export default function AppInput({
   accessibilityLabel?: string;
   leadingIcon?: ComponentProps<typeof Ionicons>['name'];
   secureToggleIcon?: boolean;
+  /** Keep a blank error line so a paired field stays aligned when only one has a message. */
+  errorSlot?: boolean;
 }) {
   const [hidden, setHidden] = useState(!!secure);
   return (
@@ -55,7 +58,9 @@ export default function AppInput({
           </Pressable>
         ) : null}
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error || errorSlot ? (
+        <Text style={[styles.error, !error && styles.errorPlaceholder]}>{typeof error === 'string' ? error : ''}</Text>
+      ) : null}
     </View>
   );
 }
@@ -73,5 +78,6 @@ const styles = StyleSheet.create({
   leadingIcon: { marginRight: spacing.md },
   eye: { minWidth: touch.min, height: touch.min, alignItems: 'center', justifyContent: 'center' },
   toggle: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
-  error: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger, marginTop: 6, lineHeight: 22 },
+  error: { fontFamily: fonts.regular, fontSize: font.body, color: colors.danger, marginTop: 6, lineHeight: 22, minHeight: 44 },
+  errorPlaceholder: { color: 'transparent' },
 });

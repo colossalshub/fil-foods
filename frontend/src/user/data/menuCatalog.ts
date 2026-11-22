@@ -282,21 +282,23 @@ export const MENU_CATALOG: MenuCatalogItem[] = [
 ];
 
 /**
- * USR-16 / USR-18: five food items for the day.
- * Breakfast is a bread. The other four are meat choices and a vegetable choice.
- * Those savory foods are the same items at Lunch and Dinner — a meal time does not
- * get its own private short list. Admin availability can replace an item; the day
- * still offers at most five foods.
+ * Foods shown for the day. Breakfast is breads. Lunch and Dinner share the same
+ * meat and vegetable choices. Admin availability can still hide an item.
  */
 export const DAILY_FOOD_ITEM_IDS = [
   'menu-traditional-pandesal',
+  'menu-spanish-bread',
+  'menu-ensaymada',
   'menu-lunch-beef',
   'menu-lunch-pork',
   'menu-lunch-chicken',
+  'menu-lunch-fish',
   'menu-lunch-steamed',
+  'menu-lunch-stir-fried',
+  'menu-lunch-pinakbet',
 ] as const;
 
-export const DAILY_FOOD_ITEM_LIMIT = 5;
+export const DAILY_FOOD_ITEM_LIMIT = DAILY_FOOD_ITEM_IDS.length;
 
 export function dailyFoodItems(catalog: MenuCatalogItem[] = MENU_CATALOG) {
   const available = catalog.filter((item) => item.available);
@@ -313,7 +315,7 @@ export function dailyFoodItems(catalog: MenuCatalogItem[] = MENU_CATALOG) {
   return picked.slice(0, DAILY_FOOD_ITEM_LIMIT);
 }
 
-/** The five foods, with each Lunch meat or vegetable also offered at Dinner. */
+/** Today's foods, with each Lunch meat or vegetable also offered at Dinner. */
 export function offeredCatalogItems(catalog: MenuCatalogItem[] = MENU_CATALOG) {
   const available = catalog.filter((item) => item.available);
   const byId = new Map(available.map((item) => [item.id, item]));

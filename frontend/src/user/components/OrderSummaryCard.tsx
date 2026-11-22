@@ -9,12 +9,14 @@ export default function OrderSummaryCard({
   status,
   fulfillmentSummary,
   totalLabel,
+  waiting,
 }: {
   orderRef?: string;
   trackingNumber?: string;
   status: string;
   fulfillmentSummary?: string;
   totalLabel?: string;
+  waiting?: { label: string; value: string } | null;
 }) {
   return (
     <View style={styles.card}>
@@ -23,7 +25,15 @@ export default function OrderSummaryCard({
           <Text style={styles.label}>{ORDERS_COPY.orderReference}</Text>
           <Text style={styles.refValue}>{orderRef}</Text>
         </View>
-        <OrderStatusBadge status={status} variant="outline" />
+        <View style={styles.statusCol}>
+          <OrderStatusBadge status={status} variant="outline" />
+          {waiting ? (
+            <View>
+              <Text style={styles.label}>{waiting.label}</Text>
+              <Text style={styles.value}>{waiting.value}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
       {trackingNumber ? (
         <View style={styles.row}>
@@ -51,6 +61,7 @@ const styles = StyleSheet.create({
   card: { ...card, padding: spacing.lg, gap: spacing.md },
   refRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   refBlock: { flex: 1, gap: 4 },
+  statusCol: { alignItems: 'flex-end', gap: 4, maxWidth: '55%' },
   label: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.muted },
   refValue: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text },
   row: { gap: 4 },

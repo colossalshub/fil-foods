@@ -10,6 +10,8 @@ import {
   DAY_SLOTS,
   mealsForSlot,
   nextSlot,
+  openDaySlots,
+  slotWindowLabel,
   todayMealById,
   type DaySlot,
   type TodayMeal,
@@ -227,7 +229,7 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     if (advanceFrom) {
       // Move to the next meal time that still needs a meal; stay put when all three are chosen.
       const filled = new Set(items.map((row) => row.daySlot).filter(Boolean));
-      const pending = DAY_SLOTS.filter((item) => !filled.has(item));
+      const pending = openDaySlots().filter((item) => !filled.has(item));
       const preferred = nextSlot(advanceFrom);
       setSlot(pending.length ? (pending.includes(preferred) ? preferred : pending[0]) : advanceFrom);
     }
@@ -322,6 +324,11 @@ export default function BuildTodaysMealsScreen({ navigation }: {
     const resolved = resolveMenuMeal(catalogItem);
     return mealFitLine(recommendationReason(resolved, profile), profile, recipientName);
   };
+  const choiceGroups = DAY_SLOTS.includes(slot)
+    ? mealGroups
+      .map((group) => ({ title: group.title, meals: group.meals.filter((meal) => warningsFor(meal).length === 0) }))
+      .filter((group) => group.meals.length > 0)
+    : [];
 
   return (
     <AppPageShell edges={['top']}>
@@ -349,6 +356,15 @@ export default function BuildTodaysMealsScreen({ navigation }: {
           <Ionicons name="search" size={18} color={colors.primary} />
           <Text style={styles.searchBtnLabel}>{MEAL_DAY_COPY.search}</Text>
         </Pressable>
+
+        <View style={styles.orderNote}>
+          <Ionicons name="information-circle-outline" size={20} color={colors.warning} />
+          <View style={styles.orderNoteCopy}>
+            <Text style={styles.orderNoteKicker}>{MEAL_DAY_COPY.beforeYouOrder}</Text>
+            <Text style={styles.orderNoteTitle}>{MEAL_DAY_COPY.oneMealTimeTitle}</Text>
+            <Text style={styles.orderNoteBody}>{MEAL_DAY_COPY.oneMealTimeBody}</Text>
+          </View>
+        </View>
 
         <View style={styles.dayList}>
           {DAY_SLOTS.map((item) => {
@@ -380,6 +396,10 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                 <View style={styles.dayCopy}>
                   <Text style={[styles.daySlot, active && styles.daySlotOn]}>{item}</Text>
                   <Text style={styles.dayName}>{row ? row.meal.name : MEAL_DAY_COPY.notChosen}</Text>
+                  <View style={styles.deadlineRow}>
+                    <Ionicons name="time-outline" size={14} color={colors.primary} />
+                    <Text style={styles.deadline}>{slotWindowLabel(item)}</Text>
+                  </View>
                 </View>
                 {row ? (
                   <View style={styles.dayActions}>
@@ -416,13 +436,15 @@ export default function BuildTodaysMealsScreen({ navigation }: {
                       <Text style={styles.dayRemoveLabel}>{MEAL_DAY_COPY.remove}</Text>
                     </Pressable>
                   </View>
-                ) : null}
+                ) : (
+                  <View style={styles.openPill}>
+                    <Text style={styles.openPillLabel}>{MEAL_DAY_COPY.open}</Text>
+                  </View>
+                )}
               </Pressable>
             );
           })}
         </View>
-
-        <Text style={styles.rule}>{MEAL_DAY_COPY.rule}</Text>
 
         {chosenCount > 0 ? (
           <View style={styles.reviewNote}>
@@ -443,41 +465,43 @@ export default function BuildTodaysMealsScreen({ navigation }: {
         ) : null}
 
         <View onLayout={(event) => { choicesOffset.current = event.nativeEvent.layout.y; }}>
-        {mealGroups.map(({ title, meals }) => (
-          <View key={title}>
-            <Text style={styles.group} accessibilityRole="header">{`${slot} · ${title}`}</Text>
-            {meals.map((meal) => {
-              const chosenRow = items.find((row) => row.daySlot === meal.slot && row.todayMealId === meal.id);
-              return (
-              <View
-                key={meal.id}
-                ref={(node) => {
-                  if (node) mealAnchors.current.set(meal.id, node);
-                  else mealAnchors.current.delete(meal.id);
-                }}
-              >
-              <MealChoice
-                meal={meal}
-                selected={chosen[slot] === meal.id}
-                warnings={warningsFor(meal)}
-                fit={fitFor(meal)}
-                request={chosenRow?.specialRequest}
-                allergies={profile?.allergies || []}
-                onPress={() => selectMeal(meal)}
-                onRemove={() => {
-                  setRequestError('');
-                  removeSlot(meal.slot);
-                }}
-                onRequest={(next, issue) => {
-                  setRequestError(issue);
-                  setSpecialRequest(meal.slot, next);
-                }}
-              />
-              </View>
-              );
-            })}
-          </View>
-        ))}
+          {choiceGroups.length ? choiceGroups.map(({ title, meals }) => (
+            <View key={title}>
+              <Text style={styles.group} accessibilityRole="header">{`${slot} · ${title}`}</Text>
+              {meals.map((meal) => {
+                const chosenRow = items.find((row) => row.daySlot === meal.slot && row.todayMealId === meal.id);
+                return (
+                  <View
+                    key={meal.id}
+                    ref={(node) => {
+                      if (node) mealAnchors.current.set(meal.id, node);
+                      else mealAnchors.current.delete(meal.id);
+                    }}
+                  >
+                    <MealChoice
+                      meal={meal}
+                      selected={chosen[slot] === meal.id}
+                      warnings={[]}
+                      fit={fitFor(meal)}
+                      request={chosenRow?.specialRequest}
+                      allergies={profile?.allergies || []}
+                      onPress={() => selectMeal(meal)}
+                      onRemove={() => {
+                        setRequestError('');
+                        removeSlot(meal.slot);
+                      }}
+                      onRequest={(next, issue) => {
+                        setRequestError(issue);
+                        setSpecialRequest(meal.slot, next);
+                      }}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          )) : (
+            <Text style={styles.rule}>{MEAL_DAY_COPY.noMealsInSlot}</Text>
+          )}
         </View>
 
         <Text style={styles.allergy}>{allergyNote}</Text>
@@ -815,7 +839,30 @@ const styles = StyleSheet.create({
     paddingRight: spacing.sm,
   },
   searchBtnLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
+  orderNote: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: '#FFF4D6',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  orderNoteCopy: { flex: 1, minWidth: 0 },
+  orderNoteKicker: { fontFamily: fonts.semibold, fontSize: font.sm, lineHeight: 20, color: colors.warning },
+  orderNoteTitle: { fontFamily: fonts.bold, fontSize: font.body, lineHeight: 22, color: colors.heading, marginTop: 2 },
+  orderNoteBody: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 20, color: colors.text, marginTop: 2 },
   dayList: { gap: spacing.sm },
+  deadlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  deadline: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 20, color: colors.primary },
+  openPill: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openPillLabel: { fontFamily: fonts.semibold, fontSize: font.sm, color: colors.primary },
   dayRow: {
     minHeight: 72,
     flexDirection: 'row',

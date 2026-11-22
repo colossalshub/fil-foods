@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
-import type { Allergy, FieldMap, PersonalInfoInput, Profile, ProfileHistoryEntry } from '../types';
-import { useNavigation } from '@react-navigation/native';
+import type { Allergy, FieldMap, PersonalInfoInput, Profile, ProfileHistoryEntry, PublicPlan, StoredPlan } from '../types';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
 import AppModal from '../components/AppModal';
 import ActionRow from '../components/ActionRow';
@@ -42,6 +42,8 @@ import {
   saveNutritionalPreference,
   savePersonalInfo,
 } from '../services/profileService';
+import { formatPlanDate, getPlanForUser } from '../services/planService';
+import { subscriptionSection } from '../domain/subscriptionStatus';
 import { openHelp } from '../navigation/openHelp';
 import { openFeedback } from '../navigation/openFeedback';
 import {
@@ -154,6 +156,67 @@ function ProfilePageHeader() {
   );
 }
 
+function accountPlan(userId: string | undefined, authPlan: PublicPlan | null | undefined, _tick: number) {
+  if (!userId) return authPlan || null;
+  return getPlanForUser(userId) || authPlan || null;
+}
+
+function SubscriptionSection({
+  view,
+  onSubscribe,
+  onRetry,
+}: {
+  view: ReturnType<typeof subscriptionSection>;
+  onSubscribe: () => void;
+  onRetry: () => void;
+}) {
+  const badge = view.kind === 'subscribed' ? 'Subscribed' : view.kind === 'offer' ? view.heading : '';
+  const title = view.kind === 'subscribed'
+    ? (view.planName || view.heading)
+    : view.kind === 'offer'
+      ? ACCOUNT_COPY.startPlan
+      : ACCOUNT_COPY.subscription;
+  return (
+    <View style={styles.planCard}>
+      <View style={styles.planTop}>
+        <Ionicons name="star" size={16} color={colors.white} />
+        <Text style={styles.planEyebrow}>{ACCOUNT_COPY.subscription}</Text>
+        {badge ? (
+          <View style={styles.planBadge}>
+            <Text style={styles.planBadgeLabel}>{badge}</Text>
+          </View>
+        ) : null}
+      </View>
+      <Text style={styles.planTitle}>{title}</Text>
+      {view.kind === 'error' ? <Text style={styles.planBody}>{view.message}</Text> : null}
+      {view.kind === 'subscribed' ? (
+        <>
+          {view.planName ? <Text style={styles.planBody}>{view.heading}</Text> : null}
+          {view.renews ? <Text style={styles.planBody}>{view.renews}</Text> : null}
+          {view.covers ? <Text style={styles.planBody}>{view.covers}</Text> : null}
+        </>
+      ) : null}
+      {view.kind === 'offer' ? (
+        <>
+          {view.covers ? <Text style={styles.planBody}>{view.covers}</Text> : null}
+          <Text style={styles.planBody}>{view.body}</Text>
+        </>
+      ) : null}
+      {view.kind === 'offer' ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={view.action} onPress={onSubscribe} style={styles.planButton}>
+          <Text style={styles.planButtonLabel}>{view.action}</Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+        </Pressable>
+      ) : null}
+      {view.kind === 'error' ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={view.tryAgain} onPress={onRetry} style={styles.planButton}>
+          <Text style={styles.planButtonLabel}>{view.tryAgain}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 function accountInitial(profile: Profile) {
   const letter = profile.firstName?.trim()?.[0] || profile.lastName?.trim()?.[0] || '?';
   return letter.toUpperCase();
@@ -243,6 +306,11 @@ export default function ProfileScreen() {
       active = false;
     };
   }, [user, refreshKey]);
+
+  const [planTick, setPlanTick] = useState(0);
+  useFocusEffect(useCallback(() => {
+    setPlanTick((tick) => tick + 1);
+  }, []));
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -295,10 +363,6 @@ export default function ProfileScreen() {
 
   const [nutritionOpen, setNutritionOpen] = useState(false);
   const [nutritionChoice, setNutritionChoice] = useState<string[]>([]);
-  const [targetCalories, setTargetCalories] = useState('');
-  const [targetProtein, setTargetProtein] = useState('');
-  const [targetFat, setTargetFat] = useState('');
-  const [targetSodium, setTargetSodium] = useState('');
 
   const [guardianOpen, setGuardianOpen] = useState(false);
   const [guardianForm, setGuardianForm] = useState({ name: '', relationship: '', contactNumber: '' });
@@ -657,21 +721,12 @@ export default function ProfileScreen() {
 
   const openNutrition = () => {
     setNutritionChoice(nutritionIdsFromProfile(profile));
-    setTargetCalories(profile?.nutritionTargets?.calories ? String(profile.nutritionTargets.calories) : '');
-    setTargetProtein(profile?.nutritionTargets?.protein ? String(profile.nutritionTargets.protein) : '');
-    setTargetFat(profile?.nutritionTargets?.fat ? String(profile.nutritionTargets.fat) : '');
-    setTargetSodium(profile?.nutritionTargets?.sodium ? String(profile.nutritionTargets.sodium) : '');
     setNutritionOpen(true);
   };
 
   const saveNutrition = async () => {
     const result = getUser(user!.id as string)
-      ? saveNutritionalPreference(user!.id as string, nutritionChoice, {
-        calories: targetCalories,
-        protein: targetProtein,
-        fat: targetFat,
-        sodium: targetSodium,
-      })
+      ? saveNutritionalPreference(user!.id as string, nutritionChoice)
       : await saveRemoteNutrition(user!.id as string, nutritionChoice);
     if (!savedOrAlert(result)) return;
     setNutritionOpen(false);
@@ -910,6 +965,28 @@ export default function ProfileScreen() {
   const nutritionSummary = (profile.nutritionalPreferences || [])
     .map((id) => NUTRITIONAL_OPTIONS.find((option) => option.id === id)?.label || id)
     .join(', ');
+  const subscriptionName = profile.accountFor === 'family'
+    ? (profile.mealRecipient?.firstName?.trim() || recipientName || 'the meal recipient')
+    : (profile.firstName?.trim() || 'the meal recipient');
+  let subscriptionPlan: StoredPlan | PublicPlan | null = null;
+  let subscriptionFailed = false;
+  try {
+    subscriptionPlan = accountPlan(user?.id ? String(user.id) : undefined, user?.plan, planTick);
+  } catch {
+    subscriptionFailed = true;
+  }
+  const subscriptionView = subscriptionSection({
+    loadError: subscriptionFailed,
+    status: subscriptionPlan?.status,
+    planName: subscriptionPlan?.name,
+    renewalDate: subscriptionPlan?.renewalDate ? formatPlanDate(subscriptionPlan.renewalDate) : '',
+    recipientName: subscriptionName,
+    family: profile.accountFor === 'family',
+  });
+  const openSubscription = () => (navigation as { navigate: (name: string) => void }).navigate('Plans');
+  const retrySubscription = () => {
+    setPlanTick((tick) => tick + 1);
+  };
 
   const healthEditLinks = (
     <View style={styles.rowsCard}>
@@ -984,6 +1061,8 @@ export default function ProfileScreen() {
           <Text style={styles.identityEmail}>{profile.email}</Text>
           <Text style={styles.identityMeta}>{lastUpdatedLine}</Text>
         </View>
+
+        <SubscriptionSection view={subscriptionView} onSubscribe={openSubscription} onRetry={retrySubscription} />
 
         {profileSections}
 
@@ -1357,10 +1436,6 @@ export default function ProfileScreen() {
                 </View>
               );
             })}
-            <AppInput label="Daily calories (optional)" value={targetCalories} onChangeText={setTargetCalories} keyboardType="number-pad" />
-            <AppInput label="Daily protein (g) (optional)" value={targetProtein} onChangeText={setTargetProtein} keyboardType="number-pad" />
-            <AppInput label="Daily fat limit (g) (optional)" value={targetFat} onChangeText={setTargetFat} keyboardType="number-pad" />
-            <AppInput label="Sodium limit (mg per meal)" value={targetSodium} onChangeText={setTargetSodium} keyboardType="number-pad" />
           </ProfileModalShell>
 
           <ProfileModalShell
@@ -1548,6 +1623,35 @@ const styles = StyleSheet.create({
   identityName: { fontFamily: fonts.bold, fontSize: font.lg, color: PAGE.title, textAlign: 'center' },
   identityMeta: { fontFamily: fonts.regular, fontSize: font.sm, color: PAGE.muted, textAlign: 'center' },
   identityEmail: { fontFamily: fonts.regular, fontSize: font.body, color: PAGE.body, textAlign: 'center' },
+  planCard: {
+    marginTop: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  planTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  planEyebrow: { flex: 1, fontFamily: fonts.medium, fontSize: font.sm, color: colors.white },
+  planBadge: {
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  planBadgeLabel: { fontFamily: fonts.medium, fontSize: font.sm, color: colors.white },
+  planTitle: { fontFamily: fonts.bold, fontSize: font.xl, lineHeight: 30, color: colors.white },
+  planBody: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 22, color: colors.white },
+  planButton: {
+    minHeight: touch.min,
+    marginTop: spacing.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  planButtonLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
   menuCard: {
     ...card,
     marginTop: spacing.lg,

@@ -72,6 +72,7 @@ export default function OrderDetailScreen() {
       scheduleLabel?: string;
     };
     statusHistory?: { historyLabel?: string; atLabel?: string; status?: string }[];
+    waiting?: { visible?: boolean; label: string; value: string } | null;
   } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -191,6 +192,11 @@ export default function OrderDetailScreen() {
               <MetaLine label={ORDERS_COPY.status}>
                 <OrderStatusBadge status={customerFacingStatus(order.status || '')} variant="outline" />
               </MetaLine>
+              {order.waiting?.visible ? (
+                <MetaLine label={order.waiting.label}>
+                  <Text style={styles.value}>{order.waiting.value}</Text>
+                </MetaLine>
+              ) : null}
               <MetaLine label={ORDERS_COPY.date}>
                 <Text style={styles.value}>{order.placedDateLabel}</Text>
               </MetaLine>

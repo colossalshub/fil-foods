@@ -4,13 +4,15 @@ Source of truth: [`User_Story_v6_20_11_2026.xlsx`](./User_Story_v6_20_11_2026.xl
 
 | Module | Stories | Index | Traceability |
 |---|---|---|---|
-| User (client) | USR-01–USR-50 | [`user-module.md`](./user-module.md) | [`implementation-traceability.md`](../implementation-traceability.md) |
+| User (client) | USR-01–USR-50, plus 22 Nov USR-51 and USR-52 | [`user-module.md`](./user-module.md) | [`implementation-traceability.md`](../implementation-traceability.md) |
 | Admin | ADM-01–ADM-21 | [`admin-module.md`](./admin-module.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 | Dietitian | DIT-01–DIT-16 | [`dietitian-module.md`](./dietitian-module.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 | Kitchen | KIT-01–KIT-15 | [`kitchen-module.md`](./kitchen-module.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 | Delivery | DEL-01–DEL-13, DEL-15–DEL-17 | [`delivery-module.md`](./delivery-module.md) | [`implementation-traceability-staff.md`](../implementation-traceability-staff.md) |
 
 There is no DEL-14. DIT-17 is not in v6.
+
+The 22 Nov 2026 customer-module export adds estimated waiting time and an Account subscription section. It numbers them USR-51 and USR-52, and says the same waiting time is shown to staff under ADM-22, DIT-17, KIT-16, and DEL-18. Those staff stories are not in v6. In this repo, USR-51 already means a special request on a meal, and DIT-17 already means condition-removal requests kept beyond the workbook. Staff screens were not changed for the waiting-time story.
 
 Staff share one **Select Your Role** entry (ADM-01, DIT-01, KIT-01, DEL-01): Admin, Dietitian, Kitchen Staff, Delivery Staff. Each role then has its own sign-in and navigation.
 

@@ -1,19 +1,16 @@
 import type { ComponentProps } from 'react';
 import { useContext, useLayoutEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
-  BottomTabBar,
   BottomTabBarHeightCallbackContext,
   type BottomTabBarProps,
   type BottomTabNavigationOptions,
 } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import type { EdgeInsets } from 'react-native-safe-area-context';
-import { colors, radius, shadow, spacing, fonts } from '../theme/theme';
+import { colors, fonts } from '../theme/theme';
 
-export const FLOATING_TAB_BAR_HEIGHT = 72;
-const TAB_BOTTOM_GAP = spacing.md;
-const SHADOW_BLEED = spacing.sm;
+export const FLOATING_TAB_BAR_HEIGHT = 64;
 
 export const TAB_ROUTE_LABELS: Record<string, string> = {
   Home: 'Home',
@@ -29,61 +26,53 @@ const TAB_ROUTE_ICONS: Record<string, ComponentProps<typeof Ionicons>['name']> =
   Account: 'person',
 };
 
-function tabIcon(routeName: string, focused: boolean, color: string, size = 22) {
+function tabIcon(routeName: string, color: string, size = 22) {
   const base = TAB_ROUTE_ICONS[routeName] ?? 'ellipse';
-  const outline = `${String(base).replace(/-outline$/, '')}-outline` as ComponentProps<typeof Ionicons>['name'];
-  const name = (focused ? base : outline) as ComponentProps<typeof Ionicons>['name'];
-  // Active tab gets the design guide's soft green indicator behind the icon.
-  return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Ionicons name={name} size={size} color={color} />
-    </View>
-  );
+  const name = `${String(base).replace(/-outline$/, '')}-outline` as ComponentProps<typeof Ionicons>['name'];
+  return <Ionicons name={name} size={size} color={color} />;
 }
 
 export function floatingTabBottomInset(insets: EdgeInsets) {
-  return FLOATING_TAB_BAR_HEIGHT + insets.bottom + TAB_BOTTOM_GAP + SHADOW_BLEED;
+  return FLOATING_TAB_BAR_HEIGHT + insets.bottom;
 }
 
 export function floatingTabScreenOptions(
   route: { name: string },
-  insets: EdgeInsets,
+  _insets: EdgeInsets,
 ): BottomTabNavigationOptions {
+  const label = TAB_ROUTE_LABELS[route.name] ?? route.name;
   return {
     headerShown: false,
     sceneStyle: { backgroundColor: 'transparent' },
     tabBarActiveTintColor: colors.primary,
     tabBarInactiveTintColor: colors.inactive,
     tabBarShowLabel: true,
-    tabBarLabel: TAB_ROUTE_LABELS[route.name] ?? route.name,
-    tabBarLabelStyle: {
-      fontFamily: fonts.semibold,
-      fontSize: 16,
-      lineHeight: 20,
-      marginTop: 2,
-      marginBottom: 0,
-    },
-    tabBarIcon: ({ focused, color }) => tabIcon(route.name, focused, color, 22),
+    tabBarLabel: ({ focused, color }) => (
+      <View style={styles.labelWrap}>
+        <Text style={[styles.label, { color }]}>{label}</Text>
+        <View style={[styles.underline, focused && styles.underlineOn]} />
+      </View>
+    ),
+    tabBarIcon: ({ color }) => tabIcon(route.name, color, 22),
     tabBarAccessibilityLabel: TAB_ROUTE_LABELS[route.name] ?? route.name,
     tabBarItemStyle: {
+      flex: 1,
       paddingVertical: 0,
     },
     tabBarStyle: {
-      backgroundColor: 'transparent',
+      backgroundColor: colors.white,
       borderTopWidth: 0,
       elevation: 0,
       shadowOpacity: 0,
       height: FLOATING_TAB_BAR_HEIGHT,
-      paddingTop: 6,
+      paddingTop: 8,
       paddingBottom: 0,
     },
   };
 }
 
-/** Transparent overlay; only the inner pill is opaque so scrolling content shows underneath. */
-export function FloatingTabBar(props: BottomTabBarProps) {
-  const { insets } = props;
-  const bottomGap = Math.max(insets.bottom, spacing.sm) + TAB_BOTTOM_GAP;
+/** Docked bar from the screen designs: full width, hairline top, underline on the selected tab. */
+export function FloatingTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
 
   useLayoutEffect(() => {
@@ -91,51 +80,76 @@ export function FloatingTabBar(props: BottomTabBarProps) {
   }, [onHeightChange]);
 
   return (
-    <View
-      style={styles.shell}
-      pointerEvents="box-none"
-      onLayout={() => onHeightChange?.(0)}
-    >
-      <View style={[styles.pill, { marginBottom: bottomGap }]}>
-        <BottomTabBar
-          {...props}
-          insets={{ ...insets, bottom: 0 }}
-          style={styles.barMerge}
-        />
+    <View style={styles.shell} pointerEvents="box-none">
+      <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+        {state.routes.map((route, index) => {
+          const focused = state.index === index;
+          const color = focused ? colors.primary : colors.inactive;
+          const label = TAB_ROUTE_LABELS[route.name] ?? route.name;
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+          };
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={descriptors[route.key]?.options.tabBarAccessibilityLabel || label}
+              onPress={onPress}
+              style={styles.item}
+            >
+              {tabIcon(route.name, color)}
+              <Text style={[styles.label, { color }]}>{label}</Text>
+              <View style={[styles.underline, focused && styles.underlineOn]} />
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
-    width: 52,
-    height: 28,
-    borderRadius: 14,
+  item: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: FLOATING_TAB_BAR_HEIGHT,
+    paddingTop: 8,
   },
-  iconWrapActive: {
-    backgroundColor: colors.mintStrong,
+  label: {
+    fontFamily: fonts.semibold,
+    fontSize: 16,
+    lineHeight: 20,
+    marginTop: 2,
   },
+  underline: {
+    marginTop: 4,
+    height: 3,
+    width: 28,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+  },
+  underlineOn: { backgroundColor: colors.primary },
   shell: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+    alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: spacing.lg,
   },
-  pill: {
-    borderRadius: radius.pill,
+  bar: {
+    width: '100%',
+    maxWidth: 430,
+    flexDirection: 'row',
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    ...shadow,
-  },
-  barMerge: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
-    paddingHorizontal: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.cardBorder,
   },
 });

@@ -72,6 +72,9 @@ export default function LoginScreen({ navigation }: {
         <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
           <KeyboardAvoidingView style={styles.flex} behavior="padding">
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+              <View style={styles.topBar}>
+                <HelpButton color={colors.primary} />
+              </View>
               <View style={styles.header}>
                 <Image source={logo} style={styles.logo} resizeMode="contain" accessibilityLabel="F.I.L Foods meal logo" />
                 <Text style={styles.brand} accessibilityRole="header">F.I.L Foods</Text>
@@ -180,7 +183,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.sm },
-  header: { alignItems: 'center', paddingTop: 68 },
+  topBar: { alignItems: 'flex-end', paddingTop: spacing.sm },
+  header: { alignItems: 'center', paddingTop: spacing.sm },
   helpRow: { alignItems: 'center', marginTop: spacing.sm },
   logo: { width: 96, height: 96 },
   brand: { fontFamily: fonts.bold, color: '#10251C', fontSize: 28, lineHeight: 34, textAlign: 'center', marginTop: -spacing.xs },
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
   separatorLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#DDE5D7' },
   separatorText: { fontFamily: fonts.regular, color: colors.deep, fontSize: font.sm, lineHeight: 20 },
   googleButton: { height: 48, borderRadius: 16, borderWidth: 1.5, borderColor: '#78B996' },
-  extraActions: { marginTop: 72 },
+  extraActions: { marginTop: spacing.md },
   textLink: { minHeight: 48, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.sm, marginTop: spacing.xs },
   copyright: { fontFamily: fonts.regular, color: colors.muted, fontSize: font.xs, lineHeight: 18, textAlign: 'center', paddingVertical: spacing.xs },
 });

@@ -29,6 +29,7 @@ type OrderView = {
   status?: string;
   totalLabel?: string;
   fulfillment?: { summary?: string };
+  waiting?: { visible?: boolean; label: string; value: string } | null;
   progressSteps?: {
     status: string;
     label: string;
@@ -122,6 +123,7 @@ export default function OrderStatusScreen() {
               status={customerFacingStatus(order.status || '')}
               fulfillmentSummary={order.fulfillment?.summary}
               totalLabel={order.totalLabel}
+              waiting={order.waiting?.visible ? order.waiting : null}
             />
             <OrderProgressStepper
               steps={order.progressSteps || []}

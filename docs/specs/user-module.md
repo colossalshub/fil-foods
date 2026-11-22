@@ -2,7 +2,7 @@
 
 Index only. Acceptance criteria are in [`User_Story_v6_20_11_2026.xlsx`](./User_Story_v6_20_11_2026.xlsx), sheet User Module. Open that sheet for the story you are implementing. Map: [`meal-service-modules.md`](./meal-service-modules.md).
 
-**Scope:** USR-01–USR-50. The user registers, signs in, and gets notifications. The meal recipient is who the meals, health, diet, and delivery details are for. One meal recipient per account (For Myself, or one Family Member).
+**Scope:** USR-01–USR-50 from User Story v6, plus two stories from the 22 Nov 2026 customer-module export: estimated waiting time and subscription status on Account. The user registers, signs in, and gets notifications. The meal recipient is who the meals, health, diet, and delivery details are for. One meal recipient per account (For Myself, or one Family Member).
 
 **Precondition:** The user (the person who registers, logs in and uses the application) has a registered, verified account (or one created by the Admin), is logged in to the meal service application, and the meals and menu have already been set up by the Admin. The account is registered either For Myself (the user is also the meal recipient, the person who will receive the meals) or for a Family Member (the user manages the account for another person, the meal recipient).
 
@@ -62,3 +62,5 @@ Index only. Acceptance criteria are in [`User_Story_v6_20_11_2026.xlsx`](./User_
 | USR-48 | User Interface & Accessibility | use a clear and accessible interface with readable text, visible buttons and understandable instructions |
 | USR-49 | User Profile & Dietary Information | read the Terms and Conditions in clear, numbered sections |
 | USR-50 | User Profile & Dietary Information | accept or decline the Terms and Conditions, and accept again when they change |
+| USR-51 (22 Nov export) | Orders | see the estimated waiting time of my order for its current process |
+| USR-52 (22 Nov export) | User Profile & Dietary Information | see my subscription status in Account, above nutritional preferences, and be offered to subscribe when I am not subscribed |

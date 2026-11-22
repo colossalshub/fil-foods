@@ -156,7 +156,7 @@ test('status change writes notification with exact update sentence', () => {
   advanceOrderStatus('order-seed-2', ORDER_STATUS.READY_DELIVERY, { at: '2026-10-12T09:45:00.000Z' });
   advanceOrderStatus('order-seed-2', ORDER_STATUS.OUT_FOR_DELIVERY, { at: '2026-10-12T10:00:00.000Z' });
   const alerts = getAlertsForUser(MARIA);
-  assert.ok(alerts.some((a) => a.message === 'Order ORD-2026-0002 is now Out for Delivery.'));
+  assert.ok(alerts.some((a) => a.message === 'Order ORD-2026-0002 is now Out for Delivery. Estimated waiting time: About 15 minutes.'));
 });
 
 test('markAlertRead keeps notification in list and marks it read', () => {

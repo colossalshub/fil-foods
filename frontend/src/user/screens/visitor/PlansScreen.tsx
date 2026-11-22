@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import BackHeader from '../../components/BackHeader';
 import ScreenHeader from '../../components/ScreenHeader';
 import PlanPicker from '../../components/PlanPicker';
 import { useAuth } from '../../context/AuthContext';
@@ -11,10 +12,17 @@ export default function PlansScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [rememberedPeriod, setRememberedPeriod] = useState('weekly');
+  const goBack = (navigation as { canGoBack?: () => boolean; goBack?: () => void }).canGoBack?.()
+    ? () => (navigation as { goBack: () => void }).goBack()
+    : null;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScreenHeader title="Plans" />
+      {goBack ? (
+        <BackHeader title="Subscription" backLabel="Account" onBack={goBack} />
+      ) : (
+        <ScreenHeader title="Subscription" />
+      )}
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <PlanPicker
           user={user}

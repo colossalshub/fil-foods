@@ -1,6 +1,21 @@
 # Meal Service Specification Traceability Plan
 
-Source of truth: [User Story v6](./specs/User_Story_v6_20_11_2026.xlsx) (20 Nov 2026), indexed in [user-module.md](./specs/user-module.md). Current stories are **USR-01 through USR-50**. v6 keeps those IDs.
+Source of truth: [User Story v6](./specs/User_Story_v6_20_11_2026.xlsx) (20 Nov 2026), indexed in [user-module.md](./specs/user-module.md). Current workbook stories are **USR-01 through USR-50**. v6 keeps those IDs.
+
+## 22 Nov 2026 customer-module export
+
+The export adds two stories. They are not in the v6 workbook.
+
+| Story in that export | What it asks | State |
+|---|---|---|
+| Estimated waiting time (numbered USR-51 there) | "Estimated waiting time" on order details and order status, included in the status notification. Finished orders hide it. Other in-progress statuses say it is not available yet. | Customer screens done. Tests: `waitingTime.test.ts`, status sentence in `trackingService.test.ts`. |
+| Subscription on Account (numbered USR-52 there) | Subscription section directly above Nutritional preferences. Subscribed shows plan and `renews` date. Otherwise the quoted offer and Subscribe. A failed load shows the quoted retry and leaves the rest of Account usable. | Account section done. Test: `subscriptionStatus.test.ts`. Subscribe opens the existing plan screen, retitled Subscription. The export says plans, price, and payment are not defined. |
+
+Conflicts:
+
+- This app already uses **USR-51** for a special request on a meal (`specialRequest.ts`). That work was not renumbered.
+- The export says Admin, Dietitian, Kitchen, and Delivery show the same estimate (ADM-22, DIT-17, KIT-16, DEL-18). Those stories are not in v6. **DIT-17** in this repo is the extra condition-removal flow. Staff screens were not given a waiting time.
+- The export does not give the waiting-time arithmetic. With nobody ahead, the samples are 30 minutes for dietitian review, 25 for preparing, and 15 for out for delivery. Ready for Pickup uses 20. Each earlier order in the same process adds 10 minutes. A passed estimate shows "Taking longer than expected".
 
 Staff modules are indexed in [`docs/specs/meal-service-modules.md`](./specs/meal-service-modules.md). Staff story traceability lives in [`implementation-traceability-staff.md`](./implementation-traceability-staff.md). When a User story depends on staff behavior (menu, Dietitian review, kitchen/delivery status, audit), map the matching **ADM / DIT / KIT / DEL** story before marking the User criterion complete.
 

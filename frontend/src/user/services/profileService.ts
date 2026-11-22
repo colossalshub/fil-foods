@@ -42,9 +42,9 @@ export const ALLERGY_PRESETS = [
 ];
 
 export const NUTRITIONAL_OPTIONS = [
-  { id: 'lower-calories', label: 'Lower calories' },
-  { id: 'higher-protein', label: 'Higher protein' },
-  { id: 'lower-sodium', label: 'Lower sodium' },
+  { id: 'lower-calories', label: 'Low calories' },
+  { id: 'higher-protein', label: 'High protein' },
+  { id: 'lower-sodium', label: 'Low sodium' },
 ];
 
 const ALLERGEN_ALIASES: Record<string, string> = {

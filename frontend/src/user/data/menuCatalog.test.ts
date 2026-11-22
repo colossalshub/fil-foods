@@ -18,12 +18,13 @@ const mealFor = (id: string) => {
   return found.meal;
 };
 
-test('USR-16: five foods a day; lunch and dinner share the meat and vegetable choices', () => {
+test('today\'s menu offers breads plus the shared lunch and dinner choices', () => {
   const daily = dailyFoodItems();
   assert.equal(daily.length, DAILY_FOOD_ITEM_LIMIT);
-  assert.ok(daily.some((item) => item.slot === 'Breakfast' && item.section === 'Pastries and breads'));
-  assert.ok(daily.some((item) => item.section === 'Meat choices'));
-  assert.ok(daily.some((item) => item.section === 'Vegetable choices'));
+  const breads = daily.filter((item) => item.slot === 'Breakfast').map((item) => item.name);
+  assert.deepEqual(breads, ['Traditional Pandesal', 'Spanish Bread', 'Ensaymada']);
+  assert.ok(daily.some((item) => item.name === 'Fish'));
+  assert.ok(daily.some((item) => item.name === 'Pinakbet'));
 
   const offered = allMenuMeals();
   const names = (slot: string) => offered
@@ -31,17 +32,17 @@ test('USR-16: five foods a day; lunch and dinner share the meat and vegetable ch
     .map(({ item }) => item.name)
     .sort();
   assert.deepEqual(names('Lunch'), names('Dinner'));
-  for (const meat of ['Beef', 'Pork', 'Chicken']) {
+  for (const meat of ['Beef', 'Pork', 'Chicken', 'Fish']) {
     assert.ok(names('Lunch').includes(meat), `${meat} is a lunch and dinner choice`);
   }
-  assert.ok(names('Lunch').includes('Steamed'), 'lunch and dinner include a vegetable choice');
+  assert.ok(names('Lunch').includes('Pinakbet'));
   assert.ok(offered.every(({ meal }) => meal.price === 300), 'standard ₱300 per meal (USR-17)');
 });
 
-test('USR-16: Build Your Lunch and Dinner only offer the foods on today\'s menu', () => {
+test('lunch and dinner offer the same meat and vegetable choices', () => {
   for (const slot of ['Lunch', 'Dinner'] as const) {
-    assert.deepEqual(offeredChoiceNames(slot, 'Meat choices'), ['Beef', 'Pork', 'Chicken']);
-    assert.deepEqual(offeredChoiceNames(slot, 'Vegetable choices'), ['Steamed']);
+    assert.deepEqual(offeredChoiceNames(slot, 'Meat choices'), ['Beef', 'Pork', 'Chicken', 'Fish']);
+    assert.deepEqual(offeredChoiceNames(slot, 'Vegetable choices'), ['Steamed', 'Stir-fried', 'Pinakbet']);
   }
 });
 

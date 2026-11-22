@@ -18,6 +18,7 @@ import {
 import { isSupabaseConfigured, requireSupabase } from '../../lib/supabaseClient.js';
 import { bestWordMatch, normalizeText, osaDistance, substringMatch, textWords } from '../../lib/algorithms/stringMatch.js';
 import { recentOrderedMeals } from '../domain/homePresentation.js';
+import { waitingTimeFor, waitingUpdateSentence } from '../domain/waitingTime.js';
 
 export const TRACKING_MSG = {
   noOrders: 'You have no orders yet.',
@@ -317,14 +318,23 @@ export async function loadHomeOrders(userId: string) {
 }
 
 export function detailFromBackendOrder(row: BackendOrder) {
-  return toDetail(mapBackendOrder(row));
+  const order = mapBackendOrder(row);
+  return toDetail(order, [order]);
 }
 
 export async function refreshBackendOrder(userId: string, orderId: string) {
   if (!isSupabaseConfigured) return null;
   const row = await getClientOrderById(orderId);
   if (!row || row.client_id !== userId) return null;
-  return detailFromBackendOrder(row);
+  const order = mapBackendOrder(row);
+  let queue: Order[] | null = null;
+  try {
+    const rows = await getClientOrders();
+    queue = rows.map((item) => mapBackendOrder(item));
+  } catch {
+    queue = null;
+  }
+  return toDetail(order, queue);
 }
 
 export function subscribeToBackendOrderChanges(onChange: () => void) {
@@ -473,7 +483,7 @@ function toListItem(order: Order) {
   };
 }
 
-function toDetail(order: Order) {
+function toDetail(order: Order, queue: Order[] | null = ensureOrdersArray()) {
   backfillHistory(order);
   const fulfillmentType = order.fulfillment?.type || 'delivery';
   return {
@@ -522,6 +532,7 @@ function toDetail(order: Order) {
     lastUpdatedAt: order.lastUpdatedAt,
     lastUpdatedLabel: formatTimestamp(order.lastUpdatedAt),
     placedAt: order.placedAt,
+    waiting: waitingTimeFor(order, queue, new Date().toISOString()),
   };
 }
 
@@ -692,9 +703,10 @@ export function recordStatusChange(order: Order, newStatus: string, at?: string)
       ? [user.mealRecipient?.firstName, user.mealRecipient?.lastName].filter(Boolean).join(' ')
       : '');
   const orderRef = orderRefOf(order);
-  const message = user?.accountFor === 'family' && recipientName
+  const waiting = waitingUpdateSentence(waitingTimeFor(order, ensureOrdersArray(), when));
+  const message = (user?.accountFor === 'family' && recipientName
     ? `Order ${orderRef} for ${recipientName} is now ${newStatus}.`
-    : TRACKING_MSG.statusUpdate(orderRef, newStatus);
+    : TRACKING_MSG.statusUpdate(orderRef, newStatus)) + waiting;
   pushNotification(order.userId, {
     type: 'status',
     orderId: order.id,

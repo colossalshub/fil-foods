@@ -348,12 +348,12 @@ function nutritionIds(profile: MealMatchProfile | null | undefined) {
 export function recommendationReason(meal: Meal, profile: MealMatchProfile | null | undefined) {
   const reasons = [];
   for (const id of nutritionIds(profile)) {
-    if (id === 'lower-calories' && (meal.calories as number) <= 400) reasons.push('Matches your preference for lower calories');
+    if (id === 'lower-calories' && (meal.calories as number) <= 400) reasons.push('Matches your preference for low calories');
     if (id === 'higher-protein' && ((meal.protein as number) >= 25 || meal.diets?.includes('High-protein'))) {
-      reasons.push('Matches your preference for higher protein');
+      reasons.push('Matches your preference for high protein');
     }
     if (id === 'lower-sodium' && ((meal.sodium as number) <= 500 || meal.dietaryTags?.includes('Low-sodium'))) {
-      reasons.push('Matches your preference for lower sodium');
+      reasons.push('Matches your preference for low sodium');
     }
   }
   for (const cat of profile?.mealPreferences?.preferredCategories || []) {
