@@ -48,7 +48,7 @@ export default function MealDetailScreen({ route, navigation }: {
   route: { params?: { meal?: Meal; initials?: string } };
   navigation: {
     goBack: () => void;
-    navigate: (name: string, params?: object) => void;
+    navigate: (name: string, params?: object, options?: { merge?: boolean }) => void;
     getParent?: () => { getParent?: () => { getParent?: () => { navigate: (name: string, params?: object) => void } | undefined } | undefined } | undefined;
   };
 }) {
@@ -74,6 +74,8 @@ export default function MealDetailScreen({ route, navigation }: {
   const sodiumOver = exceedsSodiumLimit(meal, sodiumLimit);
 
   const needsAccount = !user?.id || user.role === 'visitor';
+  const menuItem = MENU_CATALOG.find((item) => (item.mealId || item.id) === meal.id);
+  const isBreakfast = menuItem?.slot === 'Breakfast';
   const mealTime = mealTimeLabel(meal.category);
   const initials = mealInitials(meal.name, initialsOverride);
   const photo = meal?.id != null ? MEAL_PHOTOS[String(meal.id)] : undefined;
@@ -98,7 +100,6 @@ export default function MealDetailScreen({ route, navigation }: {
       return;
     }
     // Menu items go into the same one-per-meal-time order as Build Today's Meals (USR-18).
-    const menuItem = MENU_CATALOG.find((item) => (item.mealId || item.id) === meal.id);
     if (menuItem && menuItem.slot !== 'Breakfast') {
       // Lunch and Dinner choices are customized first (vegetable style, or meat and cooking style).
       navigation.navigate('BuildMealCustomize', { todayMealId: menuItem.id, slot: menuItem.slot });
@@ -115,6 +116,32 @@ export default function MealDetailScreen({ route, navigation }: {
       { text: MEAL_DETAIL_COPY.keepBrowsing, style: 'cancel' },
       { text: MEAL_DETAIL_COPY.viewOrder, onPress: () => navigation.navigate('MealsList') },
     ]);
+  };
+
+  const onCheckout = () => {
+    if (needsAccount) {
+      onAdd();
+      return;
+    }
+    if (!available || allergens.length) return;
+    const alreadyChosen = menuItem
+      ? items.some((row) => row.daySlot === menuItem.slot && row.meal.id === meal.id)
+      : Boolean(cartRow);
+    if (!alreadyChosen) {
+      const result = parseQuantityInput('1');
+      if (!result.ok) {
+        setQtyError(result.message || '');
+        return;
+      }
+      const error = menuItem
+        ? addItem(meal, 1, undefined, { daySlot: menuItem.slot, todayMealId: menuItem.id })
+        : addItem(meal, 1);
+      if (error) {
+        setQtyError(error);
+        return;
+      }
+    }
+    navigation.navigate('MealsList', { openSummary: true }, { merge: true });
   };
 
   const primaryLabel = !available
@@ -252,14 +279,36 @@ export default function MealDetailScreen({ route, navigation }: {
           </Pressable>
         ) : null}
 
+        {isBreakfast && available && !allergens.length ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={MEAL_DETAIL_COPY.continueToCheckout}
+            onPress={onCheckout}
+            style={styles.primary}
+          >
+            <Text style={styles.primaryLabel}>{MEAL_DETAIL_COPY.continueToCheckout}</Text>
+          </Pressable>
+        ) : null}
+
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={primaryLabel}
           onPress={onPrimary}
           disabled={!available && !allergens.length}
-          style={[styles.primary, !available && styles.primaryMuted]}
+          style={[
+            styles.primary,
+            isBreakfast && available && !allergens.length && styles.secondaryButton,
+            !available && styles.primaryMuted,
+          ]}
         >
-          <Text style={[styles.primaryLabel, !available && styles.primaryLabelMuted]}>{primaryLabel}</Text>
+          <Text style={[
+            styles.primaryLabel,
+            isBreakfast && available && !allergens.length && styles.secondaryButtonLabel,
+            !available && styles.primaryLabelMuted,
+          ]}
+          >
+            {primaryLabel}
+          </Text>
         </Pressable>
       </View>
     </AppPageShell>
@@ -368,6 +417,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.page,
   },
   secondaryAction: { marginBottom: spacing.sm, alignItems: 'center', minHeight: control.minHeight, justifyContent: 'center' },
+  secondaryButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  secondaryButtonLabel: { color: colors.primary },
   secondaryActionText: { fontFamily: fonts.bold, fontSize: font.body, color: colors.primary },
   primary: {
     alignSelf: 'stretch',

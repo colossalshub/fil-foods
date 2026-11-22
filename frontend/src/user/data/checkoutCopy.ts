@@ -35,7 +35,7 @@ export const CHECKOUT_MSG = {
   continue: 'Continue',
   confirmTitle: 'Confirm your order',
   confirmLead: 'Please check everything before you send it.',
-  dietitianNotice: 'Your order goes to the Dietitian first. You pay only after it is approved.',
+  dietitianNotice: 'Payment will be required only after your order has been reviewed and approved.',
   confirmSend: 'Confirm and send order',
   goBack: 'Go back',
   sentTitle: 'Sent to the Dietitian',

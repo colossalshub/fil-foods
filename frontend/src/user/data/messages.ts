@@ -135,6 +135,7 @@ export const MEAL_DETAIL_COPY = {
   listedAllergensProfileNote: (profileRef: string) =>
     `Listed allergens are checked against ${profileRef}.`,
   addToMealTime: (mealTime: string) => `Add to ${mealTime}`,
+  continueToCheckout: 'Continue to Checkout',
   removeFromOrder: 'Remove from order',
   addedToOrderTitle: 'Added to order',
   addedToOrderBody: (mealName: string) => `${mealName} is in your cart.`,
@@ -198,7 +199,7 @@ export const MEAL_DAY_COPY = {
   rule: 'One meal per meal time. Maximum 3 meals per day. You can order one, two or all three meal times.',
   beforeYouOrder: 'Before you order',
   oneMealTimeTitle: 'One meal time per order',
-  oneMealTimeBody: 'Choose breakfast, lunch or dinner for each order, not all at once. To order another meal time, place a new order after this one. You set the day and time when you choose delivery or pickup.',
+  oneMealTimeBody: 'Choose breakfast, lunch or dinner for each order, not all at once. To order another meal time, place a new order after this one.',
   servedUntil: (time: string) => `Served until ${time}`,
   endsAt: (time: string) => `Ends at ${time}`,
   orderUntil: (time: string) => `Order until ${time}`,

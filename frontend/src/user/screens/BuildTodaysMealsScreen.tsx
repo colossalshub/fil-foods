@@ -233,7 +233,10 @@ export default function BuildTodaysMealsScreen({ navigation }: {
       const preferred = nextSlot(advanceFrom);
       setSlot(pending.length ? (pending.includes(preferred) ? preferred : pending[0]) : advanceFrom);
     }
-    if (openSummary && items.some((row) => row.daySlot)) setSummaryOpen(true);
+    // Wait until the cart update from Customize or breakfast detail is visible,
+    // otherwise the summary opens empty and the param is cleared too early.
+    if (openSummary && !items.some((row) => row.daySlot)) return;
+    if (openSummary) setSummaryOpen(true);
     navigation.setParams?.({ advanceFromSlot: undefined, openSummary: undefined });
   }, [navigation, route.params?.advanceFromSlot, route.params?.openSummary, items]));
 
