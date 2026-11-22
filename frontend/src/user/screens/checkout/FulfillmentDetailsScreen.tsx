@@ -8,6 +8,7 @@ import ScheduleSlotPicker from '../../components/ScheduleSlotPicker';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useCheckout } from '../../context/CheckoutContext';
+import { DAY_SLOTS, type DaySlot } from '../../data/todayMenu';
 import { FULFILLMENT_COPY } from '../../data/checkoutCopy';
 import { checkoutFlow } from '../../styles/checkoutFlow';
 import { colors } from '../../theme/theme';
@@ -52,6 +53,10 @@ export default function FulfillmentDetailsScreen({ navigation }: {
   const { items } = useCart();
   const checkout = useCheckout();
   const type: 'delivery' | 'pickup' = checkout.fulfillmentType === 'pickup' ? 'pickup' : 'delivery';
+  const mealSlots = useMemo(() => {
+    const chosen = new Set(items.map((row) => row.daySlot).filter((slot): slot is DaySlot => Boolean(slot)));
+    return DAY_SLOTS.filter((slot) => chosen.has(slot));
+  }, [items]);
 
   const savedAddress = user?.mealRecipient?.deliveryAddress || user?.address || '';
   const [useCustomAddress, setUseCustomAddress] = useState(
@@ -163,7 +168,10 @@ export default function FulfillmentDetailsScreen({ navigation }: {
               <View style={checkoutFlow.pickupCardIcon}>
                 <Ionicons name="storefront-outline" size={22} color={colors.primary} />
               </View>
-              <Text style={checkoutFlow.cardTitle}>{FULFILLMENT_COPY.pickupCounterTitle}</Text>
+              <View style={checkoutFlow.pickupCardCopy}>
+                <Text style={checkoutFlow.cardTitle}>{FULFILLMENT_COPY.pickupCounterTitle}</Text>
+                <Text style={checkoutFlow.optionCardBody}>{FULFILLMENT_COPY.pickupOpens}</Text>
+              </View>
             </View>
             <View style={checkoutFlow.pickupStepList}>
               {FULFILLMENT_COPY.pickupSteps.map((step, index) => (
@@ -180,6 +188,7 @@ export default function FulfillmentDetailsScreen({ navigation }: {
         <ScheduleSlotPicker
           date={checkout.scheduleDate}
           time={checkout.scheduleTime}
+          mealSlots={mealSlots}
           onChangeDate={checkout.setScheduleDate}
           onChangeTime={checkout.setScheduleTime}
         />

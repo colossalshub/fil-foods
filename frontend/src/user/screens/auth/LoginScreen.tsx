@@ -163,9 +163,6 @@ export default function LoginScreen({ navigation }: {
                   >
                     <Text style={styles.textLinkLabel}>Staff sign in</Text>
                   </Pressable>
-                  <View style={styles.helpRow}>
-                    <HelpButton color={colors.primary} />
-                  </View>
                 </View>
               </View>
             </ScrollView>
@@ -185,7 +182,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing.sm },
   topBar: { alignItems: 'flex-end', paddingTop: spacing.sm },
   header: { alignItems: 'center', paddingTop: spacing.sm },
-  helpRow: { alignItems: 'center', marginTop: spacing.sm },
   logo: { width: 96, height: 96 },
   brand: { fontFamily: fonts.bold, color: '#10251C', fontSize: 28, lineHeight: 34, textAlign: 'center', marginTop: -spacing.xs },
   loginTitle: { fontFamily: fonts.bold, color: '#10251C', fontSize: 20, lineHeight: 24, textAlign: 'center' },

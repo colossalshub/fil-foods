@@ -17,10 +17,11 @@ export const FULFILLMENT_COPY = {
   useSavedAddress: 'Use my saved address',
   requestDifferentAddress: 'Request a different address',
   pickupCounterTitle: 'F.I.L Foods Pickup Counter',
+  pickupOpens: 'Pickup opens on your chosen date and time.',
   pickupSteps: [
-    'Go to the pickup counter at your scheduled time.',
-    'Show your order number to collect your meals.',
-    'Check that your meals match your order before you leave.',
+    'Go to the pickup counter at your chosen time.',
+    'Show your order number to our staff.',
+    'Check your meals before you leave.',
   ],
 } as const;
 
