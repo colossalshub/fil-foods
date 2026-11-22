@@ -1,7 +1,10 @@
-import { PROFILE_HEALTH_OPTIONS } from '../../constants/profileFormOptions';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AuthLayout from '../../components/AuthLayout';
+import HelpButton from '../../components/HelpButton';
+import AuthBackgroundDecor from '../../components/AuthBackgroundDecor';
 import AppInput from '../../components/AppInput';
 import AppButton from '../../components/AppButton';
 import Checkbox from '../../components/Checkbox';
@@ -12,16 +15,28 @@ import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding, logout, normalizeContact } from '../../services/authService';
 import { completeOnboardingLive } from '../../services/liveOnboardingService';
 import { isSupabaseConfigured } from '../../../lib/supabaseClient';
-import { ALLERGY_PRESETS } from '../../services/profileService';
 import { MSG } from '../../data/messages';
 import { RECOMMENDATION_MEALS } from '../../data/meals';
 import { getRecommendedMeals, ORDER_MSG } from '../../services/orderService';
 import type { FieldMap, MealMatchProfile, PublicUser } from '../../types';
-import { colors, font, spacing, card, fonts } from '../../theme/theme';
+import { colors, font, spacing, card, fonts, radius } from '../../theme/theme';
 
-const HEALTH_OPTIONS = PROFILE_HEALTH_OPTIONS;
-const DIET_OPTIONS = ['Low-sodium', 'Low-sugar', 'Low-cholesterol diet', 'Soft food texture'];
 const RELATIONSHIPS = ['Child', 'Parent', 'Spouse', 'Sibling', 'Grandparent', 'Other'];
+const ALLERGY_CHOICES = [
+  { value: 'Peanuts', label: 'Peanuts' },
+  { value: 'Shellfish', label: 'Shellfish / Seafood' },
+  { value: 'Milk', label: 'Dairy' },
+  { value: 'Eggs', label: 'Eggs' },
+  { value: 'Soy', label: 'Soy' },
+  { value: 'Gluten', label: 'Gluten' },
+];
+const CONDITION_CHOICES = [
+  { value: 'Hypertension (HTN)', label: 'HTN\n(Hypertension)' },
+  { value: 'Diabetes', label: 'Diabetes' },
+  { value: 'Gout', label: 'Gout' },
+  { value: 'Kidney Problem', label: 'Kidney Problem' },
+  { value: 'Low-Cholesterol Diet', label: 'Low-Cholesterol Diet' },
+];
 
 export default function CompleteProfileScreen() {
   const { user, keepLoggedIn, signIn, signOut } = useAuth();
@@ -31,8 +46,8 @@ export default function CompleteProfileScreen() {
   const needsPersonalDetails = !familyAccount
     && (!user?.firstName || !user?.lastName || !user?.contactNumber || !user?.address || !user?.termsAcceptedAt);
   const stages = familyAccount
-    ? ['recipient', 'allergies', 'health', 'recommendations']
-    : [...(needsPersonalDetails ? ['personal'] : []), 'allergies', 'health', 'recommendations'];
+    ? ['recipient', 'health', 'recommendations']
+    : [...(needsPersonalDetails ? ['personal'] : []), 'health', 'recommendations'];
   const firstStageIndex = 0;
   const [step, setStep] = useState(firstStageIndex);
   const hasPreviousStage = step > firstStageIndex;
@@ -193,20 +208,122 @@ export default function CompleteProfileScreen() {
     ? 'Who will receive the meals?'
     : currentStage === 'personal'
       ? 'Your details'
-      : currentStage === 'allergies'
-        ? 'Food allergies'
-        : currentStage === 'health'
-          ? 'Health and restrictions'
-          : 'Recommended foods';
+      : 'Recommended foods';
   const subtitle = currentStage === 'recipient'
     ? 'Add the family member\'s details.'
     : currentStage === 'personal'
       ? 'Confirm your details and the address where your meals should be delivered.'
-      : currentStage === 'allergies'
-        ? 'Record the meal recipient’s food allergies. Meals that contain them cannot be ordered.'
-        : currentStage === 'health'
-          ? 'Select a health condition or a restriction given by the doctor.'
-          : 'Recommended meals based on the recipient’s allergies and restrictions.';
+      : 'Recommended meals based on the recipient’s allergies and restrictions.';
+  const recipientName = familyAccount
+    ? [recipientFirstName, recipientLastName].filter(Boolean).join(' ')
+    : [firstName, lastName].filter(Boolean).join(' ');
+  const recipientRelation = familyAccount
+    ? (relationship === 'Other' ? relationshipOther.trim() : relationship.trim()) || 'Family member'
+    : 'Myself';
+  const goBack = () => {
+    if (hasPreviousStage) setStep((current) => current - 1);
+    else leave();
+  };
+
+  if (currentStage === 'health') {
+    return (
+      <View style={styles.page}>
+        <SafeAreaView style={styles.column} edges={['top', 'bottom']}>
+          <AuthBackgroundDecor />
+          <KeyboardAvoidingView style={styles.flex} behavior="padding">
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+              <View style={styles.topBar}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Back to details" onPress={goBack} style={styles.backLink}>
+                  <Ionicons name="chevron-back" size={20} color={colors.primary} />
+                  <Text style={styles.backLinkText}>Back to details</Text>
+                </Pressable>
+                <HelpButton />
+              </View>
+              <View style={styles.stepTrack}>
+                <View style={styles.stepDotOn}><Ionicons name="checkmark" size={16} color={colors.white} /></View>
+                <View style={styles.stepLineOn} />
+                <View style={styles.stepDotOn}><Text style={styles.stepNumOn}>2</Text></View>
+              </View>
+              <View style={styles.stepLabels}>
+                <Text style={styles.stepLabelOn}>Personal{'\n'}Details</Text>
+                <Text style={styles.stepLabelOn}>Health{'\n'}Condition</Text>
+              </View>
+              <View style={styles.recipientPill}>
+                <Ionicons name="person" size={16} color={colors.primary} />
+                <Text style={styles.recipientPillText}>
+                  Recipient: {recipientName || 'Meal recipient'} ({recipientRelation})
+                </Text>
+              </View>
+              <Text style={styles.healthTitle} accessibilityRole="header">Health condition</Text>
+              <Text style={styles.healthLead}>
+                Select any food allergies, medical conditions, or dietary restrictions of the meal recipient.
+              </Text>
+              <View style={styles.sectionHead}>
+                <View style={styles.sectionHeadLabel}>
+                  <Ionicons name="nutrition-outline" size={18} color={colors.primary} />
+                  <Text style={styles.sectionKicker}>Food allergies</Text>
+                </View>
+                <Text style={styles.tapHint}>Tap to select</Text>
+              </View>
+              <View style={styles.chips}>
+                {ALLERGY_CHOICES.map((allergy) => {
+                  const selected = allergies.includes(allergy.value);
+                  return (
+                    <Pressable
+                      key={allergy.value}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      onPress={() => toggle(allergies, setAllergies, allergy.value)}
+                      style={[styles.allergyChip, selected && styles.allergyChipOn]}
+                    >
+                      {selected ? <Ionicons name="checkmark" size={16} color={colors.white} /> : null}
+                      <Text style={[styles.allergyChipText, selected && styles.allergyChipTextOn]}>{allergy.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View style={styles.sectionHead}>
+                <View style={styles.sectionHeadLabel}>
+                  <Ionicons name="heart-outline" size={18} color={colors.primary} />
+                  <Text style={styles.sectionKicker}>Medical conditions</Text>
+                </View>
+              </View>
+              <View style={styles.conditionGrid}>
+                {CONDITION_CHOICES.map((condition) => {
+                  const selected = healthConditions.includes(condition.value);
+                  return (
+                    <Pressable
+                      key={condition.value}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      onPress={() => toggle(healthConditions, setHealthConditions, condition.value)}
+                      style={[styles.condition, selected && styles.conditionOn]}
+                    >
+                      <View style={[styles.box, selected && styles.boxOn]}>
+                        {selected ? <Ionicons name="checkmark" size={14} color={colors.white} /> : null}
+                      </View>
+                      <Text style={styles.conditionLabel}>{condition.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <AppInput
+                label="Other allergies / Doctor-provided restriction"
+                value={dietaryOther}
+                onChangeText={setDietaryOther}
+                autoCapitalize="sentences"
+                placeholder="Soft food texture"
+              />
+              <View style={styles.footerRow}>
+                <AppButton title="Back" variant="outline" onPress={goBack} color={colors.primary} style={styles.footerBtn} />
+                <AppButton title="Finish" onPress={next} style={styles.footerBtn} />
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <AuthLayout variant="back" title={title} onBack={hasPreviousStage ? () => setStep((current) => current - 1) : leave} backgroundFrame>
@@ -256,10 +373,10 @@ export default function CompleteProfileScreen() {
           <Text style={styles.sectionTitle}>Meal recipient</Text>
           <View style={styles.nameRow}>
             <View style={styles.nameCol}>
-              <AppInput label="First name" value={recipientFirstName} onChangeText={setRecipientFirstName} autoCapitalize="words" error={fields.recipientFirstName} errorSlot labelStyle={styles.pairLabel} />
+              <AppInput label="First name" value={recipientFirstName} onChangeText={setRecipientFirstName} autoCapitalize="words" error={fields.recipientFirstName} errorSlot={Boolean(fields.recipientFirstName || fields.recipientLastName)} labelStyle={styles.pairLabel} />
             </View>
             <View style={styles.nameCol}>
-              <AppInput label="Last name" value={recipientLastName} onChangeText={setRecipientLastName} autoCapitalize="words" error={fields.recipientLastName} errorSlot labelStyle={styles.pairLabel} />
+              <AppInput label="Last name" value={recipientLastName} onChangeText={setRecipientLastName} autoCapitalize="words" error={fields.recipientLastName} errorSlot={Boolean(fields.recipientFirstName || fields.recipientLastName)} labelStyle={styles.pairLabel} />
             </View>
           </View>
           <AppInput label="Middle name (optional)" value={recipientMiddleName} onChangeText={setRecipientMiddleName} autoCapitalize="words" />
@@ -344,60 +461,6 @@ export default function CompleteProfileScreen() {
         </>
       ) : null}
 
-      {currentStage === 'allergies' ? (
-        <View style={styles.allergyCard}>
-          <View style={styles.chips}>
-            {ALLERGY_PRESETS.map((allergy) => (
-              <Chip
-                key={allergy}
-                label={allergy}
-                active={allergies.includes(allergy)}
-                onPress={() => toggle(allergies, setAllergies, allergy)}
-              />
-            ))}
-            <Chip
-              label="No allergies"
-              active={allergies.length === 0 && !allergyOther.trim()}
-              onPress={() => { setAllergies([]); setAllergyOther(''); }}
-            />
-          </View>
-          <AppInput label="Other allergy (optional)" value={allergyOther} onChangeText={setAllergyOther} autoCapitalize="words" />
-        </View>
-      ) : null}
-
-      {currentStage === 'health' ? (
-        <>
-          <Text style={styles.sectionTitle}>Health &amp; Restrictions</Text>
-          <Text style={styles.sectionDescription}>Select known conditions and add doctor-provided restrictions.</Text>
-          <Text style={styles.inputLabel}>Health conditions</Text>
-          <View style={styles.chips}>
-            {HEALTH_OPTIONS.map((condition) => (
-              <Chip
-                key={condition}
-                label={condition}
-                active={healthConditions.includes(condition)}
-                onPress={() => toggle(healthConditions, setHealthConditions, condition)}
-              />
-            ))}
-          </View>
-          <AppInput label="Other health condition (optional)" value={healthOther} onChangeText={setHealthOther} autoCapitalize="sentences" />
-          <Text style={styles.inputLabel}>Dietary restrictions</Text>
-          <View style={styles.chips}>
-            {DIET_OPTIONS.map((restriction) => (
-              <Chip
-                key={restriction}
-                label={restriction}
-                active={dietaryRestrictions.includes(restriction)}
-                onPress={() => toggle(dietaryRestrictions, setDietaryRestrictions, restriction)}
-              />
-            ))}
-          </View>
-          <AppInput label="Other / Doctor-provided restriction" value={dietaryOther} onChangeText={setDietaryOther} autoCapitalize="sentences" />
-          <AppInput label="Reaction or notes (optional)" value={allergyNote} onChangeText={setAllergyNote} multiline />
-          <Text style={styles.disclaimer}>{ORDER_MSG.recommendationsDisclaimer}</Text>
-        </>
-      ) : null}
-
       {currentStage === 'recommendations' ? (
         <>
           <Text style={styles.recipientName}>
@@ -433,7 +496,7 @@ export default function CompleteProfileScreen() {
           />
         ) : null}
         <AppButton
-          title={currentStage === 'recommendations' ? 'Continue' : currentStage === 'health' ? 'Finish' : 'Next'}
+          title={currentStage === 'recommendations' ? 'Continue' : 'Next'}
           onPress={currentStage === 'recommendations' ? finish : next}
           loading={saving}
           style={styles.footerBtn}
@@ -472,4 +535,35 @@ const styles = StyleSheet.create({
   nameCol: { flex: 1, minWidth: 0 },
   footerRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   footerBtn: { flex: 1, marginTop: 0 },
+  page: { flex: 1, backgroundColor: colors.authPage, alignItems: 'center' },
+  column: { flex: 1, width: '100%', maxWidth: 430, backgroundColor: colors.authPage, overflow: 'hidden' },
+  flex: { flex: 1 },
+  scroll: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  topBar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backLink: { minHeight: 48, flexDirection: 'row', alignItems: 'center', marginLeft: -4, flexShrink: 1 },
+  backLinkText: { fontFamily: fonts.medium, fontSize: font.body, color: colors.primary },
+  stepTrack: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingHorizontal: spacing.xl },
+  stepLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
+  stepDotOn: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  stepNumOn: { fontFamily: fonts.bold, fontSize: 14, color: colors.white },
+  stepLabelOn: { fontFamily: fonts.medium, fontSize: font.sm, lineHeight: 20, color: colors.primary, textAlign: 'center', width: 110 },
+  stepLineOn: { flex: 1, height: 2, backgroundColor: colors.primary, marginHorizontal: spacing.sm },
+  recipientPill: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.mint, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 6, marginTop: spacing.lg },
+  recipientPillText: { fontFamily: fonts.medium, fontSize: font.sm, color: colors.primary, flexShrink: 1 },
+  healthTitle: { fontFamily: fonts.bold, fontSize: font.xl, lineHeight: 30, color: colors.heading, textAlign: 'center', marginTop: spacing.lg },
+  healthLead: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  sectionHeadLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  sectionKicker: { fontFamily: fonts.semibold, fontSize: font.sm, letterSpacing: 0.6, color: colors.heading, textTransform: 'uppercase' },
+  tapHint: { fontFamily: fonts.medium, fontSize: font.sm, color: colors.primary },
+  allergyChip: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.primary, backgroundColor: colors.white },
+  allergyChipOn: { backgroundColor: colors.primary },
+  allergyChipText: { fontFamily: fonts.medium, fontSize: font.sm, color: colors.primary },
+  allergyChipTextOn: { color: colors.white },
+  conditionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: spacing.lg },
+  condition: { width: '48%', minHeight: 64, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
+  conditionOn: { borderColor: colors.primary, backgroundColor: colors.mint },
+  box: { width: 22, height: 22, borderRadius: 4, borderWidth: 1.5, borderColor: colors.inactive, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white },
+  boxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  conditionLabel: { flex: 1, fontFamily: fonts.medium, fontSize: font.sm, lineHeight: 20, color: colors.text },
 });

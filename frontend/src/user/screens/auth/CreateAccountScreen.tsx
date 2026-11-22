@@ -188,7 +188,7 @@ export default function CreateAccountScreen({ navigation }: {
                 </View>
                 <View style={styles.stepLabels}>
                   <Text style={styles.stepLabelOn}>Personal Details</Text>
-                  <Text style={styles.stepLabel}>Health Information</Text>
+                  <Text style={styles.stepLabel}>Health Condition</Text>
                 </View>
                 <View style={styles.signingBadge}>
                   <Text style={styles.signingBadgeText}>
@@ -208,18 +208,18 @@ export default function CreateAccountScreen({ navigation }: {
                   <>
                     <View style={styles.nameRow}>
                       <View style={styles.nameCol}>
-                        <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} autoCapitalize="words" autoComplete="given-name" error={fields.firstName} errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} autoCapitalize="words" autoComplete="given-name" error={fields.firstName} errorSlot={Boolean(fields.firstName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                       <View style={styles.nameCol}>
-                        <AppInput label="Middle name (optional)" value={form.middleName} onChangeText={set('middleName')} autoCapitalize="words" errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="Middle name (optional)" value={form.middleName} onChangeText={set('middleName')} autoCapitalize="words" errorSlot={Boolean(fields.firstName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                     </View>
                     <View style={styles.nameRow}>
                       <View style={styles.nameCol}>
-                        <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} autoCapitalize="words" autoComplete="family-name" error={fields.lastName} errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} autoCapitalize="words" autoComplete="family-name" error={fields.lastName} errorSlot={Boolean(fields.lastName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                       <View style={styles.nameCol}>
-                        <AppInput label="Suffix (optional)" value={form.suffix} onChangeText={set('suffix')} autoCapitalize="words" accessibilityLabel="Suffix, optional, for example Jr or III" errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="Suffix (optional)" value={form.suffix} onChangeText={set('suffix')} autoCapitalize="words" accessibilityLabel="Suffix, optional, for example Jr or III" errorSlot={Boolean(fields.lastName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                     </View>
                   </>
@@ -227,10 +227,10 @@ export default function CreateAccountScreen({ navigation }: {
                   <>
                     <View style={styles.nameRow}>
                       <View style={styles.nameCol}>
-                        <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} autoCapitalize="words" autoComplete="given-name" error={fields.firstName} errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="First name" value={form.firstName} onChangeText={set('firstName')} autoCapitalize="words" autoComplete="given-name" error={fields.firstName} errorSlot={Boolean(fields.firstName || fields.lastName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                       <View style={styles.nameCol}>
-                        <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} autoCapitalize="words" autoComplete="family-name" error={fields.lastName} errorSlot labelStyle={styles.pairLabel} fieldStyle={styles.input} />
+                        <AppInput label="Last name" value={form.lastName} onChangeText={set('lastName')} autoCapitalize="words" autoComplete="family-name" error={fields.lastName} errorSlot={Boolean(fields.firstName || fields.lastName)} labelStyle={styles.pairLabel} fieldStyle={styles.input} />
                       </View>
                     </View>
                     <AppInput label="Suffix (optional)" value={form.suffix} onChangeText={set('suffix')} autoCapitalize="words" accessibilityLabel="Suffix, optional, for example Jr or III" placeholder="e.g. Jr., III" fieldStyle={styles.input} />

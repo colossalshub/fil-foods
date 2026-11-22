@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { AuthUser } from '../types';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AppModal from './AppModal';
 import AppButton from './AppButton';
 import BackPageShell from './BackPageShell';
@@ -151,20 +152,25 @@ export default function PlanPicker({
         <Text style={styles.price}>{planDef.priceLabel}</Text>
         <Text style={styles.tagline}>{planDef.tagline}</Text>
         {planDef.benefits.map((benefit) => (
-          <Text key={benefit} style={styles.benefit}>• {benefit}</Text>
+          <View key={benefit} style={styles.benefitRow}>
+            <Ionicons name="checkmark" size={16} color={colors.white} />
+            <Text style={styles.benefit}>{benefit}</Text>
+          </View>
         ))}
         {storedPlan?.status === 'active' && storedPlan.pendingPeriodId === periodId ? (
           <Text style={styles.pendingNote}>
             Scheduled to start after your current period.
           </Text>
         ) : null}
-        <AppButton
-          title={isCurrent ? PLAN_MSG.currentPlan : planDef.chooseLabel}
-          onPress={isCurrent ? undefined : onChoose}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !!isCurrent }}
           disabled={!!isCurrent}
-          color={colors.action}
-          style={styles.chooseBtn}
-        />
+          onPress={isCurrent ? undefined : onChoose}
+          style={[styles.chooseBtn, !!isCurrent && styles.chooseBtnDisabled]}
+        >
+          <Text style={styles.chooseLabel}>{isCurrent ? PLAN_MSG.currentPlan : planDef.chooseLabel}</Text>
+        </Pressable>
       </View>
 
       <AppModal visible={summaryOpen} animationType="slide" onRequestClose={onCancelSummary} onCloseAll={onCancelSummary}>
@@ -207,23 +213,40 @@ const styles = StyleSheet.create({
     minHeight: touch.min,
     flex: 1,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
   periodChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  periodChipText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.text },
+  periodChipText: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
   periodChipTextActive: { color: colors.white },
-  planCard: { ...card, padding: spacing.lg, marginBottom: spacing.lg },
-  planName: { fontFamily: fonts.bold, fontSize: font.lg, color: colors.primary, marginBottom: spacing.xs },
-  price: { fontFamily: fonts.bold, fontSize: font.body, color: colors.text, marginBottom: spacing.sm },
-  tagline: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.muted, marginBottom: spacing.md },
-  benefit: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.xs },
-  pendingNote: { fontFamily: fonts.regular, fontSize: font.sm, color: colors.warning, marginTop: spacing.sm, marginBottom: spacing.sm },
-  chooseBtn: { marginTop: spacing.md },
+  planCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  planName: { fontFamily: fonts.bold, fontSize: font.lg, lineHeight: 26, color: colors.white },
+  price: { fontFamily: fonts.bold, fontSize: font.xl, lineHeight: 30, color: colors.white },
+  tagline: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.white },
+  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  benefit: { flex: 1, fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.white },
+  pendingNote: { fontFamily: fonts.regular, fontSize: font.sm, lineHeight: 20, color: colors.white },
+  chooseBtn: {
+    minHeight: touch.min,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  chooseBtnDisabled: { opacity: 0.7 },
+  chooseLabel: { fontFamily: fonts.semibold, fontSize: font.body, color: colors.primary },
   summaryCard: { ...card, padding: spacing.lg, marginBottom: spacing.md },
   body: { fontFamily: fonts.regular, fontSize: font.body, lineHeight: 24, color: colors.text, marginBottom: spacing.sm },
   modalCancel: { marginTop: spacing.sm },

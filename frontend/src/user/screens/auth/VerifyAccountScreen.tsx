@@ -40,6 +40,15 @@ export default function VerifyAccountScreen({ navigation, route }: {
     setLinkMessages([result.message || MSG.verifyFirst]);
   };
 
+  const continueLocal = () => {
+    const account = getPublicUser(params.userId);
+    if (!account) {
+      navigation.navigate('Login');
+      return;
+    }
+    void signIn(account, { keepLoggedIn: false });
+  };
+
   const codeFlow = user ? (
     <VerificationFlow
       live={Boolean(params.live)}
@@ -49,8 +58,8 @@ export default function VerifyAccountScreen({ navigation, route }: {
       phone={user.contactNumber}
       email={user.email}
       successMessage={MSG.verified}
-      successButtonTitle={params.live ? 'Continue' : 'Back to log in'}
-      onVerified={() => (params.live ? void onConfirmed() : navigation.navigate('Login'))}
+      successButtonTitle="Continue"
+      onVerified={() => (params.live ? void onConfirmed() : continueLocal())}
     />
   ) : null;
 
